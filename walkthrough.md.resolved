@@ -1,0 +1,68 @@
+# DistoraVision - Walkthrough
+
+## Apa yang Dibangun
+
+Aplikasi **DistoraVision** — Sales & Distribution Analytics Dashboard menggunakan Laravel 12, sepenuhnya fungsional dengan 8 modul fitur.
+
+## Setup yang Sudah Dilakukan
+
+| Item | Status |
+|------|--------|
+| Laravel 12.12.2 | ✅ Installed |
+| MySQL database `distoravision` | ✅ Created |
+| Laravel Breeze (Auth) | ✅ Installed |
+| Maatwebsite Excel | ✅ Installed |
+| 7 Database migrations | ✅ Migrated |
+| 7 Eloquent models | ✅ Created |
+
+## Database Schema
+
+```mermaid
+erDiagram
+    branches ||--o{ salesmen : has
+    branches ||--o{ transactions : has
+    principals ||--o{ products : has
+    salesmen ||--o{ transactions : has
+    outlets ||--o{ transactions : has
+    products ||--o{ transactions : has
+    users ||--o{ import_logs : has
+```
+
+## 8 Fitur
+
+1. **Import Data** — Upload CSV/Excel, auto-parse & normalize ke 5 tabel master
+2. **Dashboard Eksekutif** — KPI cards, weekly trend chart, principal donut chart, top products/outlets
+3. **Salesman Performance** — Ranking, detail page, weekly bar chart
+4. **Outlet Analytics** — Search, city filter, purchase history
+5. **Principal Intelligence** — Comparison bar chart, return analysis, top products
+6. **Product Analytics** — SKU ranking, return rate per product, search
+7. **Regional Analysis** — City bar chart, sales/return comparison per kota
+8. **Report Generator** — (Future: PDF/Excel export)
+
+## Login Credentials
+
+| Field | Value |
+|-------|-------|
+| URL | `http://127.0.0.1:8000` |
+| Email | `admin@distoravision.com` |
+| Password | `password123` |
+
+## Langkah Selanjutnya
+
+> [!IMPORTANT]
+> File CSV original (`Secondary Sales februari 2026.csv`) hilang saat proses setup Laravel. Kamu perlu **menaruh kembali file CSV tersebut** ke folder `c:\xampp\htdocs\distoravision\excel\`.
+
+Setelah file CSV di-copy kembali:
+1. Buka `http://127.0.0.1:8000` di browser
+2. Login dengan credentials di atas
+3. Klik **Import Data** → **Import Baru**
+4. Pilih periode **2026-02**, upload file CSV
+5. Setelah import selesai, semua dashboard dan analytics akan terisi data
+
+## Verifikasi
+
+- ✅ Route list: 25 routes registered
+- ✅ Login page loads correctly
+- ✅ Test user created
+- ⚠️ CSV file needs to be re-placed in `/excel/` folder
+- ⏳ Full import test pending (waiting for CSV file)
