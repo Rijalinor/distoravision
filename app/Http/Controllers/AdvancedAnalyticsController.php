@@ -544,24 +544,34 @@ class AdvancedAnalyticsController extends Controller
             if ($item->shortfall < 0) $item->shortfall = 0;
             
             $item->progress = $item->target > 0 ? ($item->total_revenue / $item->target) * 100 : 100;
-            if ($item->progress > 100) $item->progress = 100;
+            // Removed 100% cap to show real performance (e.g. 102%)
 
             $item->required_run_rate = $item->shortfall / $remainingDays;
             
             return $item;
         });
 
-        // Re-sort based on their progressive target
+        // Re-sort based on their real progress
         $tracking = $tracking->sortByDesc('progress')->values();
 
         // --- DISTORA AI NARRATIVE GENERATOR ---
         $underperformers = $tracking->filter(fn($t) => $t->progress < 80)->count();
         $totalSalesMTD = $tracking->sum('total_revenue');
-        $runRate = $isCurrentMonth && $teamTarget > $totalSalesMTD ? ($teamTarget - $totalSalesMTD) / max(1, $remainingDays) : 0;
-        
-        $aiNarrative = "🔍 Fakta: Sisa hari kerja aktif tinggal $remainingDays hari. Seluruh tim butuh berlari dengan pace kolektif Rp " . number_format($runRate, 0, ',', '.') . " / hari.\n" .
-                       "⚠️ Peringatan: Sangat gawat! Ada $underperformers Salesman yang progressnya masih lampu merah (<80%).\n" .
-                       "💡 Saran Eksekusi: Stop push tim yang sudah Achieved, alihkan fokus manajemen dan buffer barang untuk mendobrak sales tim yang masih berdarah-darah!";
+        $totalGap = $teamTarget - $totalSalesMTD;
+        $isAchieved = $totalGap <= 0;
+
+        if ($isAchieved) {
+            $aiNarrative = "🏆 Fakta: Target Global Perusahaan TELAH TERCAPAI! Akumulasi sales Rp " . number_format($totalSalesMTD, 0, ',', '.') . ".\n" .
+                           "🎉 Selamat: Seluruh tim telah bekerja keras melampaui target kolektif.\n" .
+                           "💡 Saran Eksekusi: Manfaatkan sisa $remainingDays hari untuk mendelegasikan stok ke outlet premium dan kunci PO untuk stok bulan depan!";
+        } else {
+            $runRate = $totalGap / max(1, $remainingDays);
+            $aiNarrative = "🔍 Fakta: Sisa hari kerja aktif tinggal $remainingDays hari. Seluruh tim butuh berlari dengan pace kolektif Rp " . number_format($runRate, 0, ',', '.') . " / hari.\n" .
+                           ($underperformers > 0 
+                            ? "⚠️ Peringatan: Ada $underperformers Salesman yang progressnya masih lampu merah (<80%).\n" 
+                            : "✅ Progress: Luar biasa! Seluruh salesman sudah berada di jalur yang benar (>80%).\n") .
+                           "💡 Saran Eksekusi: " . ($underperformers > 0 ? "Bantu tim yang masih berdarah-darah untuk mendobrak sales!" : "Jaga momentum dan pastikan semua kiriman terproses tepat waktu!");
+        }
 
         return view('analytics.target-tracker', compact('period', 'periods', 'tracking', 'teamTarget', 'remainingDays', 'currentDay', 'workingDays', 'isCurrentMonth', 'aiNarrative'));
     }

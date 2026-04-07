@@ -107,16 +107,15 @@
 
     @php
         $totalSalesMTD = $tracking->sum('total_revenue');
-        $totalTargetTim = $tracking->sum('target');
-        $achievementPercent = $totalTargetTim > 0 ? ($totalSalesMTD / $totalTargetTim) * 100 : 0;
-        $gapPercent = max(0, 100 - $achievementPercent);
+        $achievementPercentGlobal = $teamTarget > 0 ? ($totalSalesMTD / $teamTarget) * 100 : 0;
+        $gapPercentGlobal = max(0, 100 - $achievementPercentGlobal);
     @endphp
-    <div class="card kpi-card" style="border-top: 4px solid {{ $gapPercent > 0 ? 'var(--accent-red)' : 'var(--accent-green)' }};">
+    <div class="card kpi-card" style="border-top: 4px solid {{ $gapPercentGlobal > 0 ? 'var(--accent-red)' : 'var(--accent-green)' }};">
         <div class="card-title">Kekurangan Target</div>
-        <div class="kpi-value {{ $gapPercent > 0 ? 'text-red' : 'text-green' }}">
-            {{ $gapPercent > 0 ? number_format($gapPercent, 1) . '%' : 'TERCAPAI' }}
+        <div class="kpi-value {{ $gapPercentGlobal > 0 ? 'text-red' : 'text-green' }}">
+            {{ $gapPercentGlobal > 0 ? number_format($gapPercentGlobal, 1) . '%' : 'TERCAPAI' }}
         </div>
-        <div class="kpi-label">{{ $gapPercent > 0 ? 'Lagi Untuk Capai 100%' : 'Target Tim Sudah Aman' }}</div>
+        <div class="kpi-label">{{ $gapPercentGlobal > 0 ? 'Lagi Untuk Capai Global' : 'Target Perusahaan Aman' }}</div>
     </div>
 </div>
 
