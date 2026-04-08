@@ -60,8 +60,8 @@ class ImportController extends Controller
 
     public function destroy(ImportLog $import)
     {
-        // Delete related transactions for this period that were imported
-        \App\Models\Transaction::where('period', $import->period)->delete();
+        // Delete only transactions created by this exact import log.
+        \App\Models\Transaction::where('import_log_id', $import->id)->delete();
         $import->delete();
 
         return redirect()->route('imports.index')->with('success', 'Import log dan data terkait berhasil dihapus.');

@@ -16,6 +16,7 @@ class Transaction extends Model
         'gi_gr_no', 'gi_gr_date', 'si_cn_no', 'month', 'week', 'warehouse',
         'tax_invoice', 'qty_base', 'price_base', 'gross', 'disc_total',
         'taxed_amt', 'vat', 'ar_amt', 'cogs', 'period',
+        'import_log_id',
     ];
 
     protected $casts = [

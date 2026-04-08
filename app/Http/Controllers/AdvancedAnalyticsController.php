@@ -581,11 +581,21 @@ class AdvancedAnalyticsController extends Controller
      */
     public function saveTargets(Request $request)
     {
-        $period = $request->get('period');
-        $targets = $request->get('targets', []); // [salesman_id => amount]
+        $validated = $request->validate([
+            'period' => ['required', 'date_format:Y-m'],
+            'targets' => ['required', 'array'],
+            'targets.*' => ['nullable', 'numeric', 'min:0'],
+        ]);
+
+        $period = $validated['period'];
+        $targets = $validated['targets']; // [salesman_id => amount]
+        $validSalesmanIds = Salesman::whereIn('id', array_keys($targets))
+            ->pluck('id')
+            ->all();
 
         foreach ($targets as $salesmanId => $amount) {
             if ($amount === null || $amount < 0) continue;
+            if (!in_array((int) $salesmanId, $validSalesmanIds, true)) continue;
 
             SalesmanTarget::updateOrCreate(
                 ['salesman_id' => $salesmanId, 'period' => $period],

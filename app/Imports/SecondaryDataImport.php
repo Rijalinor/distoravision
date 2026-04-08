@@ -110,6 +110,7 @@ class SecondaryDataImport implements ToCollection, WithHeadingRow, WithChunkRead
 
         // 9. Create Transaction
         Transaction::create([
+            'import_log_id' => $this->importLog->id,
             'branch_id' => $branchId,
             'salesman_id' => $salesmanId,
             'outlet_id' => $outletId,
