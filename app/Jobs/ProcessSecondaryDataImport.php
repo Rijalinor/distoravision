@@ -44,13 +44,20 @@ class ProcessSecondaryDataImport implements ShouldQueue
             $import = new SecondaryDataImport($this->importLog);
             Excel::import($import, $this->filePath, 'local');
 
-            $totalRows = $import->getImportedCount() + $import->getFailedCount();
+            $totalRows = $import->getImportedCount() + $import->getFailedCount() + $import->getDuplicateCount();
+            $status = 'completed';
+            if ($import->getImportedCount() === 0) {
+                $status = 'failed';
+            } elseif ($import->getFailedCount() > 0) {
+                $status = 'completed';
+            }
 
             $this->importLog->update([
                 'total_rows' => $totalRows,
                 'imported_rows' => $import->getImportedCount(),
+                'skipped_rows' => $import->getDuplicateCount(),
                 'failed_rows' => $import->getFailedCount(),
-                'status' => $import->getFailedCount() > 0 && $import->getImportedCount() === 0 ? 'failed' : 'completed',
+                'status' => $status,
                 'errors' => !empty($import->getErrors()) ? implode("\n", $import->getErrors()) : null,
                 'completed_at' => now(),
             ]);

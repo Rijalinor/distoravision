@@ -27,8 +27,12 @@
                 </div>
             </div>
             <div>
-                <div class="text-sm text-muted">Baris Sukses / Gagal</div>
-                <div><span class="text-green">{{ number_format($import->imported_rows) }}</span> / <span class="text-red">{{ number_format($import->failed_rows) }}</span></div>
+                <div class="text-sm text-muted">Baris Sukses / Skip / Gagal</div>
+                <div>
+                    <span class="text-green">{{ number_format($import->imported_rows) }}</span> /
+                    <span class="text-yellow">{{ number_format($import->skipped_rows ?? 0) }}</span> /
+                    <span class="text-red">{{ number_format($import->failed_rows) }}</span>
+                </div>
             </div>
         </div>
 

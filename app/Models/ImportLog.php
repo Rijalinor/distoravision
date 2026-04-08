@@ -9,7 +9,7 @@ class ImportLog extends Model
 {
     protected $fillable = [
         'user_id', 'filename', 'period', 'total_rows',
-        'imported_rows', 'failed_rows', 'status', 'errors',
+        'imported_rows', 'skipped_rows', 'failed_rows', 'status', 'errors',
         'started_at', 'completed_at',
     ];
 

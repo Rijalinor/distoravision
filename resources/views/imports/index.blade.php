@@ -23,6 +23,7 @@
                     <th>Periode</th>
                     <th>Total</th>
                     <th>Sukses</th>
+                    <th>Skip</th>
                     <th>Gagal</th>
                     <th>Status</th>
                     <th>Aksi</th>
@@ -36,6 +37,7 @@
                     <td><span class="badge badge-blue">{{ $import->period }}</span></td>
                     <td class="font-mono">{{ number_format($import->total_rows) }}</td>
                     <td class="font-mono text-green">{{ number_format($import->imported_rows) }}</td>
+                    <td class="font-mono text-yellow">{{ number_format($import->skipped_rows ?? 0) }}</td>
                     <td class="font-mono text-red">{{ number_format($import->failed_rows) }}</td>
                     <td>
                         @if($import->status === 'completed')

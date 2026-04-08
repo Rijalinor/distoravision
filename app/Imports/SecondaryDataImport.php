@@ -11,6 +11,7 @@ use App\Models\Salesman;
 use App\Models\Transaction;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Schema;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithChunkReading;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
@@ -20,7 +21,10 @@ class SecondaryDataImport implements ToCollection, WithHeadingRow, WithChunkRead
     protected ImportLog $importLog;
     protected int $importedCount = 0;
     protected int $failedCount = 0;
+    protected int $duplicateCount = 0;
     protected array $errors = [];
+    protected bool $hasImportLogIdColumn = false;
+    protected bool $hasDedupeKeyColumn = false;
 
     // Caches to avoid repeated DB queries
     protected array $branchCache = [];
@@ -32,14 +36,20 @@ class SecondaryDataImport implements ToCollection, WithHeadingRow, WithChunkRead
     public function __construct(ImportLog $importLog)
     {
         $this->importLog = $importLog;
+        $this->hasImportLogIdColumn = Schema::hasColumn('transactions', 'import_log_id');
+        $this->hasDedupeKeyColumn = Schema::hasColumn('transactions', 'dedupe_key');
     }
 
     public function collection(Collection $rows)
     {
         foreach ($rows as $index => $row) {
             try {
-                $this->processRow($row, $index);
-                $this->importedCount++;
+                $result = $this->processRow($row);
+                if ($result === 'imported') {
+                    $this->importedCount++;
+                } elseif ($result === 'duplicate') {
+                    $this->duplicateCount++;
+                }
             } catch (\Exception $e) {
                 $this->failedCount++;
                 if (count($this->errors) < 50) {
@@ -49,19 +59,28 @@ class SecondaryDataImport implements ToCollection, WithHeadingRow, WithChunkRead
         }
 
         // Update import log periodically
+        $errorText = !empty($this->errors) ? implode("\n", $this->errors) : null;
+        if ($this->duplicateCount > 0) {
+            $dupLine = "Duplicate rows skipped: {$this->duplicateCount}";
+            $errorText = $errorText ? ($errorText . "\n" . $dupLine) : $dupLine;
+        }
+
         $this->importLog->update([
             'imported_rows' => $this->importedCount,
+            'skipped_rows' => $this->duplicateCount,
             'failed_rows' => $this->failedCount,
-            'errors' => !empty($this->errors) ? implode("\n", $this->errors) : null,
+            'errors' => $errorText,
         ]);
     }
 
-    protected function processRow(Collection $row, int $index): void
+    protected function processRow(Collection $row): string
     {
         // Skip empty rows
         if (empty($row['branch']) && empty($row['sales_id'])) {
-            return;
+            return 'skipped';
         }
+
+        $this->validateRow($row);
 
         // 1. Get or create Branch
         $branchId = $this->getOrCreateBranch($row['branch'] ?? '', $row['branch_name'] ?? '');
@@ -108,15 +127,17 @@ class SecondaryDataImport implements ToCollection, WithHeadingRow, WithChunkRead
         $arAmt = $this->parseNumber($row['ar_amt'] ?? 0);
         $cogs = $this->parseNumber($row['cogs'] ?? 0);
 
-        // 9. Create Transaction
-        Transaction::create([
-            'import_log_id' => $this->importLog->id,
+        $type = strtoupper(trim((string) ($row['type'] ?? 'I')));
+        $soNoRaw = trim((string) ($row['sosn_no'] ?? $row['so_sn_no'] ?? ''));
+        $soNo = $soNoRaw !== '' ? strtoupper($soNoRaw) : '';
+        $dedupeKey = $this->buildDedupeKey($period, $type, $soNo, $outletId, $productId, $salesmanId, $qtyBase, $arAmt);
+        $payload = [
             'branch_id' => $branchId,
             'salesman_id' => $salesmanId,
             'outlet_id' => $outletId,
             'product_id' => $productId,
-            'type' => strtoupper(trim($row['type'] ?? 'I')),
-            'so_no' => $row['sosn_no'] ?? $row['so_sn_no'] ?? null,
+            'type' => $type,
+            'so_no' => $soNo !== '' ? $soNo : null,
             'so_date' => $soDate,
             'ref_no' => $row['ref_no'] ?? null,
             'pfi_cn_no' => $row['pficn_no'] ?? $row['pfi_cn_no_2'] ?? null,
@@ -137,7 +158,147 @@ class SecondaryDataImport implements ToCollection, WithHeadingRow, WithChunkRead
             'ar_amt' => $arAmt,
             'cogs' => $cogs,
             'period' => $period,
-        ]);
+        ];
+
+        if ($this->hasImportLogIdColumn) {
+            $payload['import_log_id'] = $this->importLog->id;
+        }
+
+        // 9. Create Transaction (idempotent with dedupe key)
+        if ($this->hasDedupeKeyColumn) {
+            $existingDuplicate = $this->findExistingDuplicate(
+                $dedupeKey,
+                $period,
+                $type,
+                $soNo,
+                $outletId,
+                $productId,
+                $salesmanId,
+                $qtyBase,
+                $arAmt
+            );
+
+            if ($existingDuplicate !== null) {
+                // Backfill dedupe_key on legacy rows so next imports are faster.
+                if ($existingDuplicate->dedupe_key === null) {
+                    Transaction::withoutGlobalScopes()
+                        ->whereKey($existingDuplicate->id)
+                        ->update(['dedupe_key' => $dedupeKey]);
+                }
+
+                return 'duplicate';
+            }
+
+            $transaction = Transaction::withoutGlobalScopes()->firstOrCreate(
+                ['dedupe_key' => $dedupeKey],
+                array_merge($payload, ['dedupe_key' => $dedupeKey])
+            );
+
+            return $transaction->wasRecentlyCreated ? 'imported' : 'duplicate';
+        }
+
+        // Backward compatibility when dedupe column does not exist yet.
+        Transaction::withoutGlobalScopes()->create($payload);
+        return 'imported';
+    }
+
+    protected function findExistingDuplicate(
+        string $dedupeKey,
+        string $period,
+        string $type,
+        string $soNo,
+        int $outletId,
+        int $productId,
+        int $salesmanId,
+        float $qtyBase,
+        float $arAmt
+    ): ?Transaction {
+        $normalizedSoNo = $soNo !== '' ? $soNo : '';
+        $formattedQty = number_format($qtyBase, 4, '.', '');
+        $formattedArAmt = number_format($arAmt, 4, '.', '');
+
+        return Transaction::withoutGlobalScopes()
+            ->where(function ($q) use (
+                $dedupeKey,
+                $period,
+                $type,
+                $normalizedSoNo,
+                $outletId,
+                $productId,
+                $salesmanId,
+                $formattedQty,
+                $formattedArAmt
+            ) {
+                $q->where('dedupe_key', $dedupeKey)
+                    ->orWhere(function ($legacy) use (
+                        $period,
+                        $type,
+                        $normalizedSoNo,
+                        $outletId,
+                        $productId,
+                        $salesmanId,
+                        $formattedQty,
+                        $formattedArAmt
+                    ) {
+                        $legacy->whereNull('dedupe_key')
+                            ->where('period', $period)
+                            ->where('type', $type)
+                            ->where('outlet_id', $outletId)
+                            ->where('product_id', $productId)
+                            ->where('salesman_id', $salesmanId)
+                            ->where('qty_base', $formattedQty)
+                            ->where('ar_amt', $formattedArAmt)
+                            ->whereRaw('UPPER(COALESCE(so_no, "")) = ?', [$normalizedSoNo]);
+                    });
+            })
+            ->select('id', 'dedupe_key')
+            ->first();
+    }
+
+    protected function validateRow(Collection $row): void
+    {
+        $required = [
+            'branch' => trim((string) ($row['branch'] ?? '')),
+            'sales_id' => trim((string) ($row['sales_id'] ?? '')),
+            'outlet_id' => trim((string) ($row['outlet_id'] ?? '')),
+            'item_no' => trim((string) ($row['item_no'] ?? '')),
+        ];
+
+        foreach ($required as $field => $value) {
+            if ($value === '') {
+                throw new \InvalidArgumentException("Field '{$field}' wajib diisi.");
+            }
+        }
+
+        $type = strtoupper(trim((string) ($row['type'] ?? 'I')));
+        if (!in_array($type, ['I', 'R'], true)) {
+            throw new \InvalidArgumentException("Field 'type' harus I atau R.");
+        }
+    }
+
+    protected function buildDedupeKey(
+        string $period,
+        string $type,
+        string $soNo,
+        int $outletId,
+        int $productId,
+        int $salesmanId,
+        float $qtyBase,
+        float $arAmt
+    ): string {
+        $normalizedSoNo = $soNo !== '' ? $soNo : 'NO_SO';
+        $parts = [
+            $period,
+            $type,
+            $normalizedSoNo,
+            (string) $outletId,
+            (string) $productId,
+            (string) $salesmanId,
+            number_format($qtyBase, 4, '.', ''),
+            number_format($arAmt, 4, '.', ''),
+        ];
+
+        return sha1(implode('|', $parts));
     }
 
     protected function getOrCreateBranch(string $code, string $name): int
@@ -285,5 +446,10 @@ class SecondaryDataImport implements ToCollection, WithHeadingRow, WithChunkRead
     public function getErrors(): array
     {
         return $this->errors;
+    }
+
+    public function getDuplicateCount(): int
+    {
+        return $this->duplicateCount;
     }
 }
