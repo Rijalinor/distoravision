@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DemoModeController;
 use App\Http\Controllers\ImportController;
 use App\Http\Controllers\OutletController;
 use App\Http\Controllers\PrincipalController;
@@ -16,6 +17,7 @@ Route::get('/', function () {
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::post('/demo-mode/toggle', [DemoModeController::class, 'toggle'])->name('demo-mode.toggle');
 
     // Import
     Route::get('/imports', [ImportController::class, 'index'])->name('imports.index');

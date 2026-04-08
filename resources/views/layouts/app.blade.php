@@ -159,6 +159,14 @@
             .btn-danger:hover { background: rgba(239,68,68,0.25); }
             .btn-secondary { background: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border-color); }
             .btn-secondary:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+            .btn-demo-on { background: rgba(16,185,129,0.15); color: var(--accent-green); border: 1px solid rgba(16,185,129,0.35); }
+            .btn-demo-off { background: rgba(239,68,68,0.12); color: #fca5a5; border: 1px solid rgba(239,68,68,0.35); }
+            .top-actions { display:flex; align-items:center; gap:0.75rem; }
+            .demo-chip {
+                display:inline-flex; align-items:center; gap:0.35rem; padding:0.3rem 0.6rem;
+                border-radius:999px; font-size:0.72rem; font-weight:700; letter-spacing:0.02em;
+                background: rgba(16,185,129,0.15); color: var(--accent-green); border: 1px solid rgba(16,185,129,0.3);
+            }
 
             /* Form inputs */
             .form-group { margin-bottom: 1.25rem; }
@@ -261,11 +269,11 @@
             <nav class="sidebar-nav">
                 <div class="nav-section">
                     <div class="nav-section-title">Main</div>
-                    <a href="{{ route('dashboard') }}" class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
+                    <a href="{{ route('dashboard') }}" class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}" title="Dashboard Eksekutif: ringkasan performa bisnis dalam satu layar. Menampilkan KPI utama seperti total sales, return rate, margin, tren mingguan, kontribusi principal, serta narasi insight otomatis untuk membantu Anda membaca kondisi bisnis dengan cepat sebelum masuk ke analisa yang lebih detail.">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
                         Dashboard
                     </a>
-                    <a href="{{ route('imports.index') }}" class="nav-link {{ request()->routeIs('imports.*') ? 'active' : '' }}">
+                    <a href="{{ route('imports.index') }}" class="nav-link {{ request()->routeIs('imports.*') ? 'active' : '' }}" title="Import Data: pusat unggah data transaksi dari file CSV/Excel. Fitur ini dipakai untuk memasukkan data periodik, memantau status proses import (pending, processing, selesai, gagal), melihat jumlah baris sukses/gagal, serta melakukan pengelolaan log import agar histori data tetap terkontrol.">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
                         Import Data
                     </a>
@@ -273,23 +281,23 @@
 
                 <div class="nav-section">
                     <div class="nav-section-title">Analytics</div>
-                    <a href="{{ route('salesmen.index') }}" class="nav-link {{ request()->routeIs('salesmen.*') ? 'active' : '' }}">
+                    <a href="{{ route('salesmen.index') }}" class="nav-link {{ request()->routeIs('salesmen.*') ? 'active' : '' }}" title="Salesman Analytics: memantau kinerja tiap salesman berdasarkan nilai penjualan, retur, jumlah transaksi, cakupan outlet, produk teratas, dan tren mingguan. Cocok untuk evaluasi performa individu, identifikasi tim yang butuh intervensi, dan menyusun rencana coaching berbasis data.">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                         Salesman
                     </a>
-                    <a href="{{ route('outlets.index') }}" class="nav-link {{ request()->routeIs('outlets.*') ? 'active' : '' }}">
+                    <a href="{{ route('outlets.index') }}" class="nav-link {{ request()->routeIs('outlets.*') ? 'active' : '' }}" title="Outlet Analytics: menampilkan performa setiap toko/outlet berdasarkan sales, frekuensi transaksi, produk yang dibeli, dan riwayat pembelian. Berguna untuk memetakan outlet prioritas, mendeteksi outlet yang melemah, serta menentukan strategi kunjungan lapangan yang lebih tepat sasaran.">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
                         Outlet
                     </a>
-                    <a href="{{ route('principals.index') }}" class="nav-link {{ request()->routeIs('principals.*') ? 'active' : '' }}">
+                    <a href="{{ route('principals.index') }}" class="nav-link {{ request()->routeIs('principals.*') ? 'active' : '' }}" title="Principal Intelligence: membandingkan kontribusi setiap principal dari sisi sales, returns, return rate, dan outlet reach. Fitur ini membantu menilai kekuatan brand principal, efektivitas distribusi, serta area yang perlu perbaikan komersial atau strategi promosi.">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"></path></svg>
                         Principal
                     </a>
-                    <a href="{{ route('products.index') }}" class="nav-link {{ request()->routeIs('products.*') ? 'active' : '' }}">
+                    <a href="{{ route('products.index') }}" class="nav-link {{ request()->routeIs('products.*') ? 'active' : '' }}" title="Product Analytics: analisa performa SKU berdasarkan nilai penjualan, jumlah terjual, tingkat retur, dan kontribusi terhadap total omset. Digunakan untuk menentukan produk andalan, mengevaluasi produk lambat, dan mendukung keputusan stok maupun fokus promosi.">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
                         Produk
                     </a>
-                    <a href="{{ route('regional.index') }}" class="nav-link {{ request()->routeIs('regional.*') ? 'active' : '' }}">
+                    <a href="{{ route('regional.index') }}" class="nav-link {{ request()->routeIs('regional.*') ? 'active' : '' }}" title="Regional Analytics: visualisasi performa per wilayah/kota/cluster agar manajemen bisa membandingkan area dengan cepat. Mencakup indikator sales, return, jangkauan outlet, dan volume transaksi untuk mendukung prioritas ekspansi, distribusi, dan alokasi tim lapangan.">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                         Regional
                     </a>
@@ -297,46 +305,46 @@
 
                 <div class="nav-section">
                     <div class="nav-section-title">Intelligence</div>
-                    <a href="{{ route('analytics.rfm') }}" class="nav-link {{ request()->routeIs('analytics.rfm') ? 'active' : '' }}">
+                    <a href="{{ route('analytics.rfm') }}" class="nav-link {{ request()->routeIs('analytics.rfm') ? 'active' : '' }}" title="Analisa RFM (Recency, Frequency, Monetary): mengelompokkan outlet ke segmen seperti Champion, Loyal, Need Attention, dan At Risk. Sangat berguna untuk strategi retensi pelanggan, prioritas kunjungan sales, serta desain program promo yang berbeda untuk tiap tipe outlet.">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path></svg>
                         Analisa RFM
                     </a>
-                    <a href="{{ route('analytics.cross-selling') }}" class="nav-link {{ request()->routeIs('analytics.cross-selling') ? 'active' : '' }}">
+                    <a href="{{ route('analytics.cross-selling') }}" class="nav-link {{ request()->routeIs('analytics.cross-selling') ? 'active' : '' }}" title="Peluang Keranjang (Cross-Selling): menganalisa pola produk yang sering dibeli bersamaan oleh outlet. Fitur ini membantu menyusun bundling, rekomendasi produk pasangan, dan strategi upsell agar nilai transaksi per outlet meningkat secara konsisten.">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
                         Peluang Keranjang
                     </a>
                     
                     <div class="nav-section-title" style="margin-top: 1rem;">C-Suite Analytics</div>
                     
-                    <a href="{{ route('analytics.margin') }}" class="nav-link {{ request()->routeIs('analytics.margin') ? 'active' : '' }}">
+                    <a href="{{ route('analytics.margin') }}" class="nav-link {{ request()->routeIs('analytics.margin') ? 'active' : '' }}" title="Profitabilitas (Margin): memonitor revenue, COGS, gross profit, dan margin persen secara agregat maupun per principal/produk. Dipakai untuk memastikan pertumbuhan omset tetap sehat, mengidentifikasi area yang menggerus laba, dan mendukung keputusan pricing serta efisiensi biaya.">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                         Profitabilitas (Margin)
                     </a>
-                    <a href="{{ route('analytics.target-tracker') }}" class="nav-link {{ request()->routeIs('analytics.target-tracker') ? 'active' : '' }}">
+                    <a href="{{ route('analytics.target-tracker') }}" class="nav-link {{ request()->routeIs('analytics.target-tracker') ? 'active' : '' }}" title="Target Tracker & Run Rate: memantau pencapaian target tim/salesman secara real-time, menghitung gap terhadap target, dan menampilkan kebutuhan run-rate harian agar target periode tetap tercapai. Fitur ini ideal untuk review harian/mingguan dan action plan cepat.">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                         Target Tracker & Run Rate
                     </a>
-                    <a href="{{ route('analytics.cohort') }}" class="nav-link {{ request()->routeIs('analytics.cohort') ? 'active' : '' }}">
+                    <a href="{{ route('analytics.cohort') }}" class="nav-link {{ request()->routeIs('analytics.cohort') ? 'active' : '' }}" title="Cohort Analysis (Matriks): menilai retensi outlet berdasarkan cohort periode pertama transaksi. Membantu melihat pola keberlanjutan order antar-bulan, mendeteksi penurunan loyalitas lebih dini, serta mengukur kualitas akuisisi outlet dari waktu ke waktu.">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
                         Cohort Analysis (Matriks)
                     </a>
                     
                     <!-- EXPORT / REPORT -->
-                    <a href="{{ route('analytics.report') }}" class="nav-link {{ request()->routeIs('analytics.report') ? 'active' : '' }}" style="margin-top: 0.5rem; background: rgba(59, 130, 246, 0.1); border-left: 3px solid var(--accent-blue);">
+                    <a href="{{ route('analytics.report') }}" class="nav-link {{ request()->routeIs('analytics.report') ? 'active' : '' }}" title="Buku Rapor (Cetak): halaman ringkasan manajerial yang siap diekspor menjadi laporan formal (misalnya Excel). Digunakan sebagai materi meeting evaluasi periodik karena merangkum KPI, insight utama, dan indikator operasional ke format yang mudah dibagikan." style="margin-top: 0.5rem; background: rgba(59, 130, 246, 0.1); border-left: 3px solid var(--accent-blue);">
                         <svg fill="none" stroke="var(--accent-blue)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                         <span style="color:var(--accent-blue); font-weight:bold;">Buku Rapor (Cetak)</span>
                     </a>
 
                     <div class="nav-section-title" style="margin-top: 1rem;">Lainnya</div>
-                    <a href="{{ route('analytics.pareto') }}" class="nav-link {{ request()->routeIs('analytics.pareto') ? 'active' : '' }}">
+                    <a href="{{ route('analytics.pareto') }}" class="nav-link {{ request()->routeIs('analytics.pareto') ? 'active' : '' }}" title="Analisa Pareto 80/20: menunjukkan entitas (produk/outlet) mana yang memberi kontribusi terbesar terhadap pendapatan. Membantu fokus eksekusi ke sumber utama omset, mengelola risiko ketergantungan, dan merancang prioritas yang berdampak paling tinggi.">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
                         Analisa Pareto
                     </a>
-                    <a href="{{ route('analytics.discount') }}" class="nav-link {{ request()->routeIs('analytics.discount') ? 'active' : '' }}">
+                    <a href="{{ route('analytics.discount') }}" class="nav-link {{ request()->routeIs('analytics.discount') ? 'active' : '' }}" title="Efektivitas Diskon: mengevaluasi besaran diskon terhadap gross sales, dampaknya ke net sales, serta distribusi diskon per principal dan produk. Cocok untuk menilai apakah promo benar-benar mendorong pertumbuhan sehat atau justru menggerus margin.">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>
                         Efektifitas Diskon
                     </a>
-                    <a href="{{ route('analytics.sleeping-outlets') }}" class="nav-link {{ request()->routeIs('analytics.sleeping-outlets') ? 'active' : '' }}">
+                    <a href="{{ route('analytics.sleeping-outlets') }}" class="nav-link {{ request()->routeIs('analytics.sleeping-outlets') ? 'active' : '' }}" title="Toko Berhenti (Sleeping Outlets): mendeteksi outlet yang sebelumnya aktif namun tidak bertransaksi di periode berjalan. Fitur ini mempermudah tim mengambil tindakan reaktivasi lebih cepat, menghitung potensi opportunity loss, dan mencegah pelanggan berpindah ke kompetitor.">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
                         Toko Berhenti (Sleep)
                     </a>
@@ -368,7 +376,20 @@
                     <h1 class="page-title">@yield('page-title', 'Dashboard')</h1>
                 </div>
                 <div>
-                    @yield('top-bar-actions')
+                    <div class="top-actions">
+                        @if(session('demo_mode_active', false))
+                            <span class="demo-chip">DEMO ACTIVE</span>
+                        @endif
+
+                        <form method="POST" action="{{ route('demo-mode.toggle') }}">
+                            @csrf
+                            <button type="submit" class="btn {{ session('demo_mode_active', false) ? 'btn-demo-on' : 'btn-demo-off' }}">
+                                {{ session('demo_mode_active', false) ? 'Matikan Demo' : 'Aktifkan Demo' }}
+                            </button>
+                        </form>
+
+                        @yield('top-bar-actions')
+                    </div>
                 </div>
             </div>
 

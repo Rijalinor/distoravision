@@ -1,6 +1,17 @@
 @php
     $periods = \App\Models\Transaction::select('period')->distinct()->orderByDesc('period')->pluck('period');
-    $principals = \App\Models\Principal::orderBy('name')->get();
+
+    $principalFilterRequest = new \Illuminate\Http\Request(request()->except('principal_id'));
+
+    $principalIds = \App\Models\Transaction::withFilters($principalFilterRequest)
+        ->join('products', 'transactions.product_id', '=', 'products.id')
+        ->select('products.principal_id')
+        ->distinct()
+        ->pluck('products.principal_id');
+
+    $principals = \App\Models\Principal::whereIn('id', $principalIds)
+        ->orderBy('name')
+        ->get();
     
     $start_period = request('start_period', request('period', $periods->first()));
     $end_period = request('end_period', request('period', $periods->first()));

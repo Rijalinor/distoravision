@@ -6,6 +6,7 @@ use App\Imports\SecondaryDataImport;
 use App\Models\ImportLog;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Maatwebsite\Excel\Facades\Excel;
 
 class ImportController extends Controller
@@ -60,8 +61,15 @@ class ImportController extends Controller
 
     public function destroy(ImportLog $import)
     {
-        // Delete only transactions created by this exact import log.
-        \App\Models\Transaction::where('import_log_id', $import->id)->delete();
+        // Backward-compatible delete:
+        // - If import_log_id column exists, delete by exact import log (safe).
+        // - If not, fallback to period delete to avoid runtime failure.
+        if (Schema::hasColumn('transactions', 'import_log_id')) {
+            \App\Models\Transaction::where('import_log_id', $import->id)->delete();
+        } else {
+            \App\Models\Transaction::where('period', $import->period)->delete();
+        }
+
         $import->delete();
 
         return redirect()->route('imports.index')->with('success', 'Import log dan data terkait berhasil dihapus.');

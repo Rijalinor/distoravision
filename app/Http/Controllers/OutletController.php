@@ -25,6 +25,10 @@ class OutletController extends Controller
             ->withSum([
                 'transactions as total_sales' => fn($q) => $q->where('type', 'I')->withFilters(request()),
             ], 'ar_amt');
+        
+        if ($request->session()->get('demo_mode_active', false)) {
+            $query->whereHas('transactions', fn($q) => $q->withFilters(request()));
+        }
 
         if ($search) {
             $query->where(function ($q) use ($search) {
