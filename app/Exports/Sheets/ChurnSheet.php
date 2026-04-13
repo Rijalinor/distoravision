@@ -32,15 +32,15 @@ class ChurnSheet implements FromArray, WithTitle, WithStyles, ShouldAutoSize
         $prevRequest = new \Illuminate\Http\Request();
         $prevRequest->merge(['start_period' => $prevPeriod, 'end_period' => $prevPeriod, 'principal_id' => $this->request->get('principal_id')]);
 
-        $prevOutlets = Transaction::withFilters($prevRequest)->invoices()
-            ->select('outlet_id', DB::raw('SUM(ar_amt) as prev_sales'), DB::raw('MAX(so_date) as last_order'))
+        $prevOutlets = Transaction::withFilters($prevRequest)
+            ->select('outlet_id', DB::raw('SUM(CASE WHEN type = "I" THEN taxed_amt WHEN type = "R" THEN -ABS(taxed_amt) ELSE 0 END) as prev_sales'), DB::raw('MAX(CASE WHEN type = "I" THEN so_date END) as last_order'))
             ->groupBy('outlet_id')
             ->having('prev_sales', '>', 0)
             ->get()->keyBy('outlet_id');
 
-        $currentOutlets = Transaction::withFilters($this->request)->invoices()
+        $currentOutlets = Transaction::withFilters($this->request)
             ->groupBy('outlet_id')
-            ->having(DB::raw('SUM(ar_amt)'), '>', 0)
+            ->having(DB::raw('SUM(CASE WHEN type = "I" THEN taxed_amt WHEN type = "R" THEN -ABS(taxed_amt) ELSE 0 END)'), '>', 0)
             ->pluck('outlet_id')->unique()->toArray();
 
         $churnedIds = $prevOutlets->keys()->diff($currentOutlets);
@@ -110,3 +110,4 @@ class ChurnSheet implements FromArray, WithTitle, WithStyles, ShouldAutoSize
         ];
     }
 }
+

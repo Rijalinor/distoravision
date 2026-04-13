@@ -40,12 +40,12 @@ class ProductSheet implements FromArray, WithTitle, WithStyles, WithColumnWidths
         $products = Transaction::withFilters($this->request)->invoices()
             ->join('products', 'transactions.product_id', '=', 'products.id')
             ->join('principals', 'products.principal_id', '=', 'principals.id')
-            ->select('products.name as product_name', 'principals.name as principal_name', DB::raw('SUM(transactions.ar_amt) as net_sales'), DB::raw('SUM(transactions.cogs) as cogs'), DB::raw('SUM(transactions.qty_base) as total_qty'), DB::raw('SUM(transactions.disc_total) as total_disc'), DB::raw('COUNT(DISTINCT transactions.outlet_id) as outlet_reach'))
+            ->select('products.name as product_name', 'principals.name as principal_name', DB::raw('SUM(transactions.taxed_amt) as net_sales'), DB::raw('SUM(transactions.cogs) as cogs'), DB::raw('SUM(transactions.qty_base) as total_qty'), DB::raw('SUM(transactions.disc_total) as total_disc'), DB::raw('COUNT(DISTINCT transactions.outlet_id) as outlet_reach'))
             ->groupBy('products.name', 'principals.name')->orderByDesc('net_sales')->get();
 
         $returnMap  = Transaction::withFilters($this->request)->returns()
             ->join('products', 'transactions.product_id', '=', 'products.id')
-            ->select('products.name as product_name', DB::raw('SUM(ABS(transactions.ar_amt)) as total_returns'))
+            ->select('products.name as product_name', DB::raw('SUM(ABS(transactions.taxed_amt)) as total_returns'))
             ->groupBy('products.name')->get()->keyBy('product_name');
 
         $totalSales = (float) $products->sum('net_sales');
@@ -122,3 +122,4 @@ class ProductSheet implements FromArray, WithTitle, WithStyles, WithColumnWidths
         ];
     }
 }
+

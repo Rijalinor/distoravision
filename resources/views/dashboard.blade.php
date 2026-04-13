@@ -47,12 +47,12 @@
         </div>
         <div class="card kpi-card">
             <div class="card-header">
-                <span class="card-title" title="Sales Bersih Aktual (Sales Gross dipotong Retur dan Diskon). Nilai nyata yang jadi target tertagih.">Net Sales</span>
+                <span class="card-title" title="Sales Bersih Aktual dengan rumus: Taxed Amount - Return.">Net Sales</span>
                 <div class="kpi-icon blue"><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>
             </div>
             <div class="kpi-value" title="Rp {{ number_format($netSales, 0, ',', '.') }}">Rp {{ number_format($netSales / 1000, 0, ',', '.') }}K</div>
             <div style="display:flex; justify-content:space-between; align-items:center;">
-                <div class="kpi-label">Setelah returns</div>
+                <div class="kpi-label">Setelah return</div>
                 @if(isset($momNetSales) && $momNetSales !== 0)
                 <div class="badge {{ $momNetSales > 0 ? 'badge-green' : 'badge-red' }}" style="font-size:0.6rem;">{!! $momNetSales > 0 ? '↑' : '↓' !!} {{ number_format(abs($momNetSales), 1) }}%</div>
                 @endif

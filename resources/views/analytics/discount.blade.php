@@ -28,7 +28,7 @@
     </div>
 
     <div class="card kpi-card">
-        <div class="card-title" title="Nominal sebenarnya yang ditagihkan kepada pelanggan (Gross dipotong Diskon).">Net Sales (AR)</div>
+        <div class="card-title" title="Sales bersih setelah retur, berbasis Taxed Amount.">Net Sales (Taxed - Return)</div>
         <div class="kpi-value text-green" title="Rp {{ number_format($totalNet, 0, ',', '.') }}">Rp {{ number_format($totalNet / 1000000, 0, ',', '.') }}M</div>
         <div class="kpi-label">Sales Bersih Tertagih</div>
     </div>
@@ -93,7 +93,7 @@
                     <th>Nama Principal</th>
                     <th class="text-right">Gross Sales</th>
                     <th class="text-right">Total Diskon</th>
-                    <th class="text-right">Net Sales (AR)</th>
+                    <th class="text-right">Net Sales (Taxed - Return)</th>
                     <th class="text-right">Discount Depth (%)</th>
                 </tr>
             </thead>

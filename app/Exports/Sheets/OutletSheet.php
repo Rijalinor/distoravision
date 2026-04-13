@@ -39,14 +39,14 @@ class OutletSheet implements FromArray, WithTitle, WithStyles, WithColumnWidths,
         $outlets = Transaction::withFilters($this->request)->invoices()
             ->join('outlets', 'transactions.outlet_id', '=', 'outlets.id')
             ->join('salesmen', 'transactions.salesman_id', '=', 'salesmen.id')
-            ->select('outlets.name as outlet_name', 'outlets.city', DB::raw('LEFT(outlets.code, 3) as region_code'), 'salesmen.name as salesman_name', DB::raw('SUM(transactions.ar_amt) as net_sales'), DB::raw('SUM(transactions.qty_base) as total_qty'), DB::raw('COUNT(DISTINCT transactions.so_no) as invoice_count'), DB::raw('MAX(transactions.so_date) as last_order_date'))
+            ->select('outlets.name as outlet_name', 'outlets.city', DB::raw('LEFT(outlets.code, 3) as region_code'), 'salesmen.name as salesman_name', DB::raw('SUM(transactions.taxed_amt) as net_sales'), DB::raw('SUM(transactions.qty_base) as total_qty'), DB::raw('COUNT(DISTINCT transactions.so_no) as invoice_count'), DB::raw('MAX(transactions.so_date) as last_order_date'))
             ->whereNotNull('outlets.code')
             ->groupBy('outlets.name', 'outlets.city', 'outlets.code', 'salesmen.name')
             ->orderByDesc('net_sales')->get();
 
         $returnMap = Transaction::withFilters($this->request)->returns()
             ->join('outlets', 'transactions.outlet_id', '=', 'outlets.id')
-            ->select('outlets.name as outlet_name', DB::raw('SUM(ABS(transactions.ar_amt)) as total_returns'))
+            ->select('outlets.name as outlet_name', DB::raw('SUM(ABS(transactions.taxed_amt)) as total_returns'))
             ->groupBy('outlets.name')->get()->keyBy('outlet_name');
 
         $totalSales = (float) $outlets->sum('net_sales');
@@ -118,3 +118,4 @@ class OutletSheet implements FromArray, WithTitle, WithStyles, WithColumnWidths,
         ];
     }
 }
+

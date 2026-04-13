@@ -88,9 +88,9 @@
     <h2 style="font-size: 1.2rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; color:var(--text-color);">1. Ringkasan Kinerja Eksekutif</h2>
     <div class="kpi-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 2rem;">
         <div class="card kpi-card" style="border-top: 4px solid var(--accent-blue);">
-            <div class="card-title">Net Sales (AR)</div>
+            <div class="card-title">Net Sales (Taxed - Return)</div>
             <div class="kpi-value text-blue" style="font-size:1.25rem; font-weight:800; white-space:nowrap; letter-spacing:-0.5px;">Rp {{ number_format($netSales, 0, ',', '.') }}</div>
-            <div class="kpi-label">Sales Bersih Aktual</div>
+            <div class="kpi-label">Taxed Amount - Return</div>
         </div>
         <div class="card kpi-card" style="border-top: 4px solid var(--accent-red);">
             <div class="card-title">Cost of Goods Sold</div>

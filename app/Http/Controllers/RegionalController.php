@@ -17,8 +17,8 @@ class RegionalController extends Controller
             ->join('outlets', 'transactions.outlet_id', '=', 'outlets.id')
             ->select(
                 DB::raw('LEFT(outlets.code, 3) as region_code'),
-                DB::raw('SUM(CASE WHEN transactions.type = "I" THEN transactions.ar_amt ELSE 0 END) as total_sales'),
-                DB::raw('SUM(CASE WHEN transactions.type = "R" THEN ABS(transactions.ar_amt) ELSE 0 END) as total_returns'),
+                DB::raw('SUM(CASE WHEN transactions.type = "I" THEN transactions.taxed_amt ELSE 0 END) as total_sales'),
+                DB::raw('SUM(CASE WHEN transactions.type = "R" THEN ABS(transactions.taxed_amt) ELSE 0 END) as total_returns'),
                 DB::raw('COUNT(DISTINCT CASE WHEN transactions.type = "I" THEN transactions.outlet_id END) as outlet_count'),
                 DB::raw('COUNT(DISTINCT CASE WHEN transactions.type = "I" THEN transactions.salesman_id END) as salesman_count'),
                 DB::raw('COUNT(CASE WHEN transactions.type = "I" THEN 1 END) as trx_count')
@@ -32,3 +32,4 @@ class RegionalController extends Controller
         return view('regional.index', compact('cities', 'period', 'periods'));
     }
 }
+

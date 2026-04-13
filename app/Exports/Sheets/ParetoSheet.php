@@ -41,7 +41,7 @@ class ParetoSheet implements FromArray, WithTitle, WithStyles, WithColumnWidths,
     {
         $data = Transaction::withFilters($this->request)->invoices()
             ->join('products', 'transactions.product_id', '=', 'products.id')
-            ->select('products.name', DB::raw('SUM(transactions.ar_amt) as total_sales'))
+            ->select('products.name', DB::raw('SUM(transactions.taxed_amt) as total_sales'))
             ->groupBy('products.name')->having('total_sales', '>', 0)
             ->orderByDesc('total_sales')->get();
 
@@ -117,3 +117,4 @@ class ParetoSheet implements FromArray, WithTitle, WithStyles, WithColumnWidths,
         ];
     }
 }
+

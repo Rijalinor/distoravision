@@ -37,17 +37,17 @@ class DiscountSheet implements FromArray, WithTitle, WithStyles, WithColumnWidth
 
     public function array(): array
     {
-        $kpi = Transaction::withFilters($this->request)->invoices()
-            ->selectRaw('SUM(gross) as total_gross, SUM(disc_total) as total_discount, SUM(ar_amt) as total_net')->first();
+        $kpi = Transaction::withFilters($this->request)
+            ->selectRaw('SUM(CASE WHEN type = "I" THEN gross ELSE 0 END) as total_gross, SUM(CASE WHEN type = "I" THEN disc_total ELSE 0 END) as total_discount, SUM(CASE WHEN type = "I" THEN taxed_amt WHEN type = "R" THEN -ABS(taxed_amt) ELSE 0 END) as total_net')->first();
 
         $totalGross        = (float) ($kpi->total_gross ?? 0);
         $totalDiscount     = (float) ($kpi->total_discount ?? 0);
         $avgDiscPct        = $totalGross > 0 ? ($totalDiscount / $totalGross) * 100 : 0;
 
-        $principalDiscs = Transaction::withFilters($this->request)->invoices()
+        $principalDiscs = Transaction::withFilters($this->request)
             ->join('products', 'transactions.product_id', '=', 'products.id')
             ->join('principals', 'products.principal_id', '=', 'principals.id')
-            ->select('principals.name as principal_name', DB::raw('SUM(transactions.gross) as gross_sales'), DB::raw('SUM(transactions.disc_total) as discount_given'), DB::raw('SUM(transactions.ar_amt) as net_sales'))
+            ->select('principals.name as principal_name', DB::raw('SUM(CASE WHEN transactions.type = "I" THEN transactions.gross ELSE 0 END) as gross_sales'), DB::raw('SUM(CASE WHEN transactions.type = "I" THEN transactions.disc_total ELSE 0 END) as discount_given'), DB::raw('SUM(CASE WHEN transactions.type = "I" THEN transactions.taxed_amt WHEN transactions.type = "R" THEN -ABS(transactions.taxed_amt) ELSE 0 END) as net_sales'))
             ->groupBy('principals.name')->having('discount_given', '>', 0)->orderByDesc('discount_given')
             ->get()->map(fn($i) => tap($i, fn($it) => $it->disc_pct = $it->gross_sales > 0 ? ($it->discount_given / $it->gross_sales) * 100 : 0));
 
@@ -154,3 +154,4 @@ class DiscountSheet implements FromArray, WithTitle, WithStyles, WithColumnWidth
         ];
     }
 }
+

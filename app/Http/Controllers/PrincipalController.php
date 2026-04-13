@@ -20,7 +20,7 @@ class PrincipalController extends Controller
                     ->whereColumn('products.principal_id', 'principals.id')
                     ->where('transactions.type', 'I')
                     ->withFilters(request())
-                    ->selectRaw('COALESCE(SUM(transactions.ar_amt), 0)'), 
+                    ->selectRaw('COALESCE(SUM(transactions.taxed_amt), 0)'), 
                 'total_sales'
             )
             ->selectSub(
@@ -28,7 +28,7 @@ class PrincipalController extends Controller
                     ->whereColumn('products.principal_id', 'principals.id')
                     ->where('transactions.type', 'R')
                     ->withFilters(request())
-                    ->selectRaw('COALESCE(SUM(ABS(transactions.ar_amt)), 0)'),
+                    ->selectRaw('COALESCE(SUM(ABS(transactions.taxed_amt)), 0)'),
                 'total_returns'
             )
             ->selectSub(
@@ -56,9 +56,9 @@ class PrincipalController extends Controller
 
         $stats = [
             'total_sales' => Transaction::whereHas('product', fn($q) => $q->where('principal_id', $principal->id))
-                ->withFilters(request())->invoices()->sum('ar_amt'),
+                ->withFilters(request())->invoices()->sum('taxed_amt'),
             'total_returns' => Transaction::whereHas('product', fn($q) => $q->where('principal_id', $principal->id))
-                ->withFilters(request())->returns()->sum(DB::raw('ABS(ar_amt)')),
+                ->withFilters(request())->returns()->sum(DB::raw('ABS(taxed_amt)')),
             'product_count' => $principal->products()->count(),
             'outlet_reach' => Transaction::whereHas('product', fn($q) => $q->where('principal_id', $principal->id))
                 ->withFilters(request())->distinct('outlet_id')->count('outlet_id'),
@@ -67,15 +67,16 @@ class PrincipalController extends Controller
         $topProducts = Transaction::withFilters(request())->invoices()
             ->join('products', 'transactions.product_id', '=', 'products.id')
             ->where('products.principal_id', $principal->id)
-            ->select('products.name', DB::raw('SUM(transactions.ar_amt) as total'), DB::raw('SUM(transactions.qty_base) as qty'))
+            ->select('products.name', DB::raw('SUM(transactions.taxed_amt) as total'), DB::raw('SUM(transactions.qty_base) as qty'))
             ->groupBy('products.name')->orderByDesc('total')->limit(15)->get();
 
         $returnedProducts = Transaction::withFilters(request())->returns()
             ->join('products', 'transactions.product_id', '=', 'products.id')
             ->where('products.principal_id', $principal->id)
-            ->select('products.name', DB::raw('SUM(ABS(transactions.ar_amt)) as total'), DB::raw('SUM(ABS(transactions.qty_base)) as qty'))
+            ->select('products.name', DB::raw('SUM(ABS(transactions.taxed_amt)) as total'), DB::raw('SUM(ABS(transactions.qty_base)) as qty'))
             ->groupBy('products.name')->orderByDesc('total')->limit(10)->get();
 
         return view('principals.show', compact('principal', 'period', 'periods', 'stats', 'topProducts', 'returnedProducts'));
     }
 }
+

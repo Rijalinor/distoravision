@@ -19,12 +19,15 @@ class SalesmanController extends Controller
                 'transactions as invoice_count' => fn($q) => $q->where('type', 'I')->withFilters(request()),
                 'transactions as return_count' => fn($q) => $q->where('type', 'R')->withFilters(request()),
             ])
-            ->withSum([
-                'transactions as total_sales' => fn($q) => $q->where('type', 'I')->withFilters(request()),
-            ], 'ar_amt')
+            ->selectSub(
+                Transaction::whereColumn('transactions.salesman_id', 'salesmen.id')
+                    ->where('type', 'I')->withFilters(request())
+                    ->selectRaw('COALESCE(SUM(taxed_amt), 0)'),
+                'total_sales'
+            )
             ->withSum([
                 'transactions as total_returns' => fn($q) => $q->where('type', 'R')->withFilters(request()),
-            ], 'ar_amt')
+            ], 'taxed_amt')
             ->whereHas('transactions', fn($q) => $q->withFilters(request()))
             ->orderByDesc('total_sales')
             ->paginate(20)
@@ -45,8 +48,8 @@ class SalesmanController extends Controller
         $periods = Transaction::select('period')->distinct()->orderByDesc('period')->pluck('period');
 
         $stats = [
-            'total_sales' => Transaction::where('salesman_id', $salesman->id)->withFilters(request())->invoices()->sum('ar_amt'),
-            'total_returns' => Transaction::where('salesman_id', $salesman->id)->withFilters(request())->returns()->sum(DB::raw('ABS(ar_amt)')),
+            'total_sales' => Transaction::where('salesman_id', $salesman->id)->withFilters(request())->invoices()->sum('taxed_amt'),
+            'total_returns' => Transaction::where('salesman_id', $salesman->id)->withFilters(request())->returns()->sum(DB::raw('ABS(taxed_amt)')),
             'outlet_count' => Transaction::where('salesman_id', $salesman->id)->withFilters(request())->distinct('outlet_id')->count('outlet_id'),
             'trx_count' => Transaction::where('salesman_id', $salesman->id)->withFilters(request())->invoices()->count(),
         ];
@@ -54,21 +57,21 @@ class SalesmanController extends Controller
         $topProducts = Transaction::where('transactions.salesman_id', $salesman->id)
             ->withFilters(request())->invoices()
             ->join('products', 'transactions.product_id', '=', 'products.id')
-            ->select('products.name', DB::raw('SUM(transactions.ar_amt) as total'), DB::raw('SUM(transactions.qty_base) as qty'))
+            ->select('products.name', DB::raw('SUM(transactions.taxed_amt) as total'), DB::raw('SUM(transactions.qty_base) as qty'))
             ->groupBy('products.name')->orderByDesc('total')->limit(10)->get();
 
         $topOutlets = Transaction::where('transactions.salesman_id', $salesman->id)
             ->withFilters(request())->invoices()
             ->join('outlets', 'transactions.outlet_id', '=', 'outlets.id')
-            ->select('outlets.name', 'outlets.city', DB::raw('SUM(transactions.ar_amt) as total'))
+            ->select('outlets.name', 'outlets.city', DB::raw('SUM(transactions.taxed_amt) as total'))
             ->groupBy('outlets.name', 'outlets.city')->orderByDesc('total')->limit(10)->get();
 
         $weeklyData = Transaction::where('salesman_id', $salesman->id)->withFilters(request())
-            ->select('week', 'type', DB::raw('SUM(ABS(ar_amt)) as total'))
+            ->select('week', 'type', DB::raw('SUM(ABS(taxed_amt)) as total'))
             ->groupBy('week', 'type')->orderBy('week')->get()->groupBy('week');
 
         $weeklyData = Transaction::where('salesman_id', $salesman->id)->withFilters(request())
-            ->select('week', 'type', DB::raw('SUM(ABS(ar_amt)) as total'))
+            ->select('week', 'type', DB::raw('SUM(ABS(taxed_amt)) as total'))
             ->groupBy('week', 'type')->orderBy('week')->get()->groupBy('week');
 
         // --- SALESMAN 360 APPRAISAL LOGIC ---
@@ -81,12 +84,12 @@ class SalesmanController extends Controller
         $activeThis = Transaction::where('period', $period)->where('type', 'I')->where('salesman_id', $salesman->id)->pluck('outlet_id')->unique();
         $lostOutletsKeys = $activeLast->diff($activeThis);
         $lostOutletsCount = $lostOutletsKeys->count();
-        $lostOutletsValue = Transaction::where('period', $prevM)->where('type', 'I')->whereIn('outlet_id', $lostOutletsKeys)->sum('ar_amt');
+        $lostOutletsValue = Transaction::where('period', $prevM)->where('type', 'I')->whereIn('outlet_id', $lostOutletsKeys)->sum('taxed_amt');
 
         // 3. Personal Target & Run-Rate (Assumes Target = 3-month avg + 10% stretch)
         $past3MStart = \Carbon\Carbon::parse($period . '-01')->subMonths(3)->format('Y-m');
         $vPast = Transaction::where('salesman_id', $salesman->id)->invoices()
-            ->whereBetween('period', [$past3MStart, $prevM])->sum('ar_amt');
+            ->whereBetween('period', [$past3MStart, $prevM])->sum('taxed_amt');
         
         $personalTarget = ($vPast / 3) * 1.1; 
         $shortfall = $personalTarget - $stats['total_sales'];
@@ -106,3 +109,4 @@ class SalesmanController extends Controller
         ));
     }
 }
+

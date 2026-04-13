@@ -25,19 +25,17 @@ class AdvancedAnalyticsController extends Controller
         $type = $request->get('type', 'product'); // 'product' or 'outlet'
 
         if ($type === 'product') {
-            $data = Transaction::withFilters(request())
-                ->invoices()
+            $data = Transaction::withFilters(request())->invoices()
                 ->join('products', 'transactions.product_id', '=', 'products.id')
-                ->select('products.name', DB::raw('SUM(transactions.ar_amt) as total_sales'))
+                ->select('products.name', DB::raw('SUM(transactions.taxed_amt) as total_sales'))
                 ->groupBy('products.name')
                 ->having('total_sales', '>', 0)
                 ->orderByDesc('total_sales')
                 ->get();
         } else {
-            $data = Transaction::withFilters(request())
-                ->invoices()
+            $data = Transaction::withFilters(request())->invoices()
                 ->join('outlets', 'transactions.outlet_id', '=', 'outlets.id')
-                ->select('outlets.name', DB::raw('SUM(transactions.ar_amt) as total_sales'))
+                ->select('outlets.name', DB::raw('SUM(transactions.taxed_amt) as total_sales'))
                 ->groupBy('outlets.name')
                 ->having('total_sales', '>', 0)
                 ->orderByDesc('total_sales')
@@ -105,6 +103,7 @@ class AdvancedAnalyticsController extends Controller
         // Dynamic Range Calculation
         $startPeriod = $request->get('start_period', $period);
         $endPeriod = $request->get('end_period', $period);
+        $currentPeriodLabel = $startPeriod === $endPeriod ? $startPeriod : "$startPeriod s/d $endPeriod";
         
         $dateStart = \Carbon\Carbon::parse($startPeriod . '-01');
         $dateEnd = \Carbon\Carbon::parse($endPeriod . '-01');
@@ -125,8 +124,7 @@ class AdvancedAnalyticsController extends Controller
 
         // Outlets that purchased in previous period T-1
         $prevOutlets = Transaction::withFilters($prevRequest)
-            ->invoices()
-            ->select('outlet_id', DB::raw('SUM(ar_amt) as prev_sales'), DB::raw('MAX(so_date) as last_order_date'))
+            ->select('outlet_id', DB::raw('SUM(CASE WHEN type = "I" THEN taxed_amt WHEN type = "R" THEN -ABS(taxed_amt) ELSE 0 END) as prev_sales'), DB::raw('MAX(so_date) as last_order_date'))
             ->groupBy('outlet_id')
             ->having('prev_sales', '>', 0)
             ->get()
@@ -134,15 +132,58 @@ class AdvancedAnalyticsController extends Controller
 
         // Outlets that purchased in current period T
         $currentOutlets = Transaction::withFilters($request)
-            ->invoices()
             ->select('outlet_id')
             ->groupBy('outlet_id')
-            ->having(DB::raw('SUM(ar_amt)'), '>', 0)
+            ->having(DB::raw('SUM(CASE WHEN type = "I" THEN taxed_amt WHEN type = "R" THEN -ABS(taxed_amt) ELSE 0 END)'), '>', 0)
             ->pluck('outlet_id')
             ->toArray();
 
         // Get the churned outlets
         $churnedOutletIds = $prevOutlets->keys()->diff($currentOutlets);
+
+        // Exclude outlets with stable monthly cadence (~1x per month) to reduce false alarms.
+        // 2-month cadence remains monitored as requested.
+        $cadenceLookbackStart = $dateEnd->copy()->subMonths(6)->format('Y-m');
+        $cadenceRequest = new \Illuminate\Http\Request();
+        $cadenceRequest->merge([
+            'start_period' => $cadenceLookbackStart,
+            'end_period' => $endPeriod,
+            'principal_id' => $request->get('principal_id'),
+        ]);
+
+        $invoiceDates = Transaction::withFilters($cadenceRequest)
+            ->invoices()
+            ->select('outlet_id', 'so_date')
+            ->whereNotNull('so_date')
+            ->orderBy('outlet_id')
+            ->orderBy('so_date')
+            ->get()
+            ->groupBy('outlet_id');
+
+        $monthlyStableOutletIds = [];
+        foreach ($invoiceDates as $outletId => $rows) {
+            $dates = $rows->pluck('so_date')->map(fn($d) => \Carbon\Carbon::parse($d))->values();
+            if ($dates->count() < 3) {
+                continue;
+            }
+
+            $intervals = [];
+            for ($i = 1; $i < $dates->count(); $i++) {
+                $intervals[] = $dates[$i - 1]->diffInDays($dates[$i]);
+            }
+            if (count($intervals) === 0) {
+                continue;
+            }
+
+            $avgInterval = array_sum($intervals) / count($intervals);
+            if ($avgInterval <= 40) {
+                $monthlyStableOutletIds[] = (int) $outletId;
+            }
+        }
+
+        $churnedOutletIds = $churnedOutletIds->filter(
+            fn($id) => !in_array((int) $id, $monthlyStableOutletIds, true)
+        );
 
         // Fetch outlet details
         $sleepingOutletsList = [];
@@ -174,7 +215,7 @@ class AdvancedAnalyticsController extends Controller
                        "💡 Saran Eksekusi: Ekspor daftar ini segera. Kerahkan tim Salesman ke area terbanyak untuk memukul balik. Jangan biarkan kompetitor mengambil nafas di toko-toko ini!";
 
         return view('analytics.sleeping-outlets', compact(
-            'period', 'periods', 'previousPeriod', 'sleepingOutletsList', 'totalLostRevenue', 'aiNarrative'
+            'period', 'periods', 'previousPeriod', 'currentPeriodLabel', 'sleepingOutletsList', 'totalLostRevenue', 'aiNarrative'
         ));
     }
     public function discountEffectiveness(Request $request)
@@ -184,11 +225,10 @@ class AdvancedAnalyticsController extends Controller
 
         // Global KPI: Totals across filtered range
         $kpi = Transaction::withFilters(request())
-            ->invoices()
             ->selectRaw('
-                SUM(gross) as total_gross,
-                SUM(disc_total) as total_discount,
-                SUM(ar_amt) as total_net
+                SUM(CASE WHEN type = "I" THEN gross ELSE 0 END) as total_gross,
+                SUM(CASE WHEN type = "I" THEN disc_total ELSE 0 END) as total_discount,
+                SUM(CASE WHEN type = "I" THEN taxed_amt WHEN type = "R" THEN -ABS(taxed_amt) ELSE 0 END) as total_net
             ')->first();
 
         // Prevent division by zero
@@ -200,14 +240,13 @@ class AdvancedAnalyticsController extends Controller
         // Principal Discount Distribution
         // Compares which principal absorbs the most discount budget
         $principalDiscounts = Transaction::withFilters(request())
-            ->invoices()
             ->join('products', 'transactions.product_id', '=', 'products.id')
             ->join('principals', 'products.principal_id', '=', 'principals.id')
             ->select(
                 'principals.name as principal_name',
-                DB::raw('SUM(transactions.gross) as gross_sales'),
-                DB::raw('SUM(transactions.disc_total) as discount_given'),
-                DB::raw('SUM(transactions.ar_amt) as net_sales')
+                DB::raw('SUM(CASE WHEN transactions.type = "I" THEN transactions.gross ELSE 0 END) as gross_sales'),
+                DB::raw('SUM(CASE WHEN transactions.type = "I" THEN transactions.disc_total ELSE 0 END) as discount_given'),
+                DB::raw('SUM(CASE WHEN transactions.type = "I" THEN transactions.taxed_amt WHEN transactions.type = "R" THEN -ABS(transactions.taxed_amt) ELSE 0 END) as net_sales')
             )
             ->groupBy('principals.name')
             ->having('discount_given', '>', 0)
@@ -259,13 +298,12 @@ class AdvancedAnalyticsController extends Controller
         $periods = Transaction::select('period')->distinct()->orderByDesc('period')->pluck('period');
         
         $outletStats = Transaction::withFilters(request())
-            ->invoices()
             ->join('outlets', 'transactions.outlet_id', '=', 'outlets.id')
             ->select(
                 'outlets.name as outlet_name',
-                DB::raw('MAX(so_date) as last_order_date'),
-                DB::raw('COUNT(DISTINCT so_no) as frequency'),
-                DB::raw('SUM(ar_amt) as monetary')
+                DB::raw('MAX(CASE WHEN transactions.type = "I" THEN so_date END) as last_order_date'),
+                DB::raw('COUNT(DISTINCT CASE WHEN transactions.type = "I" THEN so_no END) as frequency'),
+                DB::raw('SUM(CASE WHEN transactions.type = "I" THEN transactions.taxed_amt WHEN transactions.type = "R" THEN -ABS(transactions.taxed_amt) ELSE 0 END) as monetary')
             )
             ->groupBy('outlets.name')
             ->get();
@@ -403,9 +441,8 @@ class AdvancedAnalyticsController extends Controller
 
         // Global KPIs
         $kpis = Transaction::withFilters(request())
-            ->invoices()
             ->selectRaw('
-                SUM(ar_amt) as total_revenue,
+                SUM(CASE WHEN type = "I" THEN taxed_amt WHEN type = "R" THEN -ABS(taxed_amt) ELSE 0 END) as total_revenue,
                 SUM(cogs) as total_cogs
             ')->first();
 
@@ -416,12 +453,11 @@ class AdvancedAnalyticsController extends Controller
 
         // Principal Margins
         $principalMargins = Transaction::withFilters(request())
-            ->invoices()
             ->join('products', 'transactions.product_id', '=', 'products.id')
             ->join('principals', 'products.principal_id', '=', 'principals.id')
             ->select(
                 'principals.name as principal_name',
-                DB::raw('SUM(transactions.ar_amt) as revenue'),
+                DB::raw('SUM(CASE WHEN transactions.type = "I" THEN transactions.taxed_amt WHEN transactions.type = "R" THEN -ABS(transactions.taxed_amt) ELSE 0 END) as revenue'),
                 DB::raw('SUM(transactions.cogs) as cogs')
             )
             ->groupBy('principals.name')
@@ -437,13 +473,12 @@ class AdvancedAnalyticsController extends Controller
 
         // Top Profitable Products
         $productMargins = Transaction::withFilters(request())
-            ->invoices()
             ->join('products', 'transactions.product_id', '=', 'products.id')
             ->join('principals', 'products.principal_id', '=', 'principals.id')
             ->select(
                 'products.name as product_name',
                 'principals.name as principal_name',
-                DB::raw('SUM(transactions.ar_amt) as revenue'),
+                DB::raw('SUM(CASE WHEN transactions.type = "I" THEN transactions.taxed_amt WHEN transactions.type = "R" THEN -ABS(transactions.taxed_amt) ELSE 0 END) as revenue'),
                 DB::raw('SUM(transactions.cogs) as cogs')
             )
             ->groupBy('products.name', 'principals.name')
@@ -480,7 +515,7 @@ class AdvancedAnalyticsController extends Controller
             ->select(
                 'salesmen.id as salesman_id',
                 'salesmen.name as salesman_name',
-                DB::raw('SUM(transactions.ar_amt) as total_revenue')
+                DB::raw('SUM(transactions.taxed_amt) as total_revenue')
             )
             ->groupBy('salesmen.id', 'salesmen.name')
             ->orderByDesc('total_revenue')
@@ -497,7 +532,7 @@ class AdvancedAnalyticsController extends Controller
         $historicalSalesQuery = DB::table('transactions')
             ->whereIn('transactions.period', $pastPeriods)
             ->where('transactions.type', 'I')
-            ->select('transactions.salesman_id', DB::raw('SUM(transactions.ar_amt) as hist_revenue'))
+            ->select('transactions.salesman_id', DB::raw('SUM(transactions.taxed_amt) as hist_revenue'))
             ->groupBy('transactions.salesman_id');
 
         // Manually apply Principal Filter (but ignore Date filters to protect the 3-Month logic)
@@ -666,13 +701,15 @@ class AdvancedAnalyticsController extends Controller
         $kpis = Transaction::withFilters(request())
             ->invoices()
             ->selectRaw('
-                SUM(ar_amt) as net_sales,
+                SUM(taxed_amt) as total_omset,
                 SUM(cogs) as total_cogs,
                 SUM(gross) as gross_sales,
                 SUM(disc_total) as total_discount
             ')->first();
-            
-        $netSales = $kpis->net_sales ?? 0;
+
+        $totalReturns = (float) Transaction::withFilters(request())->returns()->sum(DB::raw('ABS(taxed_amt)'));
+        $totalOmset = (float) ($kpis->total_omset ?? 0);
+        $netSales = $totalOmset - $totalReturns;
         $totalCogs = $kpis->total_cogs ?? 0;
         $grossProfit = $netSales - $totalCogs;
         $totalDiscount = $kpis->total_discount ?? 0;
@@ -680,9 +717,8 @@ class AdvancedAnalyticsController extends Controller
         
         // 2. Product Top Movers
         $topProducts = Transaction::withFilters(request())
-            ->invoices()
             ->join('products', 'transactions.product_id', '=', 'products.id')
-            ->select('products.name as product_name', DB::raw('SUM(transactions.ar_amt) as revenue'))
+            ->select('products.name as product_name', DB::raw('SUM(CASE WHEN transactions.type = "I" THEN transactions.taxed_amt WHEN transactions.type = "R" THEN -ABS(transactions.taxed_amt) ELSE 0 END) as revenue'))
             ->groupBy('products.name')
             ->orderByDesc('revenue')
             ->limit(10)
@@ -705,18 +741,16 @@ class AdvancedAnalyticsController extends Controller
         ]);
         
         $prevOutlets = Transaction::withFilters($prevRequest)
-            ->invoices()
-            ->select('outlet_id', DB::raw('SUM(ar_amt) as prev_sales'))
+            ->select('outlet_id', DB::raw('SUM(CASE WHEN type = "I" THEN taxed_amt WHEN type = "R" THEN -ABS(taxed_amt) ELSE 0 END) as prev_sales'))
             ->groupBy('outlet_id')
             ->having('prev_sales', '>', 0)
             ->get()
             ->keyBy('outlet_id');
             
         $currentOutlets = Transaction::withFilters(request())
-            ->invoices()
             ->select('outlet_id')
             ->groupBy('outlet_id')
-            ->having(DB::raw('SUM(ar_amt)'), '>', 0)
+            ->having(DB::raw('SUM(CASE WHEN type = "I" THEN taxed_amt WHEN type = "R" THEN -ABS(taxed_amt) ELSE 0 END)'), '>', 0)
             ->pluck('outlet_id')
             ->toArray();
             
@@ -734,3 +768,4 @@ class AdvancedAnalyticsController extends Controller
         ));
     }
 }
+

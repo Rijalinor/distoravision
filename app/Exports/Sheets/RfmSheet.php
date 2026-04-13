@@ -38,9 +38,9 @@ class RfmSheet implements FromArray, WithTitle, WithStyles, WithColumnWidths, Wi
 
     public function array(): array
     {
-        $outletStats = Transaction::withFilters($this->request)->invoices()
+        $outletStats = Transaction::withFilters($this->request)
             ->join('outlets', 'transactions.outlet_id', '=', 'outlets.id')
-            ->select('outlets.name as outlet_name', DB::raw('MAX(so_date) as last_order_date'), DB::raw('COUNT(DISTINCT so_no) as frequency'), DB::raw('SUM(ar_amt) as monetary'))
+            ->select('outlets.name as outlet_name', DB::raw('MAX(CASE WHEN transactions.type = "I" THEN so_date END) as last_order_date'), DB::raw('COUNT(DISTINCT CASE WHEN transactions.type = "I" THEN so_no END) as frequency'), DB::raw('SUM(CASE WHEN transactions.type = "I" THEN transactions.taxed_amt WHEN transactions.type = "R" THEN -ABS(transactions.taxed_amt) ELSE 0 END) as monetary'))
             ->groupBy('outlets.name')->get();
 
         $count = $outletStats->count();
@@ -156,3 +156,4 @@ class RfmSheet implements FromArray, WithTitle, WithStyles, WithColumnWidths, Wi
         ];
     }
 }
+

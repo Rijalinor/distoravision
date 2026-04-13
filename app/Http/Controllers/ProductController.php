@@ -21,13 +21,13 @@ class ProductController extends Controller
             ->selectSub(
                 \App\Models\Transaction::whereColumn('transactions.product_id', 'products.id')
                     ->where('type', 'I')->withFilters(request())
-                    ->selectRaw('COALESCE(SUM(ar_amt), 0)'),
+                    ->selectRaw('COALESCE(SUM(taxed_amt), 0)'),
                 'total_sales'
             )
             ->selectSub(
                 \App\Models\Transaction::whereColumn('transactions.product_id', 'products.id')
                     ->where('type', 'R')->withFilters(request())
-                    ->selectRaw('COALESCE(SUM(ABS(ar_amt)), 0)'),
+                    ->selectRaw('COALESCE(SUM(ABS(taxed_amt)), 0)'),
                 'total_returns'
             )
             ->selectSub(
@@ -53,3 +53,4 @@ class ProductController extends Controller
         return view('products.index', compact('products', 'period', 'periods', 'search'));
     }
 }
+

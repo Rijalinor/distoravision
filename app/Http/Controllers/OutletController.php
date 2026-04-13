@@ -22,9 +22,12 @@ class OutletController extends Controller
             ->withCount([
                 'transactions as trx_count' => fn($q) => $q->where('type', 'I')->withFilters(request()),
             ])
-            ->withSum([
-                'transactions as total_sales' => fn($q) => $q->where('type', 'I')->withFilters(request()),
-            ], 'ar_amt');
+            ->selectSub(
+                \App\Models\Transaction::whereColumn('transactions.outlet_id', 'outlets.id')
+                    ->where('type', 'I')->withFilters(request())
+                    ->selectRaw('COALESCE(SUM(taxed_amt), 0)'),
+                'total_sales'
+            );
         
         if ($request->session()->get('demo_mode_active', false)) {
             $query->whereHas('transactions', fn($q) => $q->withFilters(request()));
@@ -53,8 +56,8 @@ class OutletController extends Controller
         $periods = Transaction::select('period')->distinct()->orderByDesc('period')->pluck('period');
 
         $stats = [
-            'total_sales' => Transaction::where('outlet_id', $outlet->id)->withFilters(request())->invoices()->sum('ar_amt'),
-            'total_returns' => Transaction::where('outlet_id', $outlet->id)->withFilters(request())->returns()->sum(DB::raw('ABS(ar_amt)')),
+            'total_sales' => Transaction::where('outlet_id', $outlet->id)->withFilters(request())->invoices()->sum('taxed_amt'),
+            'total_returns' => Transaction::where('outlet_id', $outlet->id)->withFilters(request())->returns()->sum(DB::raw('ABS(taxed_amt)')),
             'product_count' => Transaction::where('outlet_id', $outlet->id)->withFilters(request())->distinct('product_id')->count('product_id'),
         ];
 
@@ -70,3 +73,4 @@ class OutletController extends Controller
         return view('outlets.show', compact('outlet', 'period', 'periods', 'stats', 'purchaseHistory'));
     }
 }
+

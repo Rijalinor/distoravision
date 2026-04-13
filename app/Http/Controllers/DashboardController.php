@@ -45,16 +45,16 @@ class DashboardController extends Controller
         $principals = Principal::orderBy('name')->get();
 
         // KPI Cards (Current Period Range)
-        $totalSales = Transaction::withFilters($request)->invoices()->sum('ar_amt');
-        $totalReturns = Transaction::withFilters($request)->returns()->sum(DB::raw('ABS(ar_amt)'));
+        $totalSales = Transaction::withFilters($request)->invoices()->sum('taxed_amt');
+        $totalReturns = Transaction::withFilters($request)->returns()->sum(DB::raw('ABS(taxed_amt)'));
         $totalCogs = Transaction::withFilters($request)->invoices()->sum('cogs');
         $netSales = $totalSales - $totalReturns;
-        $margin = $totalSales > 0 ? (($totalSales - $totalCogs) / $totalSales) * 100 : 0;
+        $margin = $netSales > 0 ? (($netSales - $totalCogs) / $netSales) * 100 : 0;
         $returnRate = $totalSales > 0 ? ($totalReturns / $totalSales) * 100 : 0;
         
         // Prev Period KPIs for MoM Growth (Using the mock request)
-        $prevSales = Transaction::withFilters($prevRequest)->invoices()->sum('ar_amt');
-        $prevReturns = Transaction::withFilters($prevRequest)->returns()->sum(DB::raw('ABS(ar_amt)'));
+        $prevSales = Transaction::withFilters($prevRequest)->invoices()->sum('taxed_amt');
+        $prevReturns = Transaction::withFilters($prevRequest)->returns()->sum(DB::raw('ABS(taxed_amt)'));
         $prevNetSales = $prevSales - $prevReturns;
 
         // MoM Percentage Calculations
@@ -67,38 +67,35 @@ class DashboardController extends Controller
 
         // Weekly Trend
         $weeklyTrend = Transaction::withFilters($request)
-            ->select('week', 'type', DB::raw('SUM(ABS(ar_amt)) as total'))
+            ->select('week', 'type', DB::raw('SUM(ABS(taxed_amt)) as total'))
             ->groupBy('week', 'type')
             ->orderBy('week')
             ->get()
             ->groupBy('week');
 
         // Top 10 Products by revenue
-        $topProducts = Transaction::withFilters($request)
-            ->invoices()
+        $topProducts = Transaction::withFilters($request)->invoices()
             ->join('products', 'transactions.product_id', '=', 'products.id')
-            ->select('products.name', DB::raw('SUM(transactions.ar_amt) as total_sales'), DB::raw('SUM(transactions.qty_base) as total_qty'))
+            ->select('products.name', DB::raw('SUM(transactions.taxed_amt) as total_sales'), DB::raw('SUM(transactions.qty_base) as total_qty'))
             ->groupBy('products.name')
             ->orderByDesc('total_sales')
             ->limit(10)
             ->get();
 
         // Top 10 Outlets by revenue
-        $topOutlets = Transaction::withFilters($request)
-            ->invoices()
+        $topOutlets = Transaction::withFilters($request)->invoices()
             ->join('outlets', 'transactions.outlet_id', '=', 'outlets.id')
-            ->select('outlets.name', 'outlets.city', DB::raw('SUM(transactions.ar_amt) as total_sales'))
+            ->select('outlets.name', 'outlets.city', DB::raw('SUM(transactions.taxed_amt) as total_sales'))
             ->groupBy('outlets.name', 'outlets.city')
             ->orderByDesc('total_sales')
             ->limit(10)
             ->get();
 
         // Principal breakdown
-        $principalBreakdown = Transaction::withFilters($request)
-            ->invoices()
+        $principalBreakdown = Transaction::withFilters($request)->invoices()
             ->join('products', 'transactions.product_id', '=', 'products.id')
             ->join('principals', 'products.principal_id', '=', 'principals.id')
-            ->select('principals.name', DB::raw('SUM(transactions.ar_amt) as total_sales'))
+            ->select('principals.name', DB::raw('SUM(transactions.taxed_amt) as total_sales'))
             ->groupBy('principals.name')
             ->orderByDesc('total_sales')
             ->get();
@@ -109,7 +106,7 @@ class DashboardController extends Controller
         
         $topRegion = Transaction::withFilters($request)
             ->join('outlets', 'transactions.outlet_id', '=', 'outlets.id')
-            ->select(DB::raw('LEFT(outlets.code, 3) as region_code'), DB::raw('SUM(transactions.ar_amt) as total_sales'))
+            ->select(DB::raw('LEFT(outlets.code, 3) as region_code'), DB::raw('SUM(CASE WHEN transactions.type = "I" THEN transactions.taxed_amt ELSE 0 END) as total_sales'))
             ->whereNotNull('outlets.code')->groupBy('region_code')->orderByDesc('total_sales')->first();
         $regionText = $topRegion && $topRegion->total_sales > 0 ? " Penopang utama omset adalah wilayah " . strtoupper($topRegion->region_code) . "." : "";
 

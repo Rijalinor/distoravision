@@ -41,19 +41,19 @@ class SalesmanSheet implements FromArray, WithTitle, WithStyles, WithColumnWidth
         $prevReq    = new \Illuminate\Http\Request();
         $prevReq->merge(['start_period' => $prevPeriod, 'end_period' => $prevPeriod, 'principal_id' => $this->request->get('principal_id')]);
 
-        $salesmen = Transaction::withFilters($this->request)->invoices()
+        $salesmen = Transaction::withFilters($this->request)
             ->join('salesmen', 'transactions.salesman_id', '=', 'salesmen.id')
-            ->select('salesmen.name as salesman_name', DB::raw('SUM(transactions.ar_amt) as net_sales'), DB::raw('SUM(transactions.cogs) as cogs'), DB::raw('COUNT(DISTINCT transactions.so_no) as invoice_count'), DB::raw('COUNT(DISTINCT transactions.outlet_id) as outlet_count'), DB::raw('SUM(transactions.qty_base) as total_qty'))
+            ->select('salesmen.name as salesman_name', DB::raw('SUM(CASE WHEN transactions.type = "I" THEN transactions.taxed_amt WHEN transactions.type = "R" THEN -ABS(transactions.taxed_amt) ELSE 0 END) as net_sales'), DB::raw('SUM(CASE WHEN transactions.type = "I" THEN transactions.cogs ELSE 0 END) as cogs'), DB::raw('COUNT(DISTINCT CASE WHEN transactions.type = "I" THEN transactions.so_no END) as invoice_count'), DB::raw('COUNT(DISTINCT CASE WHEN transactions.type = "I" THEN transactions.outlet_id END) as outlet_count'), DB::raw('SUM(CASE WHEN transactions.type = "I" THEN transactions.qty_base ELSE 0 END) as total_qty'))
             ->groupBy('salesmen.name')->orderByDesc('net_sales')->get();
 
-        $prevSalesMap = Transaction::withFilters($prevReq)->invoices()
+        $prevSalesMap = Transaction::withFilters($prevReq)
             ->join('salesmen', 'transactions.salesman_id', '=', 'salesmen.id')
-            ->select('salesmen.name as salesman_name', DB::raw('SUM(transactions.ar_amt) as prev_sales'))
+            ->select('salesmen.name as salesman_name', DB::raw('SUM(CASE WHEN transactions.type = "I" THEN transactions.taxed_amt WHEN transactions.type = "R" THEN -ABS(transactions.taxed_amt) ELSE 0 END) as prev_sales'))
             ->groupBy('salesmen.name')->get()->keyBy('salesman_name');
 
         $returnMap = Transaction::withFilters($this->request)->returns()
             ->join('salesmen', 'transactions.salesman_id', '=', 'salesmen.id')
-            ->select('salesmen.name as salesman_name', DB::raw('SUM(ABS(transactions.ar_amt)) as total_returns'))
+            ->select('salesmen.name as salesman_name', DB::raw('SUM(ABS(transactions.taxed_amt)) as total_returns'))
             ->groupBy('salesmen.name')->get()->keyBy('salesman_name');
 
         $rows = [
@@ -143,3 +143,4 @@ class SalesmanSheet implements FromArray, WithTitle, WithStyles, WithColumnWidth
         ];
     }
 }
+
