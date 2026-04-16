@@ -52,6 +52,158 @@
     </div>
 </div>
 
+{{-- AR PIUTANG SECTION --}}
+@if($arData)
+<div class="card" style="margin-bottom:1.5rem;border-top:4px solid var(--accent-yellow);">
+    <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+        <span class="card-title">💰 Kondisi Piutang (AR)</span>
+        <span class="badge badge-blue" title="Sumber data piutang">{{ $arData['import']->report_date->format('d M Y') }}</span>
+    </div>
+    <div style="padding:1rem;">
+        {{-- KPI Row --}}
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:0.75rem;margin-bottom:1rem;">
+            <div style="text-align:center;padding:0.75rem;background:var(--bg-darker);border-radius:8px;">
+                <div style="font-size:0.7rem;color:var(--text-muted);">Total Piutang</div>
+                <div class="font-mono" style="font-size:1.1rem;font-weight:700;color:var(--accent-red);" title="Rp {{ number_format($arData['summary']->total_outstanding, 0, ',', '.') }}">
+                    Rp {{ number_format($arData['summary']->total_outstanding / 1000, 0, ',', '.') }}K
+                </div>
+            </div>
+            <div style="text-align:center;padding:0.75rem;background:var(--bg-darker);border-radius:8px;">
+                <div style="font-size:0.7rem;color:var(--text-muted);">Overdue</div>
+                <div class="font-mono" style="font-size:1.1rem;font-weight:700;color:var(--accent-yellow);" title="Rp {{ number_format($arData['summary']->total_overdue, 0, ',', '.') }}">
+                    Rp {{ number_format($arData['summary']->total_overdue / 1000, 0, ',', '.') }}K
+                </div>
+            </div>
+            <div style="text-align:center;padding:0.75rem;background:var(--bg-darker);border-radius:8px;">
+                <div style="font-size:0.7rem;color:var(--text-muted);">Outlet Berpiutang</div>
+                <div class="font-mono" style="font-size:1.1rem;font-weight:700;">{{ $arData['summary']->outlet_count }}</div>
+                <div style="font-size:0.65rem;color:var(--text-muted);">{{ $arData['summary']->invoice_count }} invoice</div>
+            </div>
+            <div style="text-align:center;padding:0.75rem;background:var(--bg-darker);border-radius:8px;">
+                <div style="font-size:0.7rem;color:var(--text-muted);">Outlet Bandel (CM≥3)</div>
+                <div class="font-mono" style="font-size:1.1rem;font-weight:700;color:{{ $arData['summary']->stubborn_count > 0 ? 'var(--accent-red)' : 'var(--accent-green)' }};">
+                    {{ $arData['summary']->stubborn_count }}
+                </div>
+            </div>
+            <div style="text-align:center;padding:0.75rem;background:var(--bg-darker);border-radius:8px;">
+                <div style="font-size:0.7rem;color:var(--text-muted);">Rata-rata Overdue</div>
+                <div class="font-mono" style="font-size:1.1rem;font-weight:700;">{{ round($arData['summary']->avg_overdue ?? 0) }} hari</div>
+            </div>
+            <div style="text-align:center;padding:0.75rem;background:var(--bg-darker);border-radius:8px;">
+                <div style="font-size:0.7rem;color:var(--text-muted);">Collection Rate</div>
+                @php $colRate = $arData['summary']->total_invoiced > 0 ? ($arData['summary']->total_paid / $arData['summary']->total_invoiced * 100) : 0; @endphp
+                <div class="font-mono" style="font-size:1.1rem;font-weight:700;color:{{ $colRate > 50 ? 'var(--accent-green)' : 'var(--accent-red)' }};">{{ number_format($colRate, 1) }}%</div>
+            </div>
+        </div>
+
+        {{-- Outlet Piutang --}}
+        @if($arData['topOutlets']->count() > 0)
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem;" id="outletHeader">
+            <div style="font-size:0.8rem;font-weight:600;color:var(--text-primary);">🏪 Daftar Outlet Piutang</div>
+            @if($arData['topOutlets']->count() > 5)
+            <button type="button" onclick="showAllOutlets(this)" class="btn btn-secondary" style="padding:0.2rem 0.6rem;font-size:0.7rem;background:rgba(99,102,241,0.1);color:var(--primary-light);border:1px solid rgba(99,102,241,0.2);">Lihat Semua ({{ $arData['topOutlets']->count() }}) &raquo;</button>
+            @endif
+        </div>
+        <table class="data-table">
+            <thead><tr>
+                <th>Outlet</th>
+                <th class="text-right" title="Sisa tagihan belum dibayar">AR Balance</th>
+                <th class="text-right" title="Jumlah invoice">Inv</th>
+                <th class="text-right" title="Keterlambatan terlama">Max OD</th>
+                <th class="text-right" title="Berapa kali sudah ditagih">CM</th>
+            </tr></thead>
+            <tbody>
+            @foreach($arData['topOutlets'] as $idx => $ao)
+            <tr class="{{ $idx >= 5 ? 'hidden-outlet' : '' }}" style="{{ $idx >= 5 ? 'display:none;' : '' }} background:var(--bg-darker);border-top:1px solid var(--border-color);cursor:pointer;transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='var(--bg-darker)'" onclick="toggleInvoices('inv-group-{{ $idx }}', this)">
+                <td>
+                    <div style="font-weight:600;display:flex;align-items:center;gap:0.4rem;">
+                        <span class="toggle-icon" style="font-size:0.6rem;color:var(--text-muted);display:inline-block;transition:transform 0.2s;">▶</span>
+                        {{ Str::limit($ao->outlet_name, 22) }}
+                    </div>
+                    <div style="font-size:0.65rem;color:var(--text-muted);padding-left:1rem;">{{ $ao->outlet_code }}</div>
+                </td>
+                <td class="text-right font-mono" style="color:var(--accent-red);font-weight:600;">{{ number_format($ao->total_balance, 0, ',', '.') }}</td>
+                <td class="text-right font-mono">{{ $ao->inv_count }}</td>
+                <td class="text-right">
+                    @if($ao->max_overdue > 90)<span class="badge badge-red">{{ $ao->max_overdue }}hr</span>
+                    @elseif($ao->max_overdue > 30)<span class="badge badge-yellow">{{ $ao->max_overdue }}hr</span>
+                    @else<span class="badge badge-green">{{ $ao->max_overdue }}hr</span>@endif
+                </td>
+                <td class="text-right"><span class="badge {{ $ao->max_cm >= 3 ? 'badge-red' : 'badge-blue' }}">{{ $ao->max_cm }}x</span></td>
+            </tr>
+            @if(isset($arData['topInvoices'][$ao->outlet_code]))
+                @foreach($arData['topInvoices'][$ao->outlet_code] as $inv)
+                <tr class="inv-group-{{ $idx }} {{ $idx >= 5 ? 'hidden-outlet hidden-inv' : '' }}" style="display:none; font-size:0.75rem; background:rgba(0,0,0,0.15);">
+                    <td style="padding-left:2.5rem;position:relative;">
+                        <span style="position:absolute;left:1.25rem;top:0;bottom:0;width:2px;background:rgba(255,255,255,0.05);"></span>
+                        <div style="display:flex;align-items:center;gap:0.5rem;position:relative;">
+                            <span style="position:absolute;left:-1.25rem;top:50%;width:10px;height:2px;background:rgba(255,255,255,0.05);"></span>
+                            <code style="background:rgba(99,102,241,0.1);color:var(--primary-light);padding:0.1rem 0.3rem;border-radius:3px;font-size:0.65rem;">{{ $inv->pfi_sn }}</code>
+                        </div>
+                        <div style="color:var(--text-muted);font-size:0.65rem;margin-top:0.2rem;position:relative;">Tgl: {{ $inv->doc_date?->format('d M Y') }}</div>
+                    </td>
+                    <td class="text-right font-mono text-muted" style="font-size:0.7rem;">{{ number_format($inv->ar_balance, 0, ',', '.') }}</td>
+                    <td class="text-right text-muted">-</td>
+                    <td class="text-right">
+                        @if($inv->overdue_days > 90)<span class="badge badge-red" style="font-size:0.6rem;padding:0.1rem 0.3rem;">{{ $inv->overdue_days }}hr</span>
+                        @elseif($inv->overdue_days > 30)<span class="badge badge-yellow" style="font-size:0.6rem;padding:0.1rem 0.3rem;">{{ $inv->overdue_days }}hr</span>
+                        @elseif($inv->overdue_days > 0)<span class="badge badge-blue" style="font-size:0.6rem;padding:0.1rem 0.3rem;">{{ $inv->overdue_days }}hr</span>
+                        @else<span class="badge badge-green" style="font-size:0.6rem;padding:0.1rem 0.3rem;">Cur</span>@endif
+                    </td>
+                    <td class="text-right"><span class="badge {{ $inv->cm >= 3 ? 'badge-red' : 'badge-blue' }}" style="font-size:0.6rem;padding:0.1rem 0.3rem;">{{ $inv->cm }}x</span></td>
+                </tr>
+                @endforeach
+            @endif
+            @endforeach
+            </tbody>
+        </table>
+        @endif
+    </div>
+</div>
+@endif
+
+<script>
+function toggleInvoices(className, row) {
+    const rows = document.querySelectorAll('.' + className + ':not(.hidden-inv)');
+    const rowsAll = document.querySelectorAll('.' + className);
+    const icon = row.querySelector('.toggle-icon');
+    
+    // Check current state based on first visible or completely hidden
+    let isCurrentlyHidden = true;
+    for(let r of rowsAll) {
+        if(r.style.display !== 'none' && !r.classList.contains('hidden-inv')) {
+            isCurrentlyHidden = false;
+            break;
+        }
+    }
+    
+    if(rowsAll.length > 0) {
+        rowsAll.forEach(r => {
+            if(!r.classList.contains('hidden-inv')) {
+                r.style.display = isCurrentlyHidden ? 'table-row' : 'none';
+            }
+        });
+        icon.style.transform = isCurrentlyHidden ? 'rotate(90deg)' : 'rotate(0deg)';
+        icon.style.color = isCurrentlyHidden ? 'var(--primary)' : 'var(--text-muted)';
+    }
+}
+
+function showAllOutlets(btn) {
+    document.querySelectorAll('.hidden-outlet').forEach(el => {
+        el.style.display = el.tagName === 'TR' && !el.classList.contains('inv-group') ? 'table-row' : 'none';
+        
+        // Remove hidden classes so toggleInvoices works normally
+        el.classList.remove('hidden-outlet');
+        if(el.classList.contains('hidden-inv')) {
+            el.classList.remove('hidden-inv');
+            // Keep it hidden (display:none) because it's an invoice row, it should only show when parent is clicked
+            el.style.display = 'none'; 
+        }
+    });
+    btn.style.display = 'none';
+}
+</script>
+
 <div class="chart-grid">
     <div class="card"><div class="card-header"><span class="card-title">Trend Mingguan</span></div><div id="weeklyChart"></div></div>
 </div>

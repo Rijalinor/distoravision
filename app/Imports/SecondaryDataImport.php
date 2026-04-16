@@ -26,6 +26,9 @@ class SecondaryDataImport implements ToCollection, WithHeadingRow, WithChunkRead
     protected bool $hasImportLogIdColumn = false;
     protected bool $hasDedupeKeyColumn = false;
 
+    // Column mapping from config
+    protected array $columnMap = [];
+
     // Caches to avoid repeated DB queries
     protected array $branchCache = [];
     protected array $salesmanCache = [];
@@ -38,6 +41,17 @@ class SecondaryDataImport implements ToCollection, WithHeadingRow, WithChunkRead
         $this->importLog = $importLog;
         $this->hasImportLogIdColumn = Schema::hasColumn('transactions', 'import_log_id');
         $this->hasDedupeKeyColumn = Schema::hasColumn('transactions', 'dedupe_key');
+        $this->columnMap = config('import_columns', []);
+    }
+
+    /**
+     * Get a value from the row using the column mapping.
+     * Falls back to the key itself if no mapping is defined.
+     */
+    protected function col(Collection $row, string $key, $default = null)
+    {
+        $excelColumn = $this->columnMap[$key] ?? $key;
+        return $row[$excelColumn] ?? $default;
     }
 
     public function collection(Collection $rows)
@@ -76,59 +90,69 @@ class SecondaryDataImport implements ToCollection, WithHeadingRow, WithChunkRead
     protected function processRow(Collection $row): string
     {
         // Skip empty rows
-        if (empty($row['branch']) && empty($row['sales_id'])) {
+        if (empty($this->col($row, 'branch')) && empty($this->col($row, 'sales_id'))) {
             return 'skipped';
         }
 
         $this->validateRow($row);
 
         // 1. Get or create Branch
-        $branchId = $this->getOrCreateBranch($row['branch'] ?? '', $row['branch_name'] ?? '');
+        $branchId = $this->getOrCreateBranch(
+            $this->col($row, 'branch', ''),
+            $this->col($row, 'branch_name', '')
+        );
 
         // 2. Get or create Salesman
-        $salesmanId = $this->getOrCreateSalesman($row['sales_id'] ?? '', $row['sales_name'] ?? '', $branchId);
+        $salesmanId = $this->getOrCreateSalesman(
+            $this->col($row, 'sales_id', ''),
+            $this->col($row, 'sales_name', ''),
+            $branchId
+        );
 
         // 3. Get or create Principal
-        $principalId = $this->getOrCreatePrincipal($row['principle_id'] ?? '', $row['principle_name'] ?? '');
+        $principalId = $this->getOrCreatePrincipal(
+            $this->col($row, 'principle_id', ''),
+            $this->col($row, 'principle_name', '')
+        );
 
         // 4. Get or create Outlet
         $outletId = $this->getOrCreateOutlet(
-            $row['outlet_id'] ?? '',
-            $row['outlet_name'] ?? '',
-            $row['outlet_address'] ?? '',
-            $row['outlet_city'] ?? '',
-            $row['route'] ?? '',
-            $row['outlet_phone'] ?? ''
+            $this->col($row, 'outlet_id', ''),
+            $this->col($row, 'outlet_name', ''),
+            $this->col($row, 'outlet_address', ''),
+            $this->col($row, 'outlet_city', ''),
+            $this->col($row, 'route', ''),
+            $this->col($row, 'outlet_phone', '')
         );
 
         // 5. Get or create Product
         $productId = $this->getOrCreateProduct(
             $principalId,
-            $row['item_no'] ?? '',
-            $row['item_name'] ?? '',
-            $row['uom_sku'] ?? ''
+            $this->col($row, 'item_no', ''),
+            $this->col($row, 'item_name', ''),
+            $this->col($row, 'uom_sku', '')
         );
 
-        // 6. Parse dates
-        $soDate = $this->parseDate($row['sosn_date'] ?? $row['so_sn_date'] ?? null);
-        $pfiDate = $this->parseDate($row['pficn_date'] ?? $row['pfi_cn_date'] ?? null);
-        $giDate = $this->parseDate($row['gigr_date'] ?? $row['gi_gr_date'] ?? null);
+        // 6. Parse dates (try primary, then alternative column)
+        $soDate = $this->parseDate($this->col($row, 'sosn_date') ?? $this->col($row, 'so_sn_date'));
+        $pfiDate = $this->parseDate($this->col($row, 'pficn_date') ?? $this->col($row, 'pfi_cn_date'));
+        $giDate = $this->parseDate($this->col($row, 'gigr_date') ?? $this->col($row, 'gi_gr_date'));
 
-        // 7. Determine period from SO date or month field
+        // 7. Determine period from import log
         $period = $this->importLog->period;
 
         // 8. Parse numeric values (handle comma-formatted numbers like "4,691")
-        $qtyBase = $this->parseNumber($row['qty_base'] ?? 0);
-        $priceBase = $this->parseNumber($row['price_base'] ?? 0);
-        $gross = $this->parseNumber($row['gross'] ?? 0);
-        $discTotal = $this->parseNumber($row['disc_total'] ?? 0);
-        $taxedAmt = $this->parseNumber($row['taxed_amt'] ?? 0);
-        $vat = $this->parseNumber($row['vat'] ?? 0);
-        $arAmt = $this->parseNumber($row['ar_amt'] ?? 0);
-        $cogs = $this->parseNumber($row['cogs'] ?? 0);
+        $qtyBase = $this->parseNumber($this->col($row, 'qty_base', 0));
+        $priceBase = $this->parseNumber($this->col($row, 'price_base', 0));
+        $gross = $this->parseNumber($this->col($row, 'gross', 0));
+        $discTotal = $this->parseNumber($this->col($row, 'disc_total', 0));
+        $taxedAmt = $this->parseNumber($this->col($row, 'taxed_amt', 0));
+        $vat = $this->parseNumber($this->col($row, 'vat', 0));
+        $arAmt = $this->parseNumber($this->col($row, 'ar_amt', 0));
+        $cogs = $this->parseNumber($this->col($row, 'cogs', 0));
 
-        $type = strtoupper(trim((string) ($row['type'] ?? 'I')));
-        $soNoRaw = trim((string) ($row['sosn_no'] ?? $row['so_sn_no'] ?? ''));
+        $type = strtoupper(trim((string) ($this->col($row, 'type', 'I'))));
+        $soNoRaw = trim((string) ($this->col($row, 'sosn_no') ?? $this->col($row, 'so_sn_no', '')));
         $soNo = $soNoRaw !== '' ? strtoupper($soNoRaw) : '';
         $dedupeKey = $this->buildDedupeKey($period, $type, $soNo, $outletId, $productId, $salesmanId, $qtyBase, $arAmt);
         $payload = [
@@ -139,16 +163,16 @@ class SecondaryDataImport implements ToCollection, WithHeadingRow, WithChunkRead
             'type' => $type,
             'so_no' => $soNo !== '' ? $soNo : null,
             'so_date' => $soDate,
-            'ref_no' => $row['ref_no'] ?? null,
-            'pfi_cn_no' => $row['pficn_no'] ?? $row['pfi_cn_no_2'] ?? null,
+            'ref_no' => $this->col($row, 'ref_no'),
+            'pfi_cn_no' => $this->col($row, 'pficn_no') ?? $this->col($row, 'pfi_cn_no_2'),
             'pfi_cn_date' => $pfiDate,
-            'gi_gr_no' => $row['gigr_no'] ?? $row['gi_gr_no'] ?? null,
+            'gi_gr_no' => $this->col($row, 'gigr_no') ?? $this->col($row, 'gi_gr_no'),
             'gi_gr_date' => $giDate,
-            'si_cn_no' => $row['sicn_no'] ?? $row['si_cn_no'] ?? null,
-            'month' => $row['month'] ?? null,
-            'week' => !empty($row['week']) ? (int) $row['week'] : null,
-            'warehouse' => $row['warehouse'] ?? null,
-            'tax_invoice' => $row['tax_invoice'] ?? null,
+            'si_cn_no' => $this->col($row, 'sicn_no') ?? $this->col($row, 'si_cn_no'),
+            'month' => $this->col($row, 'month'),
+            'week' => !empty($this->col($row, 'week')) ? (int) $this->col($row, 'week') : null,
+            'warehouse' => $this->col($row, 'warehouse'),
+            'tax_invoice' => $this->col($row, 'tax_invoice'),
             'qty_base' => $qtyBase,
             'price_base' => $priceBase,
             'gross' => $gross,
@@ -258,10 +282,10 @@ class SecondaryDataImport implements ToCollection, WithHeadingRow, WithChunkRead
     protected function validateRow(Collection $row): void
     {
         $required = [
-            'branch' => trim((string) ($row['branch'] ?? '')),
-            'sales_id' => trim((string) ($row['sales_id'] ?? '')),
-            'outlet_id' => trim((string) ($row['outlet_id'] ?? '')),
-            'item_no' => trim((string) ($row['item_no'] ?? '')),
+            'branch' => trim((string) ($this->col($row, 'branch', ''))),
+            'sales_id' => trim((string) ($this->col($row, 'sales_id', ''))),
+            'outlet_id' => trim((string) ($this->col($row, 'outlet_id', ''))),
+            'item_no' => trim((string) ($this->col($row, 'item_no', ''))),
         ];
 
         foreach ($required as $field => $value) {
@@ -270,7 +294,7 @@ class SecondaryDataImport implements ToCollection, WithHeadingRow, WithChunkRead
             }
         }
 
-        $type = strtoupper(trim((string) ($row['type'] ?? 'I')));
+        $type = strtoupper(trim((string) ($this->col($row, 'type', 'I'))));
         if (!in_array($type, ['I', 'R'], true)) {
             throw new \InvalidArgumentException("Field 'type' harus I atau R.");
         }

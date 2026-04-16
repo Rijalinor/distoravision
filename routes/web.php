@@ -1,5 +1,8 @@
 <?php
 
+use App\Http\Controllers\ArAnalyticsController;
+use App\Http\Controllers\ArImportController;
+use App\Http\Controllers\ColumnMappingController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DemoModeController;
 use App\Http\Controllers\ImportController;
@@ -25,6 +28,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/imports', [ImportController::class, 'store'])->name('imports.store');
     Route::get('/imports/{import}', [ImportController::class, 'show'])->name('imports.show');
     Route::delete('/imports/{import}', [ImportController::class, 'destroy'])->name('imports.destroy');
+
+    // Settings
+    Route::get('/settings/column-mapping', [ColumnMappingController::class, 'edit'])->name('settings.column-mapping');
+    Route::put('/settings/column-mapping', [ColumnMappingController::class, 'update'])->name('settings.column-mapping.update');
+
+    // AR (Piutang)
+    Route::get('/ar/imports', [ArImportController::class, 'index'])->name('ar.imports.index');
+    Route::get('/ar/imports/create', [ArImportController::class, 'create'])->name('ar.imports.create');
+    Route::post('/ar/imports', [ArImportController::class, 'store'])->name('ar.imports.store');
+    Route::delete('/ar/imports/{arImportLog}', [ArImportController::class, 'destroy'])->name('ar.imports.destroy');
+    Route::get('/ar/dashboard', [ArAnalyticsController::class, 'dashboard'])->name('ar.dashboard');
 
     // Salesmen
     Route::get('/salesmen', [SalesmanController::class, 'index'])->name('salesmen.index');

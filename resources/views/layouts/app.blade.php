@@ -277,6 +277,14 @@
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
                         Import Data
                     </a>
+                    <a href="{{ route('ar.imports.index') }}" class="nav-link {{ request()->routeIs('ar.imports.*') ? 'active' : '' }}" title="Import AR: upload data piutang outlet dari file Excel. Data berisi daftar tagihan yang belum dibayar oleh outlet, termasuk aging dan status pembayaran.">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        Import AR
+                    </a>
+                    <a href="{{ route('ar.dashboard') }}" class="nav-link {{ request()->routeIs('ar.dashboard') ? 'active' : '' }}" title="Dashboard AR (Piutang): analisa piutang outlet berdasarkan data import terbaru. Menampilkan aging analysis, top outlet bermasalah, AR per salesman, dan detail outstanding.">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2v16z"></path></svg>
+                        Dashboard AR
+                    </a>
                 </div>
 
                 <div class="nav-section">
@@ -347,6 +355,14 @@
                     <a href="{{ route('analytics.sleeping-outlets') }}" class="nav-link {{ request()->routeIs('analytics.sleeping-outlets') ? 'active' : '' }}" title="Toko Berhenti (Sleeping Outlets): mendeteksi outlet yang sebelumnya aktif namun tidak bertransaksi di periode berjalan. Fitur ini mempermudah tim mengambil tindakan reaktivasi lebih cepat, menghitung potensi opportunity loss, dan mencegah pelanggan berpindah ke kompetitor.">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
                         Toko Berhenti (Sleep)
+                    </a>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">Settings</div>
+                    <a href="{{ route('settings.column-mapping') }}" class="nav-link {{ request()->routeIs('settings.column-mapping') ? 'active' : '' }}" title="Column Mapping: atur nama kolom Excel agar sesuai format file import Anda. Berguna jika header kolom Excel dari vendor berubah.">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                        Column Mapping
                     </a>
                 </div>
             </nav>

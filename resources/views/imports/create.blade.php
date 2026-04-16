@@ -41,13 +41,29 @@
     </div>
 
     <div class="card" style="margin-top:1.5rem;">
-        <div class="card-header"><span class="card-title">Panduan Import</span></div>
+        <div class="card-header">
+            <span class="card-title">Panduan Import</span>
+            <a href="{{ route('settings.column-mapping') }}" class="btn btn-secondary" style="font-size:0.75rem;padding:0.3rem 0.75rem;">
+                ⚙️ Ubah Mapping Kolom
+            </a>
+        </div>
         <div style="font-size:0.8rem;color:var(--text-secondary);line-height:1.8;">
             <p>📌 File harus memiliki header kolom pada baris pertama</p>
-            <p>📌 Kolom wajib: Branch, Sales Id, Sales Name, Type (I/R), Outlet Id, Outlet Name, Item No, Item Name, Principle Name</p>
+            <p>📌 Kolom wajib:
+                <code style="background:rgba(99,102,241,0.1);padding:0.1rem 0.3rem;border-radius:3px;color:var(--primary-light);">{{ config('import_columns.branch', 'branch') }}</code>,
+                <code style="background:rgba(99,102,241,0.1);padding:0.1rem 0.3rem;border-radius:3px;color:var(--primary-light);">{{ config('import_columns.sales_id', 'sales_id') }}</code>,
+                <code style="background:rgba(99,102,241,0.1);padding:0.1rem 0.3rem;border-radius:3px;color:var(--primary-light);">{{ config('import_columns.sales_name', 'sales_name') }}</code>,
+                <code style="background:rgba(99,102,241,0.1);padding:0.1rem 0.3rem;border-radius:3px;color:var(--primary-light);">{{ config('import_columns.type', 'type') }}</code> (I/R),
+                <code style="background:rgba(99,102,241,0.1);padding:0.1rem 0.3rem;border-radius:3px;color:var(--primary-light);">{{ config('import_columns.outlet_id', 'outlet_id') }}</code>,
+                <code style="background:rgba(99,102,241,0.1);padding:0.1rem 0.3rem;border-radius:3px;color:var(--primary-light);">{{ config('import_columns.outlet_name', 'outlet_name') }}</code>,
+                <code style="background:rgba(99,102,241,0.1);padding:0.1rem 0.3rem;border-radius:3px;color:var(--primary-light);">{{ config('import_columns.item_no', 'item_no') }}</code>,
+                <code style="background:rgba(99,102,241,0.1);padding:0.1rem 0.3rem;border-radius:3px;color:var(--primary-light);">{{ config('import_columns.item_name', 'item_name') }}</code>,
+                <code style="background:rgba(99,102,241,0.1);padding:0.1rem 0.3rem;border-radius:3px;color:var(--primary-light);">{{ config('import_columns.principle_name', 'principle_name') }}</code>
+            </p>
             <p>📌 Type <span class="badge badge-green">I</span> = Invoice, <span class="badge badge-red">R</span> = Return</p>
             <p>📌 File besar (>10.000 baris) akan diproses secara chunk untuk performa optimal</p>
             <p>⚠️ Import data dengan periode yang sama akan menambah data baru (tidak overwrite)</p>
+            <p style="margin-top:0.5rem;color:var(--text-muted);">💡 Jika nama kolom Excel berbeda, ubah mapping di <a href="{{ route('settings.column-mapping') }}" style="color:var(--primary-light);">Settings > Column Mapping</a></p>
         </div>
     </div>
 </div>

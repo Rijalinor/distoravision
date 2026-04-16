@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Salesman;
 use App\Models\Transaction;
+use App\Models\ArImportLog;
+use App\Models\ArReceivable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -103,9 +105,51 @@ class SalesmanController extends Controller
         
         $targetProgress = $personalTarget > 0 ? ($stats['total_sales'] / $personalTarget) * 100 : 0;
 
+        
+        // ── AR (PIUTANG) SECTION ──────────────────────────────────────
+        $latestArImport = ArImportLog::where('status', 'completed')->orderByDesc('report_date')->first();
+        $arData = null;
+        if ($latestArImport) {
+            $arQuery = ArReceivable::where('ar_import_log_id', $latestArImport->id)
+                ->where('salesman_name', $salesman->name)
+                ->where('ar_balance', '>', 0);
+
+            $arSummary = (clone $arQuery)->selectRaw('
+                SUM(ar_balance) as total_outstanding,
+                SUM(ar_amount) as total_invoiced,
+                SUM(ar_paid) as total_paid,
+                COUNT(*) as invoice_count,
+                COUNT(DISTINCT outlet_code) as outlet_count,
+                AVG(CASE WHEN overdue_days > 0 THEN overdue_days ELSE NULL END) as avg_overdue,
+                MAX(overdue_days) as max_overdue,
+                SUM(CASE WHEN overdue_days > 0 THEN ar_balance ELSE 0 END) as total_overdue,
+                SUM(CASE WHEN cm >= 3 THEN 1 ELSE 0 END) as stubborn_count
+            ')->first();
+
+            $arTopOutlets = (clone $arQuery)->selectRaw('
+                outlet_code, outlet_name, SUM(ar_balance) as total_balance,
+                MAX(overdue_days) as max_overdue, MAX(cm) as max_cm, COUNT(*) as inv_count
+            ')->groupBy('outlet_code', 'outlet_name')
+                ->orderByDesc(DB::raw('SUM(ar_balance)'))->get();
+
+            $topOutletCodes = $arTopOutlets->pluck('outlet_code');
+            $topInvoices = (clone $arQuery)->whereIn('outlet_code', $topOutletCodes)
+                ->orderByDesc('ar_balance')->get()->groupBy('outlet_code');
+
+            if ($arSummary && $arSummary->total_outstanding > 0) {
+                $arData = [
+                    'import' => $latestArImport,
+                    'summary' => $arSummary,
+                    'topOutlets' => $arTopOutlets,
+                    'topInvoices' => $topInvoices,
+                ];
+            }
+        }
+
         return view('salesmen.show', compact(
             'salesman', 'period', 'periods', 'stats', 'topProducts', 'topOutlets', 'weeklyData',
-            'returnRate', 'lostOutletsCount', 'lostOutletsValue', 'personalTarget', 'shortfall', 'dailyRunRateRequired', 'targetProgress'
+            'returnRate', 'lostOutletsCount', 'lostOutletsValue', 'personalTarget', 'shortfall', 'dailyRunRateRequired', 'targetProgress',
+            'arData'
         ));
     }
 }
