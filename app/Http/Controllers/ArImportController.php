@@ -43,6 +43,12 @@ class ArImportController extends Controller
 
         \App\Jobs\ProcessArImport::dispatch($importLog, $filePath, $request->sheet_name);
 
+        activity()
+            ->causedBy(auth()->user())
+            ->performedOn($importLog)
+            ->withProperties(['file' => $file->getClientOriginalName(), 'report_date' => $request->report_date])
+            ->log('mengunggah data Accounts Receivable');
+
         return redirect()->route('ar.imports.index')
             ->with('success', 'File AR berhasil diupload dan sedang diproses. Refresh halaman ini untuk melihat status.');
     }
@@ -50,6 +56,11 @@ class ArImportController extends Controller
     public function destroy(ArImportLog $arImportLog)
     {
         $arImportLog->receivables()->delete();
+        activity()
+            ->causedBy(auth()->user())
+            ->withProperties(['report_date' => $arImportLog->report_date])
+            ->log('menghapus data import AR dan tagihan terkait');
+
         $arImportLog->delete();
 
         return redirect()->route('ar.imports.index')

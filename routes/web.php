@@ -34,6 +34,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::resource('users', \App\Http\Controllers\UserController::class)->except(['show']);
         Route::get('/settings/column-mapping', [ColumnMappingController::class, 'edit'])->name('settings.column-mapping');
         Route::put('/settings/column-mapping', [ColumnMappingController::class, 'update'])->name('settings.column-mapping.update');
+        Route::get('/settings/activity-logs', [\App\Http\Controllers\ActivityLogController::class, 'index'])->name('settings.activity-logs');
     });
 
     // AR (Piutang)

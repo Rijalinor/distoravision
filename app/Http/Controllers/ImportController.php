@@ -50,6 +50,12 @@ class ImportController extends Controller
         // Dispatch background job
         \App\Jobs\ProcessSecondaryDataImport::dispatch($importLog, $filePath);
 
+        activity()
+            ->causedBy(auth()->user())
+            ->performedOn($importLog)
+            ->withProperties(['file' => $file->getClientOriginalName(), 'period' => $request->period])
+            ->log('mengunggah data sales secondary');
+
         return redirect()->route('imports.index')
             ->with('success', 'File berhasil diupload dan sedang diproses di background. Refresh halaman ini nanti untuk melihat status.');
     }
@@ -69,6 +75,11 @@ class ImportController extends Controller
         } else {
             \App\Models\Transaction::where('period', $import->period)->delete();
         }
+
+        activity()
+            ->causedBy(auth()->user())
+            ->withProperties(['period' => $import->period])
+            ->log('menghapus data log import sales dan transaksi terkait');
 
         $import->delete();
 
