@@ -273,6 +273,7 @@
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
                         Dashboard
                     </a>
+                    @if(Auth::user()->isAdmin())
                     <a href="{{ route('imports.index') }}" class="nav-link {{ request()->routeIs('imports.*') ? 'active' : '' }}" title="Import Data: pusat unggah data transaksi dari file CSV/Excel. Fitur ini dipakai untuk memasukkan data periodik, memantau status proses import (pending, processing, selesai, gagal), melihat jumlah baris sukses/gagal, serta melakukan pengelolaan log import agar histori data tetap terkontrol.">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
                         Import Data
@@ -281,6 +282,7 @@
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                         Import AR
                     </a>
+                    @endif
                     <a href="{{ route('ar.dashboard') }}" class="nav-link {{ request()->routeIs('ar.dashboard') ? 'active' : '' }}" title="Dashboard AR (Piutang): analisa piutang outlet berdasarkan data import terbaru. Menampilkan aging analysis, top outlet bermasalah, AR per salesman, dan detail outstanding.">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2v16z"></path></svg>
                         Dashboard AR
@@ -297,10 +299,12 @@
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
                         Outlet
                     </a>
+                    @if(!Auth::user()->isSalesman())
                     <a href="{{ route('principals.index') }}" class="nav-link {{ request()->routeIs('principals.*') ? 'active' : '' }}" title="Principal Intelligence: membandingkan kontribusi setiap principal dari sisi sales, returns, return rate, dan outlet reach. Fitur ini membantu menilai kekuatan brand principal, efektivitas distribusi, serta area yang perlu perbaikan komersial atau strategi promosi.">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"></path></svg>
                         Principal
                     </a>
+                    @endif
                     <a href="{{ route('products.index') }}" class="nav-link {{ request()->routeIs('products.*') ? 'active' : '' }}" title="Product Analytics: analisa performa SKU berdasarkan nilai penjualan, jumlah terjual, tingkat retur, dan kontribusi terhadap total omset. Digunakan untuk menentukan produk andalan, mengevaluasi produk lambat, dan mendukung keputusan stok maupun fokus promosi.">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
                         Produk
@@ -324,10 +328,12 @@
                     
                     <div class="nav-section-title" style="margin-top: 1rem;">C-Suite Analytics</div>
                     
+                    @if(Auth::user()->isAdmin())
                     <a href="{{ route('analytics.margin') }}" class="nav-link {{ request()->routeIs('analytics.margin') ? 'active' : '' }}" title="Profitabilitas (Margin): memonitor revenue, COGS, gross profit, dan margin persen secara agregat maupun per principal/produk. Dipakai untuk memastikan pertumbuhan omset tetap sehat, mengidentifikasi area yang menggerus laba, dan mendukung keputusan pricing serta efisiensi biaya.">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                         Profitabilitas (Margin)
                     </a>
+                    @endif
                     <a href="{{ route('analytics.target-tracker') }}" class="nav-link {{ request()->routeIs('analytics.target-tracker') ? 'active' : '' }}" title="Target Tracker & Run Rate: memantau pencapaian target tim/salesman secara real-time, menghitung gap terhadap target, dan menampilkan kebutuhan run-rate harian agar target periode tetap tercapai. Fitur ini ideal untuk review harian/mingguan dan action plan cepat.">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                         Target Tracker & Run Rate
@@ -337,11 +343,13 @@
                         Cohort Analysis (Matriks)
                     </a>
                     
+                    @if(Auth::user()->isAdmin())
                     <!-- EXPORT / REPORT -->
                     <a href="{{ route('analytics.report') }}" class="nav-link {{ request()->routeIs('analytics.report') ? 'active' : '' }}" title="Buku Rapor (Cetak): halaman ringkasan manajerial yang siap diekspor menjadi laporan formal (misalnya Excel). Digunakan sebagai materi meeting evaluasi periodik karena merangkum KPI, insight utama, dan indikator operasional ke format yang mudah dibagikan." style="margin-top: 0.5rem; background: rgba(59, 130, 246, 0.1); border-left: 3px solid var(--accent-blue);">
                         <svg fill="none" stroke="var(--accent-blue)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                         <span style="color:var(--accent-blue); font-weight:bold;">Buku Rapor (Cetak)</span>
                     </a>
+                    @endif
 
                     <div class="nav-section-title" style="margin-top: 1rem;">Lainnya</div>
                     <a href="{{ route('analytics.pareto') }}" class="nav-link {{ request()->routeIs('analytics.pareto') ? 'active' : '' }}" title="Analisa Pareto 80/20: menunjukkan entitas (produk/outlet) mana yang memberi kontribusi terbesar terhadap pendapatan. Membantu fokus eksekusi ke sumber utama omset, mengelola risiko ketergantungan, dan merancang prioritas yang berdampak paling tinggi.">
@@ -358,13 +366,19 @@
                     </a>
                 </div>
 
+                @if(Auth::user()->isAdmin())
                 <div class="nav-section">
                     <div class="nav-section-title">Settings</div>
+                    <a href="{{ route('users.index') }}" class="nav-link {{ request()->routeIs('users.*') ? 'active' : '' }}" title="Kelola Pengguna: tambah, ubah role (Admin/Supervisor/Salesman).">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                        User Management
+                    </a>
                     <a href="{{ route('settings.column-mapping') }}" class="nav-link {{ request()->routeIs('settings.column-mapping') ? 'active' : '' }}" title="Column Mapping: atur nama kolom Excel agar sesuai format file import Anda. Berguna jika header kolom Excel dari vendor berubah.">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                         Column Mapping
                     </a>
                 </div>
+                @endif
             </nav>
 
             <div class="sidebar-user">

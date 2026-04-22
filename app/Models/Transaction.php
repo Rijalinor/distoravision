@@ -14,6 +14,19 @@ class Transaction extends Model
 
     protected static function booted(): void
     {
+        // === ACL GLOBAL SCOPES ===
+        static::addGlobalScope('acl', function (Builder $builder) {
+            if (auth()->check()) {
+                $user = auth()->user();
+                if ($user->isSalesman() && $user->salesman_id) {
+                    $builder->where($builder->qualifyColumn('salesman_id'), $user->salesman_id);
+                } elseif ($user->isSupervisor()) {
+                    $productIds = \App\Models\Product::whereIn('principal_id', $user->principals()->pluck('principals.id'))->pluck('id');
+                    $builder->whereIn($builder->qualifyColumn('product_id'), $productIds);
+                }
+            }
+        });
+
         if (app()->runningInConsole() || !request()->hasSession()) {
             return;
         }

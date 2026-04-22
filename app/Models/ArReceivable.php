@@ -7,6 +7,27 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ArReceivable extends Model
 {
+    protected static function booted(): void
+    {
+        // === ACL GLOBAL SCOPES ===
+        static::addGlobalScope('acl', function (\Illuminate\Database\Eloquent\Builder $builder) {
+            if (auth()->check()) {
+                $user = auth()->user();
+                if ($user->isSalesman() && $user->salesman) {
+                    $builder->where($builder->qualifyColumn('salesman_name'), $user->salesman->name);
+                } elseif ($user->isSupervisor()) {
+                    $principalNames = $user->principals()->pluck('name');
+                    if ($principalNames->isNotEmpty()) {
+                        $builder->whereIn($builder->qualifyColumn('principal_name'), $principalNames);
+                    } else {
+                        // If supervisor has no principals assigned, return nothing
+                        $builder->whereRaw('0 = 1');
+                    }
+                }
+            }
+        });
+    }
+
     protected $fillable = [
         'ar_import_log_id', 'outlet_code', 'outlet_name', 'outlet_ref',
         'supervisor', 'salesman_code', 'salesman_name',

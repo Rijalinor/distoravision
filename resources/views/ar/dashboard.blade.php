@@ -122,10 +122,7 @@
         'top-outlets' => ['icon' => '🏪', 'label' => 'Top Outlet'],
         'payment' => ['icon' => '💳', 'label' => 'Payment'],
         'salesman' => ['icon' => '👤', 'label' => 'Salesman'],
-        'principal' => ['icon' => '🏷️', 'label' => 'Principal'],
         'giro' => ['icon' => '🏦', 'label' => 'Giro'],
-        'supervisor' => ['icon' => '👔', 'label' => 'Supervisor'],
-        'top' => ['icon' => '📅', 'label' => 'ToP'],
         'detail' => ['icon' => '📋', 'label' => 'Detail'],
     ];
     @endphp
@@ -191,10 +188,7 @@
                                     @case('top-outlets') 20 outlet piutang terbesar @break
                                     @case('payment') Perilaku pembayaran & outlet bandel @break
                                     @case('salesman') Piutang per salesman @break
-                                    @case('principal') Piutang per principal/brand @break
                                     @case('giro') Monitoring giro & bank @break
-                                    @case('supervisor') Performa supervisor @break
-                                    @case('top') Analisa Term of Payment @break
                                     @case('detail') Cari data piutang spesifik @break
                                 @endswitch
                             </div>
@@ -369,25 +363,6 @@
             </tbody></table>
         </div>
 
-    @elseif($tab === 'principal')
-        <div class="card">
-            <div class="card-header"><span class="card-title">🏷️ AR per Principal</span></div>
-            <table class="data-table"><thead><tr><th title="Brand atau principal dari barang yang dibeli">Principal</th><th class="text-right" title="Sisa nilai piutang yang belum dibayar lunas oleh outlet">AR Balance</th><th class="text-right">Outlets</th><th class="text-right">Invoices</th><th class="text-right" title="Rata-rata hari keterlambatan pembayaran">Avg OD</th></tr></thead>
-            <tbody>
-            @forelse($principalAr as $p)
-                <tr>
-                    <td style="font-weight:600;">{{ $p->principal_name }}</td>
-                    <td class="text-right font-mono" style="color:var(--accent-red);font-weight:600;">{{ number_format($p->total_balance, 0, ',', '.') }}</td>
-                    <td class="text-right font-mono">{{ $p->outlet_count }}</td>
-                    <td class="text-right font-mono">{{ $p->invoice_count }}</td>
-                    <td class="text-right font-mono {{ $p->avg_overdue > 30 ? 'text-red' : '' }}">{{ round($p->avg_overdue) }} hr</td>
-                </tr>
-            @empty
-                <tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--text-muted);">Tidak ada data</td></tr>
-            @endforelse
-            </tbody></table>
-        </div>
-
     @elseif($tab === 'giro')
         <div class="card" style="margin-bottom:1rem;">
             <div class="card-header"><span class="card-title">🏦 Giro per Bank</span></div>
@@ -420,48 +395,6 @@
             @endforelse
             </tbody></table>
             <div class="pagination-wrapper">{{ $giroList->links() }}</div>
-        </div>
-
-    @elseif($tab === 'supervisor')
-        <div class="card">
-            <div class="card-header"><span class="card-title">👔 Supervisor Performance</span></div>
-            <table class="data-table"><thead><tr><th>Supervisor</th><th class="text-right" title="Sisa nilai piutang yang belum dibayar lunas oleh outlet">AR Balance</th><th class="text-right">Salesman</th><th class="text-right">Outlets</th><th class="text-right">Invoices</th><th class="text-right" title="Rata-rata hari keterlambatan pembayaran">Avg OD</th></tr></thead>
-            <tbody>
-            @forelse($supervisorAr as $sv)
-                <tr>
-                    <td style="font-weight:600;">{{ $sv->supervisor }}</td>
-                    <td class="text-right font-mono" style="color:var(--accent-red);font-weight:600;">{{ number_format($sv->total_balance, 0, ',', '.') }}</td>
-                    <td class="text-right font-mono">{{ $sv->salesman_count }}</td>
-                    <td class="text-right font-mono">{{ $sv->outlet_count }}</td>
-                    <td class="text-right font-mono">{{ $sv->invoice_count }}</td>
-                    <td class="text-right font-mono {{ $sv->avg_overdue > 30 ? 'text-red' : '' }}">{{ round($sv->avg_overdue) }} hr</td>
-                </tr>
-            @empty
-                <tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text-muted);">Tidak ada data supervisor</td></tr>
-            @endforelse
-            </tbody></table>
-        </div>
-
-    @elseif($tab === 'top')
-        <div class="card">
-            <div class="card-header"><span class="card-title">📅 Term of Payment Analysis</span></div>
-            <p style="padding:0.75rem 1rem 0;font-size:0.75rem;color:var(--text-muted);">Korelasi antara lama Term of Payment dengan tingkat keterlambatan. "% Overdue" = berapa persen invoice yang sudah overdue dari total invoice pada term tersebut.</p>
-            <table class="data-table"><thead><tr><th title="Term of Payment: Waktu jatuh tempo yang diberikan (dalam hari)">ToP</th><th class="text-right">Invoices</th><th class="text-right">Outlets</th><th class="text-right" title="Sisa nilai piutang yang belum dibayar lunas oleh outlet">AR Balance</th><th class="text-right" title="Rata-rata hari keterlambatan pembayaran">Avg OD</th><th class="text-right" title="Persentase jumlah invoice yang sudah telat bayar">% Overdue</th></tr></thead>
-            <tbody>
-            @forelse($topAnalysis as $t)
-                @php $odPct = $t->invoice_count > 0 ? round($t->overdue_count / $t->invoice_count * 100) : 0; @endphp
-                <tr>
-                    <td><span class="badge badge-blue">{{ $t->term_days }} hari</span></td>
-                    <td class="text-right font-mono">{{ number_format($t->invoice_count) }}</td>
-                    <td class="text-right font-mono">{{ number_format($t->outlet_count) }}</td>
-                    <td class="text-right font-mono" style="font-weight:600;">{{ number_format($t->total_balance, 0, ',', '.') }}</td>
-                    <td class="text-right font-mono {{ $t->avg_overdue > 30 ? 'text-red' : '' }}">{{ round($t->avg_overdue) }} hr</td>
-                    <td class="text-right"><span class="badge {{ $odPct > 50 ? 'badge-red' : ($odPct > 25 ? 'badge-yellow' : 'badge-green') }}">{{ $odPct }}%</span></td>
-                </tr>
-            @empty
-                <tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text-muted);">Tidak ada data ToP</td></tr>
-            @endforelse
-            </tbody></table>
         </div>
 
     @elseif($tab === 'detail')

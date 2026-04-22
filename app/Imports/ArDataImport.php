@@ -42,21 +42,51 @@ class ArDataImport
             throw new \InvalidArgumentException("PFI/SN wajib diisi.");
         }
 
+        $principalCode = trim((string) $this->getColumnValue($row, 'ar_principle'));
+        if ($principalCode === '') $principalCode = 'UNKNOWN';
+
+        $principalName = trim((string) $this->getColumnValue($row, 'ar_principle_name'));
+        if ($principalName === '') $principalName = 'UNKNOWN PRINCIPAL';
+
+        $supervisor = trim((string) $this->getColumnValue($row, 'supervisor'));
+        if ($supervisor === '') $supervisor = 'UNASSIGNED';
+
+        $docDateStr = $this->parseExcelDate($this->getColumnValue($row, 'doc_date'));
+        $dueDateStr = $this->parseExcelDate($this->getColumnValue($row, 'due_date'));
+        
+        $topValue = $this->getColumnValue($row, 'top');
+        $top = ($topValue !== null && $topValue !== '') ? (int) $topValue : null;
+
+        // Auto-patch due date if missing
+        if (empty($dueDateStr) && !empty($docDateStr) && $top !== null) {
+            $dueDateStr = Carbon::parse($docDateStr)->addDays($top)->format('Y-m-d');
+        }
+
+        $overdueDays = (int) ($this->getColumnValue($row, 'overdue_days', 0) ?? 0);
+        // Recalculate overdue days if it's 0 but due_date is past the report date
+        if ($overdueDays <= 0 && !empty($dueDateStr)) {
+            $reportDate = Carbon::parse($this->importLog->report_date);
+            $due = Carbon::parse($dueDateStr);
+            if ($reportDate->gt($due)) {
+                $overdueDays = (int) $due->diffInDays($reportDate);
+            }
+        }
+
         ArReceivable::create([
             'ar_import_log_id' => $this->importLog->id,
             'outlet_code' => $outletCode,
             'outlet_name' => trim((string) ($this->getColumnValue($row, 'outlet_name', '') ?? '')),
             'outlet_ref' => $this->getColumnValue($row, 'outlet_ref'),
-            'supervisor' => $this->getColumnValue($row, 'supervisor'),
+            'supervisor' => $supervisor,
             'salesman_code' => trim((string) ($this->getColumnValue($row, 'salesman_id', '') ?? '')),
             'salesman_name' => trim((string) ($this->getColumnValue($row, 'salesman_name', '') ?? '')),
-            'principal_code' => $this->getColumnValue($row, 'ar_principle'),
-            'principal_name' => $this->getColumnValue($row, 'ar_principle_name'),
+            'principal_code' => $principalCode,
+            'principal_name' => $principalName,
             'pfi_sn' => $pfiSn,
-            'doc_date' => $this->parseExcelDate($this->getColumnValue($row, 'doc_date')),
-            'due_date' => $this->parseExcelDate($this->getColumnValue($row, 'due_date')),
+            'doc_date' => $docDateStr,
+            'due_date' => $dueDateStr,
             'inv_exchange_date' => $this->parseExcelDate($this->getColumnValue($row, 'inv_exchange_date')),
-            'top' => !empty($this->getColumnValue($row, 'top')) ? (int) $this->getColumnValue($row, 'top') : null,
+            'top' => $top,
             'si_cn' => $this->getColumnValue($row, 'ar_si_cn'),
             'cm' => (int) ($this->getColumnValue($row, 'cm', 0) ?? 0),
             'cn_balance' => $this->parseNumber($this->getColumnValue($row, 'cn_balance', 0)),
@@ -65,7 +95,7 @@ class ArDataImport
             'ar_balance' => $this->parseNumber($this->getColumnValue($row, 'ar_balance', 0)),
             'credit_limit' => $this->parseNumber($this->getColumnValue($row, 'credit_limit', 0)),
             'paid_date' => $this->parseExcelDate($this->getColumnValue($row, 'paid_date')),
-            'overdue_days' => (int) ($this->getColumnValue($row, 'overdue_days', 0) ?? 0),
+            'overdue_days' => $overdueDays,
             'giro_no' => $this->getColumnValue($row, 'giro_no'),
             'bank_code' => $this->getColumnValue($row, 'bank_code'),
             'bank_name' => $this->getColumnValue($row, 'bank_name'),

@@ -232,17 +232,6 @@ class ArAnalyticsController extends Controller
         return ['salesmanAr' => $salesmanAr];
     }
 
-    // ── TAB: PRINCIPAL ───────────────────────────────────────────────
-    protected function loadTabPrincipal($query, Request $request): array
-    {
-        $principalAr = (clone $query)->where('ar_balance', '>', 0)
-            ->whereNotNull('principal_name')->where('principal_name', '!=', '')
-            ->selectRaw('principal_name, SUM(ar_balance) as total_balance, COUNT(DISTINCT outlet_code) as outlet_count, COUNT(*) as invoice_count, AVG(overdue_days) as avg_overdue')
-            ->groupBy('principal_name')
-            ->orderByDesc('total_balance')->get();
-
-        return ['principalAr' => $principalAr];
-    }
 
     // ── TAB: GIRO ────────────────────────────────────────────────────
     protected function loadTabGiro($query, Request $request): array
@@ -260,26 +249,6 @@ class ArAnalyticsController extends Controller
         return ['giroPerBank' => $giroPerBank, 'giroList' => $giroList];
     }
 
-    // ── TAB: SUPERVISOR ──────────────────────────────────────────────
-    protected function loadTabSupervisor($query, Request $request): array
-    {
-        $supervisorAr = (clone $query)->where('ar_balance', '>', 0)
-            ->whereNotNull('supervisor')->where('supervisor', '!=', '')
-            ->selectRaw('supervisor, COUNT(DISTINCT salesman_code) as salesman_count, COUNT(DISTINCT outlet_code) as outlet_count, SUM(ar_balance) as total_balance, AVG(overdue_days) as avg_overdue, MAX(overdue_days) as max_overdue, COUNT(*) as invoice_count')
-            ->groupBy('supervisor')->orderByDesc('total_balance')->get();
-
-        return ['supervisorAr' => $supervisorAr];
-    }
-
-    // ── TAB: TOP ANALYSIS ────────────────────────────────────────────
-    protected function loadTabTop($query, Request $request): array
-    {
-        $topAnalysis = (clone $query)->where('ar_balance', '>', 0)->whereNotNull('top')->where('top', '>', 0)
-            ->selectRaw('top as term_days, COUNT(*) as invoice_count, COUNT(DISTINCT outlet_code) as outlet_count, SUM(ar_balance) as total_balance, AVG(overdue_days) as avg_overdue, SUM(CASE WHEN overdue_days > 0 THEN 1 ELSE 0 END) as overdue_count')
-            ->groupBy('top')->orderBy('top')->get();
-
-        return ['topAnalysis' => $topAnalysis];
-    }
 
     // ── TAB: DETAIL ──────────────────────────────────────────────────
     protected function loadTabDetail($query, Request $request): array

@@ -22,6 +22,8 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role',
+        'salesman_id',
     ];
 
     /**
@@ -45,5 +47,30 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function salesman()
+    {
+        return $this->belongsTo(\App\Models\Salesman::class);
+    }
+
+    public function principals()
+    {
+        return $this->belongsToMany(\App\Models\Principal::class);
+    }
+
+    public function isAdmin()
+    {
+        return $this->role === 'admin';
+    }
+
+    public function isSupervisor()
+    {
+        return $this->role === 'supervisor';
+    }
+
+    public function isSalesman()
+    {
+        return $this->role === 'salesman';
     }
 }

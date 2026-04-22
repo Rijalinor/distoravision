@@ -30,8 +30,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/imports/{import}', [ImportController::class, 'destroy'])->name('imports.destroy');
 
     // Settings
-    Route::get('/settings/column-mapping', [ColumnMappingController::class, 'edit'])->name('settings.column-mapping');
-    Route::put('/settings/column-mapping', [ColumnMappingController::class, 'update'])->name('settings.column-mapping.update');
+    Route::middleware([\App\Http\Middleware\AdminMiddleware::class])->group(function () {
+        Route::resource('users', \App\Http\Controllers\UserController::class)->except(['show']);
+        Route::get('/settings/column-mapping', [ColumnMappingController::class, 'edit'])->name('settings.column-mapping');
+        Route::put('/settings/column-mapping', [ColumnMappingController::class, 'update'])->name('settings.column-mapping.update');
+    });
 
     // AR (Piutang)
     Route::get('/ar/imports', [ArImportController::class, 'index'])->name('ar.imports.index');
@@ -69,6 +72,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/analytics/target-tracker/save', [\App\Http\Controllers\AdvancedAnalyticsController::class, 'saveTargets'])->name('analytics.save-targets');
     Route::get('/analytics/cohort', [\App\Http\Controllers\AdvancedAnalyticsController::class, 'cohortAnalysis'])->name('analytics.cohort');
     Route::get('/analytics/report', [\App\Http\Controllers\AdvancedAnalyticsController::class, 'generateReport'])->name('analytics.report');
+
+    // TV Dashboard Wallboard
+    Route::get('/tv-dashboard', [\App\Http\Controllers\TvDashboardController::class, 'index'])->name('tv.dashboard');
 });
 
 Route::middleware('auth')->group(function () {
