@@ -9,6 +9,12 @@ use Illuminate\Support\Facades\DB;
 
 class PrincipalController extends Controller
 {
+    public function __construct()
+    {
+        // Bug #4 fix: Salesman tidak boleh melihat data Principal
+        abort_if(auth()->check() && auth()->user()->isSalesman(), 403, 'Akses ditolak. Salesman tidak dapat melihat data Principal.');
+    }
+
     public function index(Request $request)
     {
         $period = $request->get('period', Transaction::max('period') ?? date('Y-m'));

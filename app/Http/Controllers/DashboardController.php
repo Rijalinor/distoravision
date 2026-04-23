@@ -14,6 +14,11 @@ class DashboardController extends Controller
 {
     public function index(Request $request)
     {
+        // Auto-redirect salesman ke dashboard pribadinya
+        if (auth()->user()->isSalesman() && auth()->user()->salesman_id) {
+            return redirect()->route('salesman.dashboard', $request->query());
+        }
+
         $latestPeriod = Transaction::max('period') ?? date('Y-m');
 
         // Derive the active display period from the filter params.

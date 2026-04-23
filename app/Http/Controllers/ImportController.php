@@ -30,7 +30,13 @@ class ImportController extends Controller
         $request->validate([
             'file' => 'required|file|mimes:csv,txt,xlsx,xls|max:51200',
             'period' => 'required|date_format:Y-m',
+            'import_mode' => 'required|in:tambah,ganti',
         ]);
+
+        // ── Period Guard: block import to closed periods ──
+        if (\App\Models\AccountingPeriod::isPeriodClosed($request->period)) {
+            return back()->with('error', 'Tidak dapat mengimport data. Periode ' . $request->period . ' sudah ditutup (Tutup Buku). Hubungi Admin untuk membuka kembali.');
+        }
 
         $file = $request->file('file');
 
@@ -48,13 +54,13 @@ class ImportController extends Controller
         ]);
 
         // Dispatch background job
-        \App\Jobs\ProcessSecondaryDataImport::dispatch($importLog, $filePath);
+        \App\Jobs\ProcessSecondaryDataImport::dispatch($importLog, $filePath, $request->import_mode);
 
         activity()
             ->causedBy(auth()->user())
             ->performedOn($importLog)
-            ->withProperties(['file' => $file->getClientOriginalName(), 'period' => $request->period])
-            ->log('mengunggah data sales secondary');
+            ->withProperties(['file' => $file->getClientOriginalName(), 'period' => $request->period, 'mode' => $request->import_mode])
+            ->log('mengunggah data sales secondary (mode: ' . $request->import_mode . ')');
 
         return redirect()->route('imports.index')
             ->with('success', 'File berhasil diupload dan sedang diproses di background. Refresh halaman ini nanti untuk melihat status.');

@@ -9,6 +9,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 
 class ProcessSecondaryDataImport implements ShouldQueue
@@ -20,14 +21,16 @@ class ProcessSecondaryDataImport implements ShouldQueue
 
     protected $importLog;
     protected $filePath;
+    protected $importMode;
 
     /**
      * Create a new job instance.
      */
-    public function __construct(ImportLog $importLog, string $filePath)
+    public function __construct(ImportLog $importLog, string $filePath, string $importMode = 'tambah')
     {
         $this->importLog = $importLog;
         $this->filePath = $filePath;
+        $this->importMode = $importMode;
     }
 
     /**
@@ -41,28 +44,25 @@ class ProcessSecondaryDataImport implements ShouldQueue
         try {
             $this->importLog->update(['status' => 'processing']);
 
-            $import = new SecondaryDataImport($this->importLog);
-            Excel::import($import, $this->filePath, 'local');
+            // Mode Ganti: delete + import dalam satu DB::transaction untuk data safety
+            // Jika import gagal, delete di-rollback otomatis
+            if ($this->importMode === 'ganti') {
+                DB::transaction(function () {
+                    \App\Models\Transaction::withoutGlobalScopes()
+                        ->where('period', $this->importLog->period)
+                        ->delete();
 
-            $totalRows = $import->getImportedCount() + $import->getFailedCount() + $import->getDuplicateCount();
-            $status = 'completed';
-            if ($import->getImportedCount() === 0) {
-                $status = 'failed';
-            } elseif ($import->getFailedCount() > 0) {
-                $status = 'completed';
+                    $import = new SecondaryDataImport($this->importLog);
+                    Excel::import($import, $this->filePath, 'local');
+                    $this->saveImportResult($import);
+                });
+            } else {
+                $import = new SecondaryDataImport($this->importLog);
+                Excel::import($import, $this->filePath, 'local');
+                $this->saveImportResult($import);
             }
 
-            $this->importLog->update([
-                'total_rows' => $totalRows,
-                'imported_rows' => $import->getImportedCount(),
-                'skipped_rows' => $import->getDuplicateCount(),
-                'failed_rows' => $import->getFailedCount(),
-                'status' => $status,
-                'errors' => !empty($import->getErrors()) ? implode("\n", $import->getErrors()) : null,
-                'completed_at' => now(),
-            ]);
-
-            // Optional: Delete the temporary file after successful import
+            // Cleanup temp file
             if (file_exists(storage_path('app/private/' . $this->filePath))) {
                 unlink(storage_path('app/private/' . $this->filePath));
             } elseif (file_exists(storage_path('app/' . $this->filePath))) {
@@ -75,5 +75,29 @@ class ProcessSecondaryDataImport implements ShouldQueue
                 'completed_at' => now(),
             ]);
         }
+    }
+
+    /**
+     * Save import result to ImportLog.
+     */
+    protected function saveImportResult(SecondaryDataImport $import): void
+    {
+        $totalRows = $import->getImportedCount() + $import->getFailedCount() + $import->getDuplicateCount();
+        $status = 'completed';
+        if ($import->getImportedCount() === 0) {
+            $status = 'failed';
+        } elseif ($import->getFailedCount() > 0) {
+            $status = 'completed';
+        }
+
+        $this->importLog->update([
+            'total_rows' => $totalRows,
+            'imported_rows' => $import->getImportedCount(),
+            'skipped_rows' => $import->getDuplicateCount(),
+            'failed_rows' => $import->getFailedCount(),
+            'status' => $status,
+            'errors' => !empty($import->getErrors()) ? implode("\n", $import->getErrors()) : null,
+            'completed_at' => now(),
+        ]);
     }
 }

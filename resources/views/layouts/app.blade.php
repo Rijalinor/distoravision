@@ -102,6 +102,7 @@
             .card {
                 background: var(--bg-card); border: 1px solid var(--border-color);
                 border-radius: 12px; padding: 1.25rem; transition: all 0.2s;
+                overflow-x: auto; /* Prevent table stretch on mobile */
             }
             .card:hover { border-color: var(--primary); box-shadow: 0 0 20px rgba(99,102,241,0.1); }
             .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
@@ -227,13 +228,20 @@
             /* Responsive mobile */
             .mobile-toggle { display: none; }
             @media (max-width: 768px) {
+                body, html { overflow-x: hidden; }
                 .sidebar { transform: translateX(-100%); }
                 .sidebar.open { transform: translateX(0); }
-                .main-content { margin-left: 0; }
+                .main-content { margin-left: 0; max-width: 100vw; }
                 .mobile-toggle { display: block; }
                 .grid-2, .grid-3, .chart-grid { grid-template-columns: 1fr; }
                 .kpi-grid { grid-template-columns: repeat(2, 1fr); }
-                .content-area { padding: 1rem; }
+                .content-area { padding: 1rem; width: 100%; box-sizing: border-box; }
+                .top-bar { flex-wrap: wrap; padding: 1rem; gap: 0.75rem; justify-content: flex-start; }
+            }
+            @media (max-width: 480px) {
+                .kpi-grid { grid-template-columns: 1fr; }
+                .kpi-value { font-size: 1.5rem; word-break: break-word; }
+                .top-actions { width: 100%; flex-wrap: wrap; }
             }
 
             /* Scrollbar */
@@ -291,10 +299,12 @@
 
                 <div class="nav-section">
                     <div class="nav-section-title">Analytics</div>
+                    @if(!Auth::user()->isSalesman())
                     <a href="{{ route('salesmen.index') }}" class="nav-link {{ request()->routeIs('salesmen.*') ? 'active' : '' }}" title="Salesman Analytics: memantau kinerja tiap salesman berdasarkan nilai penjualan, retur, jumlah transaksi, cakupan outlet, produk teratas, dan tren mingguan. Cocok untuk evaluasi performa individu, identifikasi tim yang butuh intervensi, dan menyusun rencana coaching berbasis data.">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                         Salesman
                     </a>
+                    @endif
                     <a href="{{ route('outlets.index') }}" class="nav-link {{ request()->routeIs('outlets.*') ? 'active' : '' }}" title="Outlet Analytics: menampilkan performa setiap toko/outlet berdasarkan sales, frekuensi transaksi, produk yang dibeli, dan riwayat pembelian. Berguna untuk memetakan outlet prioritas, mendeteksi outlet yang melemah, serta menentukan strategi kunjungan lapangan yang lebih tepat sasaran.">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
                         Outlet
@@ -315,6 +325,7 @@
                     </a>
                 </div>
 
+                @if(!Auth::user()->isSalesman())
                 <div class="nav-section">
                     <div class="nav-section-title">Intelligence</div>
                     <a href="{{ route('analytics.rfm') }}" class="nav-link {{ request()->routeIs('analytics.rfm') ? 'active' : '' }}" title="Analisa RFM (Recency, Frequency, Monetary): mengelompokkan outlet ke segmen seperti Champion, Loyal, Need Attention, dan At Risk. Sangat berguna untuk strategi retensi pelanggan, prioritas kunjungan sales, serta desain program promo yang berbeda untuk tiap tipe outlet.">
@@ -365,6 +376,7 @@
                         Toko Berhenti (Sleep)
                     </a>
                 </div>
+                @endif
 
                 @if(Auth::user()->isAdmin())
                 <div class="nav-section">
@@ -380,6 +392,10 @@
                     <a href="{{ route('settings.activity-logs') }}" class="nav-link {{ request()->routeIs('settings.activity-logs') ? 'active' : '' }}" title="Activity Logs: Jejak audit sistem untuk melihat riwayat aksi user.">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
                         Activity Logs
+                    </a>
+                    <a href="{{ route('periods.index') }}" class="nav-link {{ request()->routeIs('periods.*') ? 'active' : '' }}" title="Tutup Buku: kelola periode akuntansi bulanan. Tutup buku untuk membekukan data dan mencegah perubahan retroaktif.">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                        Tutup Buku
                     </a>
                 </div>
                 @endif

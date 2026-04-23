@@ -29,6 +29,12 @@ class ArImportController extends Controller
             'sheet_name' => 'required|string|max:50',
         ]);
 
+        // ── Period Guard: block import to closed periods ──
+        if (\App\Models\AccountingPeriod::isPeriodClosed($request->report_date)) {
+            $periodLabel = \Carbon\Carbon::parse($request->report_date)->translatedFormat('F Y');
+            return back()->with('error', 'Tidak dapat mengimport data AR. Periode ' . $periodLabel . ' sudah ditutup (Tutup Buku). Hubungi Admin untuk membuka kembali.');
+        }
+
         $file = $request->file('file');
         $filePath = $file->store('imports', 'local');
 

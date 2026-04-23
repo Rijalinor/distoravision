@@ -13,6 +13,11 @@ class SalesmanController extends Controller
 {
     public function index(Request $request)
     {
+        // Bug #5 fix: Salesman langsung redirect ke halaman profil sendiri
+        if (auth()->user()->isSalesman() && auth()->user()->salesman_id) {
+            return redirect()->route('salesmen.show', auth()->user()->salesman_id);
+        }
+
         $period = $request->get('period', Transaction::max('period') ?? date('Y-m'));
         $periods = Transaction::select('period')->distinct()->orderByDesc('period')->pluck('period');
 
@@ -46,6 +51,11 @@ class SalesmanController extends Controller
 
     public function show(Request $request, Salesman $salesman)
     {
+        // Bug #5 fix: Salesman hanya boleh lihat data sendiri
+        if (auth()->user()->isSalesman() && auth()->user()->salesman_id !== $salesman->id) {
+            abort(403, 'Anda hanya dapat melihat profil Anda sendiri.');
+        }
+
         $period = $request->get('period', Transaction::max('period') ?? date('Y-m'));
         $periods = Transaction::select('period')->distinct()->orderByDesc('period')->pluck('period');
 
@@ -67,10 +77,6 @@ class SalesmanController extends Controller
             ->join('outlets', 'transactions.outlet_id', '=', 'outlets.id')
             ->select('outlets.name', 'outlets.city', DB::raw('SUM(transactions.taxed_amt) as total'))
             ->groupBy('outlets.name', 'outlets.city')->orderByDesc('total')->limit(10)->get();
-
-        $weeklyData = Transaction::where('salesman_id', $salesman->id)->withFilters(request())
-            ->select('week', 'type', DB::raw('SUM(ABS(taxed_amt)) as total'))
-            ->groupBy('week', 'type')->orderBy('week')->get()->groupBy('week');
 
         $weeklyData = Transaction::where('salesman_id', $salesman->id)->withFilters(request())
             ->select('week', 'type', DB::raw('SUM(ABS(taxed_amt)) as total'))
