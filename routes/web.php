@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\ActivityLogController;
+use App\Http\Controllers\AdvancedAnalyticsController;
 use App\Http\Controllers\ArAnalyticsController;
 use App\Http\Controllers\ArImportController;
 use App\Http\Controllers\ColumnMappingController;
@@ -7,11 +9,16 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DemoModeController;
 use App\Http\Controllers\ImportController;
 use App\Http\Controllers\OutletController;
+use App\Http\Controllers\PeriodController;
 use App\Http\Controllers\PrincipalController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RegionalController;
 use App\Http\Controllers\SalesmanController;
+use App\Http\Controllers\SalesmanDashboardController;
+use App\Http\Controllers\TvDashboardController;
+use App\Http\Controllers\UserController;
+use App\Http\Middleware\AdminMiddleware;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -20,13 +27,13 @@ Route::get('/', function () {
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-    Route::get('/my-dashboard', [\App\Http\Controllers\SalesmanDashboardController::class, 'index'])->name('salesman.dashboard');
+    Route::get('/my-dashboard', [SalesmanDashboardController::class, 'index'])->name('salesman.dashboard');
     Route::post('/demo-mode/toggle', [DemoModeController::class, 'toggle'])->name('demo-mode.toggle');
 
     // ══════════════════════════════════════════════════════════════
     // ADMIN ONLY — Import, Settings, Tutup Buku
     // ══════════════════════════════════════════════════════════════
-    Route::middleware([\App\Http\Middleware\AdminMiddleware::class])->group(function () {
+    Route::middleware([AdminMiddleware::class])->group(function () {
         // Import Sales
         Route::get('/imports', [ImportController::class, 'index'])->name('imports.index');
         Route::get('/imports/create', [ImportController::class, 'create'])->name('imports.create');
@@ -41,21 +48,21 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('/ar/imports/{arImportLog}', [ArImportController::class, 'destroy'])->name('ar.imports.destroy');
 
         // Settings
-        Route::resource('users', \App\Http\Controllers\UserController::class)->except(['show']);
+        Route::resource('users', UserController::class)->except(['show']);
         Route::get('/settings/column-mapping', [ColumnMappingController::class, 'edit'])->name('settings.column-mapping');
         Route::put('/settings/column-mapping', [ColumnMappingController::class, 'update'])->name('settings.column-mapping.update');
-        Route::get('/settings/activity-logs', [\App\Http\Controllers\ActivityLogController::class, 'index'])->name('settings.activity-logs');
+        Route::get('/settings/activity-logs', [ActivityLogController::class, 'index'])->name('settings.activity-logs');
 
         // Tutup Buku (Period Management)
-        Route::get('/periods', [\App\Http\Controllers\PeriodController::class, 'index'])->name('periods.index');
-        Route::post('/periods/{period}/close', [\App\Http\Controllers\PeriodController::class, 'close'])->name('periods.close');
-        Route::post('/periods/{period}/reopen', [\App\Http\Controllers\PeriodController::class, 'reopen'])->name('periods.reopen');
-        Route::get('/periods/{period}', [\App\Http\Controllers\PeriodController::class, 'show'])->name('periods.show');
+        Route::get('/periods', [PeriodController::class, 'index'])->name('periods.index');
+        Route::post('/periods/{period}/close', [PeriodController::class, 'close'])->name('periods.close');
+        Route::post('/periods/{period}/reopen', [PeriodController::class, 'reopen'])->name('periods.reopen');
+        Route::get('/periods/{period}', [PeriodController::class, 'show'])->name('periods.show');
 
         // Admin-only Analytics
-        Route::get('/analytics/margin', [\App\Http\Controllers\AdvancedAnalyticsController::class, 'marginAnalysis'])->name('analytics.margin');
-        Route::get('/analytics/report', [\App\Http\Controllers\AdvancedAnalyticsController::class, 'generateReport'])->name('analytics.report');
-        Route::post('/analytics/target-tracker/save', [\App\Http\Controllers\AdvancedAnalyticsController::class, 'saveTargets'])->name('analytics.save-targets');
+        Route::get('/analytics/margin', [AdvancedAnalyticsController::class, 'marginAnalysis'])->name('analytics.margin');
+        Route::get('/analytics/report', [AdvancedAnalyticsController::class, 'generateReport'])->name('analytics.report');
+        Route::post('/analytics/target-tracker/save', [AdvancedAnalyticsController::class, 'saveTargets'])->name('analytics.save-targets');
     });
 
     // ══════════════════════════════════════════════════════════════
@@ -84,16 +91,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/regional', [RegionalController::class, 'index'])->name('regional.index');
 
     // Advanced Analytics (open to all roles)
-    Route::get('/analytics/pareto', [\App\Http\Controllers\AdvancedAnalyticsController::class, 'pareto'])->name('analytics.pareto');
-    Route::get('/analytics/sleeping-outlets', [\App\Http\Controllers\AdvancedAnalyticsController::class, 'sleepingOutlets'])->name('analytics.sleeping-outlets');
-    Route::get('/analytics/discount', [\App\Http\Controllers\AdvancedAnalyticsController::class, 'discountEffectiveness'])->name('analytics.discount');
-    Route::get('/analytics/rfm', [\App\Http\Controllers\AdvancedAnalyticsController::class, 'rfmAnalysis'])->name('analytics.rfm');
-    Route::get('/analytics/cross-selling', [\App\Http\Controllers\AdvancedAnalyticsController::class, 'crossSelling'])->name('analytics.cross-selling');
-    Route::get('/analytics/target-tracker', [\App\Http\Controllers\AdvancedAnalyticsController::class, 'targetTracker'])->name('analytics.target-tracker');
-    Route::get('/analytics/cohort', [\App\Http\Controllers\AdvancedAnalyticsController::class, 'cohortAnalysis'])->name('analytics.cohort');
+    Route::get('/analytics/pareto', [AdvancedAnalyticsController::class, 'pareto'])->name('analytics.pareto');
+    Route::get('/analytics/sleeping-outlets', [AdvancedAnalyticsController::class, 'sleepingOutlets'])->name('analytics.sleeping-outlets');
+    Route::get('/analytics/discount', [AdvancedAnalyticsController::class, 'discountEffectiveness'])->name('analytics.discount');
+    Route::get('/analytics/rfm', [AdvancedAnalyticsController::class, 'rfmAnalysis'])->name('analytics.rfm');
+    Route::get('/analytics/cross-selling', [AdvancedAnalyticsController::class, 'crossSelling'])->name('analytics.cross-selling');
+    Route::get('/analytics/target-tracker', [AdvancedAnalyticsController::class, 'targetTracker'])->name('analytics.target-tracker');
+    Route::get('/analytics/cohort', [AdvancedAnalyticsController::class, 'cohortAnalysis'])->name('analytics.cohort');
+    Route::get('/analytics/promo-uplift', [AdvancedAnalyticsController::class, 'promoUplift'])->name('analytics.promo-uplift');
 
     // TV Dashboard Wallboard
-    Route::get('/tv-dashboard', [\App\Http\Controllers\TvDashboardController::class, 'index'])->name('tv.dashboard');
+    Route::get('/tv-dashboard', [TvDashboardController::class, 'index'])->name('tv.dashboard');
 });
 
 Route::middleware('auth')->group(function () {

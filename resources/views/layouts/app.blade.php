@@ -371,6 +371,10 @@
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>
                         Efektifitas Diskon
                     </a>
+                    <a href="{{ route('analytics.promo-uplift') }}" class="nav-link {{ request()->routeIs('analytics.promo-uplift') ? 'active' : '' }}" title="Evaluasi Efek Promo & ROI: membedah efektivitas setiap promosi dengan membandingkan bulan normal (baseline) vs bulan promo. Menghitung Volume Uplift, Subsidi yang dibakar, dan ROI murni. Dilengkapi deteksi anomali: barang kosong pabrik (Stockout) dan toko menimbun (Forward Buying).">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                        Evaluasi Efek Promo
+                    </a>
                     <a href="{{ route('analytics.sleeping-outlets') }}" class="nav-link {{ request()->routeIs('analytics.sleeping-outlets') ? 'active' : '' }}" title="Toko Berhenti (Sleeping Outlets): mendeteksi outlet yang sebelumnya aktif namun tidak bertransaksi di periode berjalan. Fitur ini mempermudah tim mengambil tindakan reaktivasi lebih cepat, menghitung potensi opportunity loss, dan mencegah pelanggan berpindah ke kompetitor.">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
                         Toko Berhenti (Sleep)

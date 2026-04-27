@@ -13,7 +13,7 @@
         ->orderBy('name')
         ->get();
     
-    $start_period = request('start_period', request('period', $periods->first()));
+    $start_period = request('start_period', request()->routeIs('analytics.promo-uplift') ? $periods->last() : request('period', $periods->first()));
     $end_period = request('end_period', request('period', $periods->first()));
     $principal_id = request('principal_id', 'all');
 @endphp
