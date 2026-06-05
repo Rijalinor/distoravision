@@ -13,7 +13,7 @@ class AdminMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        abort_if(!auth()->check() || auth()->user()->role !== 'admin', 403, 'Anda tidak memiliki akses Admin.');
+        abort_if(! auth()->check() || auth()->user()->role !== 'admin', 403, 'Anda tidak memiliki akses Admin.');
 
         return $next($request);
     }

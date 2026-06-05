@@ -20,24 +20,24 @@ class OutletController extends Controller
 
         $query = Outlet::select('outlets.*')
             ->withCount([
-                'transactions as trx_count' => fn($q) => $q->where('type', 'I')->withFilters(request()),
+                'transactions as trx_count' => fn ($q) => $q->where('type', 'I')->withFilters(request()),
             ])
             ->selectSub(
-                \App\Models\Transaction::whereColumn('transactions.outlet_id', 'outlets.id')
+                Transaction::whereColumn('transactions.outlet_id', 'outlets.id')
                     ->where('type', 'I')->withFilters(request())
                     ->selectRaw('COALESCE(SUM(taxed_amt), 0)'),
                 'total_sales'
             );
-        
+
         if ($request->session()->get('demo_mode_active', false)) {
-            $query->whereHas('transactions', fn($q) => $q->withFilters(request()));
+            $query->whereHas('transactions', fn ($q) => $q->withFilters(request()));
         }
 
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('code', 'like', "%{$search}%")
-                  ->orWhere('city', 'like', "%{$search}%");
+                    ->orWhere('code', 'like', "%{$search}%")
+                    ->orWhere('city', 'like', "%{$search}%");
             });
         }
 
@@ -73,4 +73,3 @@ class OutletController extends Controller
         return view('outlets.show', compact('outlet', 'period', 'periods', 'stats', 'purchaseHistory'));
     }
 }
-

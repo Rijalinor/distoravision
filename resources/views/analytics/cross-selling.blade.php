@@ -3,10 +3,12 @@
 @section('top-bar-actions')
 <form method="GET" style="display:flex;gap:0.75rem;align-items:center;">
     @include('components.filter')
+    @include('components.export-button')
 </form>
 @endsection
 
 @section('content')
+@include('components.product-tabs')
 @include('components.ai-insight')
 
 <div class="alert alert-success">

@@ -2,10 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Salesman;
-use App\Models\Transaction;
 use App\Models\ArImportLog;
 use App\Models\ArReceivable;
+use App\Models\Salesman;
+use App\Models\Transaction;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -23,8 +24,8 @@ class SalesmanController extends Controller
 
         $salesmen = Salesman::select('salesmen.*')
             ->withCount([
-                'transactions as invoice_count' => fn($q) => $q->where('type', 'I')->withFilters(request()),
-                'transactions as return_count' => fn($q) => $q->where('type', 'R')->withFilters(request()),
+                'transactions as invoice_count' => fn ($q) => $q->where('type', 'I')->withFilters(request()),
+                'transactions as return_count' => fn ($q) => $q->where('type', 'R')->withFilters(request()),
             ])
             ->selectSub(
                 Transaction::whereColumn('transactions.salesman_id', 'salesmen.id')
@@ -33,9 +34,9 @@ class SalesmanController extends Controller
                 'total_sales'
             )
             ->withSum([
-                'transactions as total_returns' => fn($q) => $q->where('type', 'R')->withFilters(request()),
+                'transactions as total_returns' => fn ($q) => $q->where('type', 'R')->withFilters(request()),
             ], 'taxed_amt')
-            ->whereHas('transactions', fn($q) => $q->withFilters(request()))
+            ->whereHas('transactions', fn ($q) => $q->withFilters(request()))
             ->orderByDesc('total_sales')
             ->paginate(20)
             ->appends(['period' => $period]);
@@ -43,6 +44,7 @@ class SalesmanController extends Controller
         // Convert returns to absolute
         $salesmen->getCollection()->transform(function ($s) {
             $s->total_returns = abs($s->total_returns ?? 0);
+
             return $s;
         });
 
@@ -87,7 +89,7 @@ class SalesmanController extends Controller
         $returnRate = $stats['total_sales'] > 0 ? ($stats['total_returns'] / $stats['total_sales']) * 100 : 0;
 
         // 2. Personal Sleeper (Churned) Outlets
-        $prevM = \Carbon\Carbon::parse($period . '-01')->subMonth()->format('Y-m');
+        $prevM = Carbon::parse($period.'-01')->subMonth()->format('Y-m');
         $activeLast = Transaction::where('period', $prevM)->where('type', 'I')->where('salesman_id', $salesman->id)->pluck('outlet_id')->unique();
         $activeThis = Transaction::where('period', $period)->where('type', 'I')->where('salesman_id', $salesman->id)->pluck('outlet_id')->unique();
         $lostOutletsKeys = $activeLast->diff($activeThis);
@@ -95,23 +97,22 @@ class SalesmanController extends Controller
         $lostOutletsValue = Transaction::where('period', $prevM)->where('type', 'I')->whereIn('outlet_id', $lostOutletsKeys)->sum('taxed_amt');
 
         // 3. Personal Target & Run-Rate (Assumes Target = 3-month avg + 10% stretch)
-        $past3MStart = \Carbon\Carbon::parse($period . '-01')->subMonths(3)->format('Y-m');
+        $past3MStart = Carbon::parse($period.'-01')->subMonths(3)->format('Y-m');
         $vPast = Transaction::where('salesman_id', $salesman->id)->invoices()
             ->whereBetween('period', [$past3MStart, $prevM])->sum('taxed_amt');
-        
-        $personalTarget = ($vPast / 3) * 1.1; 
+
+        $personalTarget = ($vPast / 3) * 1.1;
         $shortfall = $personalTarget - $stats['total_sales'];
         $shortfall = $shortfall > 0 ? $shortfall : 0;
-        
-        $daysInM = \Carbon\Carbon::parse($period . '-01')->daysInMonth;
+
+        $daysInM = Carbon::parse($period.'-01')->daysInMonth;
         $workDays = ceil($daysInM * 0.86); // ~26 days
-        $cwd = \Carbon\Carbon::now()->format('Y-m') === $period ? \Carbon\Carbon::now()->day : $daysInM;
+        $cwd = Carbon::now()->format('Y-m') === $period ? Carbon::now()->day : $daysInM;
         $remainingDays = max(1, $workDays - ceil($cwd * 0.86));
         $dailyRunRateRequired = $shortfall / $remainingDays;
-        
+
         $targetProgress = $personalTarget > 0 ? ($stats['total_sales'] / $personalTarget) * 100 : 0;
 
-        
         // ── AR (PIUTANG) SECTION ──────────────────────────────────────
         $latestArImport = ArImportLog::where('status', 'completed')->orderByDesc('report_date')->first();
         $arData = null;
@@ -159,4 +160,3 @@ class SalesmanController extends Controller
         ));
     }
 }
-

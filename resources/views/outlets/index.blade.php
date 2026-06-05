@@ -9,6 +9,7 @@
 @endsection
 
 @section('content')
+@include('components.outlet-tabs')
 <div class="card">
     <div class="card-header"><span class="card-title">Daftar Outlet ({{ $outlets->total() }} outlet)</span></div>
     <table class="data-table">

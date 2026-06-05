@@ -4,8 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class SalesmanTarget extends Model
 {
@@ -19,7 +19,7 @@ class SalesmanTarget extends Model
             ->logFillable()
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs()
-            ->setDescriptionForEvent(fn(string $eventName) => "Salesman Target has been {$eventName}");
+            ->setDescriptionForEvent(fn (string $eventName) => "Salesman Target has been {$eventName}");
     }
 
     public function salesman(): BelongsTo

@@ -4,22 +4,26 @@ namespace App\Jobs;
 
 use App\Imports\ArDataImport;
 use App\Models\ArImportLog;
-use App\Models\ArReceivable;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Str;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class ProcessArImport implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public $timeout = 0;
+
     public $failOnTimeout = false;
 
     protected $importLog;
+
     protected $filePath;
+
     protected $sheetName;
 
     public function __construct(ArImportLog $importLog, string $filePath, string $sheetName)
@@ -38,13 +42,13 @@ class ProcessArImport implements ShouldQueue
             $this->importLog->update(['status' => 'processing']);
 
             // Resolve full path
-            $fullPath = storage_path('app/private/' . $this->filePath);
-            if (!file_exists($fullPath)) {
-                $fullPath = storage_path('app/' . $this->filePath);
+            $fullPath = storage_path('app/private/'.$this->filePath);
+            if (! file_exists($fullPath)) {
+                $fullPath = storage_path('app/'.$this->filePath);
             }
 
             // Load the spreadsheet and find the matching sheet
-            $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReader('Xlsx');
+            $reader = IOFactory::createReader('Xlsx');
             $reader->setReadDataOnly(true);
             $spreadsheet = $reader->load($fullPath);
             $sheetNames = $spreadsheet->getSheetNames();
@@ -60,9 +64,9 @@ class ProcessArImport implements ShouldQueue
                 }
             }
 
-            if (!$targetSheet) {
+            if (! $targetSheet) {
                 $spreadsheet->disconnectWorksheets();
-                throw new \Exception("Sheet '{$this->sheetName}' tidak ditemukan. Sheet tersedia: " . implode(', ', $sheetNames));
+                throw new \Exception("Sheet '{$this->sheetName}' tidak ditemukan. Sheet tersedia: ".implode(', ', $sheetNames));
             }
 
             // Read ONLY the target sheet into an array
@@ -79,7 +83,7 @@ class ProcessArImport implements ShouldQueue
             $headers = [];
             foreach ($headerRow as $col => $val) {
                 if ($val !== null) {
-                    $headers[$col] = \Illuminate\Support\Str::slug(trim($val), '_');
+                    $headers[$col] = Str::slug(trim($val), '_');
                 }
             }
 
@@ -109,7 +113,7 @@ class ProcessArImport implements ShouldQueue
                 } catch (\Exception $e) {
                     $failedCount++;
                     if (count($errors) < 50) {
-                        $errors[] = "Row " . ($rowIndex + 1) . ": " . $e->getMessage();
+                        $errors[] = 'Row '.($rowIndex + 1).': '.$e->getMessage();
                     }
                 }
             }
@@ -120,15 +124,15 @@ class ProcessArImport implements ShouldQueue
                 'imported_rows' => $importedCount,
                 'failed_rows' => $failedCount,
                 'status' => $status,
-                'errors' => !empty($errors) ? implode("\n", $errors) : null,
+                'errors' => ! empty($errors) ? implode("\n", $errors) : null,
                 'completed_at' => now(),
             ]);
 
             // Cleanup temp file
-            if (file_exists(storage_path('app/private/' . $this->filePath))) {
-                @unlink(storage_path('app/private/' . $this->filePath));
-            } elseif (file_exists(storage_path('app/' . $this->filePath))) {
-                @unlink(storage_path('app/' . $this->filePath));
+            if (file_exists(storage_path('app/private/'.$this->filePath))) {
+                @unlink(storage_path('app/private/'.$this->filePath));
+            } elseif (file_exists(storage_path('app/'.$this->filePath))) {
+                @unlink(storage_path('app/'.$this->filePath));
             }
         } catch (\Exception $e) {
             $this->importLog->update([

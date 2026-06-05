@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Transaction;
+use App\Models\ArImportLog;
+use App\Models\ArReceivable;
 use App\Models\SalesmanTarget;
+use App\Models\Transaction;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -26,10 +29,10 @@ class TvDashboardController extends Controller
         // Calculate Team Target
         $savedTargetValue = SalesmanTarget::where('period', $period)->sum('target_amount');
         $teamTarget = $savedTargetValue > 0 ? $savedTargetValue : 10000000000; // 10B fallback
-        
+
         $achievementPct = $teamTarget > 0 ? ($netSales / $teamTarget) * 100 : 0;
         $gap = $teamTarget - $netSales;
-        
+
         // ==== 2. SALESMAN LEADERBOARD ====
         $leaderboard = Transaction::where('period', $period)
             ->invoices()
@@ -40,16 +43,33 @@ class TvDashboardController extends Controller
                 DB::raw('SUM(transactions.taxed_amt) as total_sales')
             )
             ->groupBy('salesmen.id', 'salesmen.name')
-            ->groupBy('salesmen.id', 'salesmen.name')
             ->having('total_sales', '>', 0)
             ->orderByDesc('total_sales')
             ->get();
 
+        // ==== Historical 3-Month Sales for Target Distribution ====
+        // Uses past performance instead of current-month sales to avoid circular reference
+        $currentCarbon = Carbon::createFromFormat('Y-m', $period);
+        $pastPeriods = [];
+        for ($i = 1; $i <= 3; $i++) {
+            $pastPeriods[] = (clone $currentCarbon)->subMonths($i)->format('Y-m');
+        }
+
+        $historicalSales = DB::table('transactions')
+            ->whereIn('period', $pastPeriods)
+            ->where('type', 'I')
+            ->select('salesman_id', DB::raw('SUM(taxed_amt) as hist_revenue'))
+            ->groupBy('salesman_id')
+            ->get()
+            ->keyBy('salesman_id');
+
+        $totalHistoricalSales = max($historicalSales->sum('hist_revenue'), 1);
+
         // ==== Fetch AR (Piutang) ====
-        $latestImport = \App\Models\ArImportLog::where('status', 'completed')->orderByDesc('report_date')->first();
+        $latestImport = ArImportLog::where('status', 'completed')->orderByDesc('report_date')->first();
         $arBalances = collect();
         if ($latestImport) {
-            $arBalances = \App\Models\ArReceivable::where('ar_import_log_id', $latestImport->id)
+            $arBalances = ArReceivable::where('ar_import_log_id', $latestImport->id)
                 ->where('ar_balance', '>', 0)
                 ->whereNotNull('salesman_name')
                 ->groupBy('salesman_name')
@@ -57,16 +77,19 @@ class TvDashboardController extends Controller
                 ->pluck('total_ar', 'salesman_name');
         }
 
-        // Attach individual targets and AR to the leaderboard if available
+        // Attach individual targets and AR to the leaderboard
         $salesmanTargets = SalesmanTarget::where('period', $period)->get()->keyBy('salesman_id');
-        $leaderboard = $leaderboard->map(function ($s) use ($salesmanTargets, $teamTarget, $leaderboard, $arBalances) {
-            $sumAll = max($leaderboard->sum('total_sales'), 1);
-            $ratio = $s->total_sales / $sumAll;
+        $leaderboard = $leaderboard->map(function ($s) use ($salesmanTargets, $teamTarget, $historicalSales, $totalHistoricalSales, $arBalances) {
+            // Use historical contribution ratio (not current-month) to avoid circular reference
+            $histSales = $historicalSales->get($s->id)->hist_revenue ?? 0;
+            $ratio = $histSales / $totalHistoricalSales;
+
             $s->target = $salesmanTargets->has($s->id) ? $salesmanTargets->get($s->id)->target_amount : ($ratio * $teamTarget);
             $s->progress = $s->target > 0 ? ($s->total_sales / $s->target) * 100 : 100;
-            
+
             // Map AR
             $s->ar_balance = $arBalances->get($s->name, 0);
+
             return $s;
         });
 
@@ -93,7 +116,7 @@ class TvDashboardController extends Controller
             ->limit(5)
             ->get();
 
-        $monthName = \Carbon\Carbon::createFromFormat('Y-m', $period)->locale('id')->translatedFormat('F Y');
+        $monthName = Carbon::createFromFormat('Y-m', $period)->locale('id')->translatedFormat('F Y');
 
         return view('tv.dashboard', compact(
             'period', 'monthName', 'netSales', 'teamTarget', 'achievementPct', 'gap',

@@ -52,7 +52,9 @@ class PeriodController extends Controller
 
             $totalSales = (clone $salesQuery)->where('type', 'I')->sum('taxed_amt');
             $totalReturns = (clone $salesQuery)->where('type', 'R')->sum(DB::raw('ABS(taxed_amt)'));
-            $totalCogs = (clone $salesQuery)->where('type', 'I')->sum('cogs');
+            $invoiceCogs = (clone $salesQuery)->where('type', 'I')->sum('cogs');
+            $returnCogs = (clone $salesQuery)->where('type', 'R')->sum(DB::raw('ABS(cogs)'));
+            $totalCogs = $invoiceCogs - $returnCogs; // Net COGS: offset returned goods
             $netSales = $totalSales - $totalReturns;
             $invoiceCount = (clone $salesQuery)->where('type', 'I')->count();
             $returnCount = (clone $salesQuery)->where('type', 'R')->count();
@@ -206,7 +208,7 @@ class PeriodController extends Controller
             ->causedBy(auth()->user())
             ->performedOn($period)
             ->withProperties(['period' => $period->label])
-            ->log('melakukan tutup buku periode ' . $period->label);
+            ->log('melakukan tutup buku periode '.$period->label);
 
         return redirect()->route('periods.index')
             ->with('success', "Tutup buku periode {$period->label} berhasil! Snapshot data telah disimpan.");
@@ -219,7 +221,7 @@ class PeriodController extends Controller
     {
         $period->load(['snapshot', 'closedByUser']);
 
-        if (!$period->snapshot) {
+        if (! $period->snapshot) {
             return redirect()->route('periods.index')
                 ->with('error', 'Snapshot belum tersedia untuk periode ini.');
         }
@@ -247,7 +249,7 @@ class PeriodController extends Controller
             ->causedBy(auth()->user())
             ->performedOn($period)
             ->withProperties(['period' => $period->label])
-            ->log('membuka kembali periode ' . $period->label);
+            ->log('membuka kembali periode '.$period->label);
 
         return redirect()->route('periods.index')
             ->with('success', "Periode {$period->label} berhasil dibuka kembali.");

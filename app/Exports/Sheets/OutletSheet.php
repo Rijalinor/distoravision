@@ -6,28 +6,33 @@ use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Concerns\FromArray;
-use Maatwebsite\Excel\Concerns\WithTitle;
-use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use Maatwebsite\Excel\Concerns\WithEvents;
+use Maatwebsite\Excel\Concerns\WithStyles;
+use Maatwebsite\Excel\Concerns\WithTitle;
 use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class OutletSheet implements FromArray, WithTitle, WithStyles, WithColumnWidths, WithEvents
+class OutletSheet implements FromArray, WithColumnWidths, WithEvents, WithStyles, WithTitle
 {
     use ExcelStyler;
 
     protected Request $request;
+
     protected string $period;
+
     protected int $dataRowCount = 0;
 
     public function __construct(Request $request, string $period)
     {
         $this->request = $request;
-        $this->period  = $period;
+        $this->period = $period;
     }
 
-    public function title(): string { return 'Rapor Toko'; }
+    public function title(): string
+    {
+        return 'Rapor Toko';
+    }
 
     public function columnWidths(): array
     {
@@ -52,14 +57,14 @@ class OutletSheet implements FromArray, WithTitle, WithStyles, WithColumnWidths,
         $totalSales = (float) $outlets->sum('net_sales');
 
         $rows = [
-            ['RAPOR TOKO (OUTLET) LENGKAP — PERIODE ' . $this->period, '', '', '', '', '', '', '', '', '', '', ''],
+            ['RAPOR TOKO (OUTLET) LENGKAP — PERIODE '.$this->period, '', '', '', '', '', '', '', '', '', '', ''],
             ['#', 'NAMA TOKO', 'KOTA', 'WILAYAH', 'SALESMAN', 'REVENUE (Rp)', '% KONTRIBUSI', 'RETUR (Rp)', 'RETURN RATE (%)', 'JML FAKTUR', 'TOTAL QTY', 'LAST ORDER'],
         ];
 
         foreach ($outlets as $i => $o) {
-            $returns    = (float) ($returnMap[$o->outlet_name]->total_returns ?? 0);
+            $returns = (float) ($returnMap[$o->outlet_name]->total_returns ?? 0);
             $returnRate = ($o->net_sales + $returns) > 0 ? ($returns / ($o->net_sales + $returns)) * 100 : 0;
-            $contrib    = $totalSales > 0 ? ($o->net_sales / $totalSales) * 100 : 0;
+            $contrib = $totalSales > 0 ? ($o->net_sales / $totalSales) * 100 : 0;
 
             $rows[] = [
                 $i + 1,
@@ -83,7 +88,10 @@ class OutletSheet implements FromArray, WithTitle, WithStyles, WithColumnWidths,
         return $rows;
     }
 
-    public function styles(Worksheet $sheet): array { return []; }
+    public function styles(Worksheet $sheet): array
+    {
+        return [];
+    }
 
     public function registerEvents(): array
     {
@@ -91,7 +99,7 @@ class OutletSheet implements FromArray, WithTitle, WithStyles, WithColumnWidths,
             AfterSheet::class => function (AfterSheet $event) {
                 $ws = $event->sheet->getDelegate();
                 $lastDataRow = 2 + $this->dataRowCount;
-                $totalRow    = $lastDataRow + 1;
+                $totalRow = $lastDataRow + 1;
 
                 $this->styleTitle($ws, 'A1:L1');
                 $ws->getRowDimension(1)->setRowHeight(28);
@@ -102,9 +110,9 @@ class OutletSheet implements FromArray, WithTitle, WithStyles, WithColumnWidths,
                 $this->styleDataRows($ws, 3, $lastDataRow, 'L');
 
                 $this->formatCurrencyCol($ws, "F3:F{$lastDataRow}");
-                $this->formatPercentCol($ws,  "G3:G{$lastDataRow}");
+                $this->formatPercentCol($ws, "G3:G{$lastDataRow}");
                 $this->formatCurrencyCol($ws, "H3:H{$lastDataRow}");
-                $this->formatPercentCol($ws,  "I3:I{$lastDataRow}");
+                $this->formatPercentCol($ws, "I3:I{$lastDataRow}");
                 $ws->getStyle("J3:K{$lastDataRow}")->getAlignment()->setHorizontal('right');
                 $ws->getStyle("A3:A{$lastDataRow}")->getAlignment()->setHorizontal('center');
                 $ws->getStyle("D3:D{$lastDataRow}")->getAlignment()->setHorizontal('center');
@@ -118,4 +126,3 @@ class OutletSheet implements FromArray, WithTitle, WithStyles, WithColumnWidths,
         ];
     }
 }
-

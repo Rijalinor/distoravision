@@ -8,6 +8,7 @@
 @endsection
 
 @section('content')
+@include('components.product-tabs')
 <div class="card">
     <div class="card-header"><span class="card-title">Ranking Produk ({{ $products->total() }} SKU)</span></div>
     <table class="data-table">

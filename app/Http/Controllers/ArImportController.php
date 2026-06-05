@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\ProcessArImport;
+use App\Models\AccountingPeriod;
 use App\Models\ArImportLog;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class ArImportController extends Controller
@@ -30,9 +33,10 @@ class ArImportController extends Controller
         ]);
 
         // ── Period Guard: block import to closed periods ──
-        if (\App\Models\AccountingPeriod::isPeriodClosed($request->report_date)) {
-            $periodLabel = \Carbon\Carbon::parse($request->report_date)->translatedFormat('F Y');
-            return back()->with('error', 'Tidak dapat mengimport data AR. Periode ' . $periodLabel . ' sudah ditutup (Tutup Buku). Hubungi Admin untuk membuka kembali.');
+        if (AccountingPeriod::isPeriodClosed($request->report_date)) {
+            $periodLabel = Carbon::parse($request->report_date)->translatedFormat('F Y');
+
+            return back()->with('error', 'Tidak dapat mengimport data AR. Periode '.$periodLabel.' sudah ditutup (Tutup Buku). Hubungi Admin untuk membuka kembali.');
         }
 
         $file = $request->file('file');
@@ -47,7 +51,7 @@ class ArImportController extends Controller
             'started_at' => now(),
         ]);
 
-        \App\Jobs\ProcessArImport::dispatch($importLog, $filePath, $request->sheet_name);
+        ProcessArImport::dispatch($importLog, $filePath, $request->sheet_name);
 
         activity()
             ->causedBy(auth()->user())

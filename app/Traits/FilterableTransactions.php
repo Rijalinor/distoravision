@@ -2,26 +2,25 @@
 
 namespace App\Traits;
 
-use Illuminate\Http\Request;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 trait FilterableTransactions
 {
     /**
      * Scope a query to apply global filters (start_period, end_period, principal_id).
      *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param \Illuminate\Http\Request $request
-     * @return \Illuminate\Database\Eloquent\Builder
+     * @return Builder
      */
     public function scopeWithFilters(Builder $query, Request $request)
     {
         // Determine if ANY period filter is present
-        $hasPeriod      = $request->has('period')      && !empty($request->get('period'));
-        $hasStartPeriod = $request->has('start_period') && !empty($request->get('start_period'));
-        $hasEndPeriod   = $request->has('end_period')   && !empty($request->get('end_period'));
+        $hasPeriod = $request->has('period') && ! empty($request->get('period'));
+        $hasStartPeriod = $request->has('start_period') && ! empty($request->get('start_period'));
+        $hasEndPeriod = $request->has('end_period') && ! empty($request->get('end_period'));
 
-        if ($hasPeriod && !$hasStartPeriod && !$hasEndPeriod) {
+        if ($hasPeriod && ! $hasStartPeriod && ! $hasEndPeriod) {
             // Legacy single-period mode
             $query->where($this->getTable().'.period', $request->get('period'));
 
@@ -37,7 +36,7 @@ trait FilterableTransactions
         } else {
             // ── NO filter at all → default to latest available period ──────────
             // This prevents the "scan all periods on first load" performance issue.
-            $latestPeriod = \Illuminate\Support\Facades\DB::table('transactions')
+            $latestPeriod = DB::table('transactions')
                 ->max('period');
 
             if ($latestPeriod) {
@@ -46,13 +45,13 @@ trait FilterableTransactions
         }
 
         // Principal Filter
-        if ($request->has('principal_id') && !empty($request->get('principal_id')) && $request->get('principal_id') !== 'all') {
+        if ($request->has('principal_id') && ! empty($request->get('principal_id')) && $request->get('principal_id') !== 'all') {
             $principalId = $request->get('principal_id');
 
             $isProductsJoined = collect($query->getQuery()->joins)->pluck('table')->contains('products');
 
-            if (!$isProductsJoined) {
-                $query->whereHas('product', function($q) use ($principalId) {
+            if (! $isProductsJoined) {
+                $query->whereHas('product', function ($q) use ($principalId) {
                     $q->where('principal_id', $principalId);
                 });
             } else {

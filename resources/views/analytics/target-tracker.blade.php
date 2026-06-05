@@ -5,6 +5,7 @@
 <div style="display:flex; gap:0.75rem; align-items:center;">
     <form method="GET" onsubmit="return sanitizeBeforeSubmit(this)" style="display:flex; gap:0.75rem; align-items:center;">
         @include('components.filter')
+        @include('components.export-button')
         <div style="position: relative;">
             <span style="position:absolute; left:0.75rem; top:50%; transform:translateY(-50%); color:var(--text-muted); font-size:0.7rem;">Target Global Rp</span>
             <input type="text" 
@@ -24,6 +25,7 @@
 @endsection
 
 @section('content')
+@include('components.salesman-tabs')
 @include('components.ai-insight')
 
 <!-- CALCULATOR SECTION (HIDDEN BY DEFAULT) -->

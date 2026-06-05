@@ -78,6 +78,7 @@ class AccountingPeriod extends Model
     public static function findOrCreateForDate($date): self
     {
         $date = Carbon::parse($date);
+
         return static::firstOrCreate(
             ['year' => $date->year, 'month' => $date->month],
             ['status' => 'open']

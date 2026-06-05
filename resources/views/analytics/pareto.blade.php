@@ -7,10 +7,12 @@
         <option value="outlet" {{ isset($type) && $type === 'outlet' ? 'selected' : '' }}>Pareto Outlet</option>
     </select>
     @include('components.filter')
+    @include('components.export-button')
 </form>
 @endsection
 
 @section('content')
+@include('components.product-tabs')
 <div class="kpi-grid" style="grid-template-columns: repeat(4, 1fr);">
     <div class="card kpi-card">
         <div class="card-title" title="Total omset dari semua item/outlet yang masuk dalam analisa (Kelas A, B, C).">Total Rev. Paretonisasi</div>
@@ -53,9 +55,9 @@
                 </tr>
             </thead>
             <tbody>
-            @foreach(array_slice($paretoData, 0, 100) as $i => $item)
+            @foreach($paretoPaginator as $i => $item)
                 <tr>
-                    <td>{{ $i + 1 }}</td>
+                    <td>{{ ($paretoPaginator->currentPage() - 1) * $paretoPaginator->perPage() + $loop->iteration }}</td>
                     <td class="font-bold">{{ Str::limit($item['name'], 40) }}</td>
                     <td class="text-right font-mono text-green">Rp {{ number_format($item['sales'], 0, ',', '.') }}</td>
                     <td class="text-right font-mono">{{ number_format($item['percent'], 2) }}%</td>
@@ -73,9 +75,14 @@
             @endforeach
             </tbody>
         </table>
-        @if(count($paretoData) > 100)
-            <div style="font-size:0.75rem; text-align:center; padding-top:1rem; color:var(--text-muted);">Menampilkan 100 data teratas dari total {{ count($paretoData) }} data.</div>
-        @endif
+        
+        <div class="pagination-wrapper">
+            {{ $paretoPaginator->appends(request()->query())->links() }}
+        </div>
+        
+        <div style="font-size:0.75rem; text-align:center; padding-bottom:1rem; color:var(--text-muted);">
+            Menampilkan {{ $paretoPaginator->firstItem() ?? 0 }} s/d {{ $paretoPaginator->lastItem() ?? 0 }} data dari total {{ number_format($paretoPaginator->total()) }} data.
+        </div>
     </div>
 </div>
 

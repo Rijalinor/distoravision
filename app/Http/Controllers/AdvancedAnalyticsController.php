@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Exports\BukuRaporExport;
+use App\Http\Controllers\Traits\CsvExportable;
 use App\Models\Outlet;
 use App\Models\Principal;
 use App\Models\Salesman;
@@ -10,11 +11,15 @@ use App\Models\SalesmanTarget;
 use App\Models\Transaction;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 
 class AdvancedAnalyticsController extends Controller
 {
+    use CsvExportable;
+
     /**
      * Display Pareto Analysis (80/20 Rule) for Products and Outlets
      */
@@ -78,6 +83,20 @@ class AdvancedAnalyticsController extends Controller
         // Take top 50 for the chart so it doesn't get too heavy
         $chartData = array_slice($paretoData, 0, 50);
 
+        // Pagination for the table
+        $page = $request->get('page', 1);
+        $perPage = 100; // Match the screenshot's expectation
+        $offset = ($page * $perPage) - $perPage;
+
+        $paginatedItems = array_slice($paretoData, $offset, $perPage);
+        $paretoPaginator = new LengthAwarePaginator(
+            $paginatedItems,
+            count($paretoData),
+            $perPage,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
+
         // --- DISTORA AI NARRATIVE GENERATOR ---
         $countA = count($classA);
         $pctA = $countA > 0 && count($data) > 0 ? ($countA / count($data)) * 100 : 0;
@@ -87,296 +106,27 @@ class AdvancedAnalyticsController extends Controller
                        "💪 Kelebihan: Efisiensi tinggi! Tim bisa fokus hanya merawat $countA aset VIP ini untuk mendapat 80% omset perusahaan.\n".
                        "⚠️ Risiko & Saran: Ini bahaya ketergantungan ekstrem! Jika terjadi kelangkaan barang pada Top 3 $entityName, omset bulan depan akan hancur total. Segera matangkan strategi penetrasi untuk $entityName Kelas B.";
 
+        // --- CSV EXPORT ---
+        if ($request->get('export') === 'csv') {
+            $rows = array_map(fn ($item) => [
+                $item['name'],
+                $item['sales'],
+                round($item['percent'], 2),
+                round($item['cumulative'], 2),
+                $item['cumulative'] <= 80 ? 'A' : ($item['cumulative'] <= 95 ? 'B' : 'C'),
+            ], $paretoData);
+
+            return $this->streamCsv(
+                "Pareto_{$type}_{$period}.csv",
+                ['Nama', 'Total Sales', '% Kontribusi', '% Kumulatif', 'Kelas'],
+                $rows
+            );
+        }
+
         return view('analytics.pareto', compact(
             'period', 'periods', 'type', 'paretoData', 'chartData',
-            'classA', 'classB', 'classC', 'totalRevenue', 'aiNarrative'
+            'classA', 'classB', 'classC', 'totalRevenue', 'aiNarrative', 'paretoPaginator'
         ));
-    }
-
-    /**
-     * Display Sleeping Outlets (Active in T-1, 0 transactions in T)
-     */
-    public function sleepingOutlets(Request $request)
-    {
-        $period = $request->get('period', Transaction::max('period') ?? date('Y-m'));
-        $periods = Transaction::select('period')->distinct()->orderByDesc('period')->pluck('period');
-
-        // Dynamic Range Calculation
-        $startPeriod = $request->get('start_period', $period);
-        $endPeriod = $request->get('end_period', $period);
-        $currentPeriodLabel = $startPeriod === $endPeriod ? $startPeriod : "$startPeriod s/d $endPeriod";
-
-        $dateStart = Carbon::parse($startPeriod.'-01');
-        $dateEnd = Carbon::parse($endPeriod.'-01');
-        $monthsDiff = $dateStart->diffInMonths($dateEnd) + 1;
-
-        // T-1 equivalent range
-        $prevStartPeriod = $dateStart->copy()->subMonths($monthsDiff)->format('Y-m');
-        $prevEndPeriod = $dateEnd->copy()->subMonths($monthsDiff)->format('Y-m');
-
-        $previousPeriod = $prevStartPeriod === $prevEndPeriod ? $prevStartPeriod : "$prevStartPeriod s/d $prevEndPeriod";
-
-        $prevRequest = new Request;
-        $prevRequest->merge([
-            'start_period' => $prevStartPeriod,
-            'end_period' => $prevEndPeriod,
-            'principal_id' => $request->get('principal_id'),
-        ]);
-
-        // Outlets that purchased in previous period T-1
-        $prevOutlets = Transaction::withFilters($prevRequest)
-            ->select('outlet_id', DB::raw('SUM(CASE WHEN type = "I" THEN taxed_amt WHEN type = "R" THEN -ABS(taxed_amt) ELSE 0 END) as prev_sales'), DB::raw('MAX(so_date) as last_order_date'))
-            ->groupBy('outlet_id')
-            ->having('prev_sales', '>', 0)
-            ->get()
-            ->keyBy('outlet_id');
-
-        // Outlets that purchased in current period T
-        $currentOutlets = Transaction::withFilters($request)
-            ->select('outlet_id')
-            ->groupBy('outlet_id')
-            ->having(DB::raw('SUM(CASE WHEN type = "I" THEN taxed_amt WHEN type = "R" THEN -ABS(taxed_amt) ELSE 0 END)'), '>', 0)
-            ->pluck('outlet_id')
-            ->toArray();
-
-        // Get the churned outlets
-        $churnedOutletIds = $prevOutlets->keys()->diff($currentOutlets);
-
-        // Exclude outlets with stable monthly cadence (~1x per month) to reduce false alarms.
-        // 2-month cadence remains monitored as requested.
-        $cadenceLookbackStart = $dateEnd->copy()->subMonths(6)->format('Y-m');
-        $cadenceRequest = new Request;
-        $cadenceRequest->merge([
-            'start_period' => $cadenceLookbackStart,
-            'end_period' => $endPeriod,
-            'principal_id' => $request->get('principal_id'),
-        ]);
-
-        $invoiceDates = Transaction::withFilters($cadenceRequest)
-            ->invoices()
-            ->select('outlet_id', 'so_date')
-            ->whereNotNull('so_date')
-            ->orderBy('outlet_id')
-            ->orderBy('so_date')
-            ->get()
-            ->groupBy('outlet_id');
-
-        $monthlyStableOutletIds = [];
-        foreach ($invoiceDates as $outletId => $rows) {
-            $dates = $rows->pluck('so_date')->map(fn ($d) => Carbon::parse($d))->values();
-            if ($dates->count() < 3) {
-                continue;
-            }
-
-            $intervals = [];
-            for ($i = 1; $i < $dates->count(); $i++) {
-                $intervals[] = $dates[$i - 1]->diffInDays($dates[$i]);
-            }
-            if (count($intervals) === 0) {
-                continue;
-            }
-
-            $avgInterval = array_sum($intervals) / count($intervals);
-            if ($avgInterval <= 40) {
-                $monthlyStableOutletIds[] = (int) $outletId;
-            }
-        }
-
-        $churnedOutletIds = $churnedOutletIds->filter(
-            fn ($id) => ! in_array((int) $id, $monthlyStableOutletIds, true)
-        );
-
-        // Fetch outlet details
-        $sleepingOutletsList = [];
-        $totalLostRevenue = 0;
-
-        if ($churnedOutletIds->isNotEmpty()) {
-            $outlets = Outlet::whereIn('id', $churnedOutletIds)->get()->keyBy('id');
-
-            foreach ($churnedOutletIds as $id) {
-                if (isset($outlets[$id])) {
-                    $prevSale = $prevOutlets[$id]->prev_sales;
-                    $sleepingOutletsList[] = (object) [
-                        'outlet' => $outlets[$id],
-                        'prev_sales' => $prevSale,
-                        'last_order' => $prevOutlets[$id]->last_order_date,
-                    ];
-                    $totalLostRevenue += $prevSale;
-                }
-            }
-
-            // Sort by lost revenue descending
-            usort($sleepingOutletsList, function ($a, $b) {
-                return $b->prev_sales <=> $a->prev_sales;
-            });
-        }
-
-        // --- DISTORA AI NARRATIVE GENERATOR ---
-        $aiNarrative = '🔍 Fakta: Terdapat '.count($sleepingOutletsList).' outlet yang bulan lalu berlaga aktif namun bulan ini lenyap tak berjejak. Kerugian Opportunity Loss kita mencapai Rp '.number_format($totalLostRevenue, 0, ',', '.').".\n".
-                       '💡 Saran Eksekusi: Ekspor daftar ini segera. Kerahkan tim Salesman ke area terbanyak untuk memukul balik. Jangan biarkan kompetitor mengambil nafas di toko-toko ini!';
-
-        return view('analytics.sleeping-outlets', compact(
-            'period', 'periods', 'previousPeriod', 'currentPeriodLabel', 'sleepingOutletsList', 'totalLostRevenue', 'aiNarrative'
-        ));
-    }
-
-    public function discountEffectiveness(Request $request)
-    {
-        $period = $request->get('period', Transaction::max('period') ?? date('Y-m'));
-        $periods = Transaction::select('period')->distinct()->orderByDesc('period')->pluck('period'); // For fallback compatibility in view logic
-
-        // Global KPI: Totals across filtered range
-        $kpi = Transaction::withFilters(request())
-            ->selectRaw('
-                SUM(CASE WHEN type = "I" THEN gross ELSE 0 END) as total_gross,
-                SUM(CASE WHEN type = "I" THEN disc_total ELSE 0 END) as total_discount,
-                SUM(CASE WHEN type = "I" THEN taxed_amt WHEN type = "R" THEN -ABS(taxed_amt) ELSE 0 END) as total_net
-            ')->first();
-
-        // Prevent division by zero
-        $totalGross = $kpi->total_gross ?? 0;
-        $totalDiscount = $kpi->total_discount ?? 0;
-        $totalNet = $kpi->total_net ?? 0;
-        $avgDiscountPercent = $totalGross > 0 ? ($totalDiscount / $totalGross) * 100 : 0;
-
-        // Principal Discount Distribution
-        // Compares which principal absorbs the most discount budget
-        $principalDiscounts = Transaction::withFilters(request())
-            ->join('products', 'transactions.product_id', '=', 'products.id')
-            ->join('principals', 'products.principal_id', '=', 'principals.id')
-            ->select(
-                'principals.name as principal_name',
-                DB::raw('SUM(CASE WHEN transactions.type = "I" THEN transactions.gross ELSE 0 END) as gross_sales'),
-                DB::raw('SUM(CASE WHEN transactions.type = "I" THEN transactions.disc_total ELSE 0 END) as discount_given'),
-                DB::raw('SUM(CASE WHEN transactions.type = "I" THEN transactions.taxed_amt WHEN transactions.type = "R" THEN -ABS(transactions.taxed_amt) ELSE 0 END) as net_sales')
-            )
-            ->groupBy('principals.name')
-            ->having('discount_given', '>', 0)
-            ->orderByDesc('discount_given')
-            ->get()
-            ->map(function ($item) {
-                $item->discount_percent = $item->gross_sales > 0 ? ($item->discount_given / $item->gross_sales) * 100 : 0;
-                $item->principal_name = str_replace('PT. ', '', $item->principal_name);
-
-                return $item;
-            });
-
-        // Top 20 Most Heavily Discounted Products
-        // Find products with high absolute discount value, calculate their % depth
-        $topDiscountedProducts = Transaction::withFilters(request())
-            ->invoices()
-            ->join('products', 'transactions.product_id', '=', 'products.id')
-            ->join('principals', 'products.principal_id', '=', 'principals.id')
-            ->select(
-                'products.name as product_name',
-                'principals.name as principal_name',
-                DB::raw('SUM(transactions.gross) as gross_sales'),
-                DB::raw('SUM(transactions.disc_total) as discount_given'),
-                DB::raw('SUM(transactions.qty_base) as qty_sold')
-            )
-            ->groupBy('products.name', 'principals.name')
-            ->having('discount_given', '>', 0)
-            ->orderByDesc('discount_given')
-            ->limit(20)
-            ->get()
-            ->map(function ($item) {
-                $item->discount_percent = $item->gross_sales > 0 ? ($item->discount_given / $item->gross_sales) * 100 : 0;
-
-                return $item;
-            });
-
-        // --- DISTORA AI NARRATIVE GENERATOR ---
-        $topDisc = $principalDiscounts->first() ? $principalDiscounts->first()->principal_name : 'N/A';
-        $aiNarrative = '🔍 Fakta: Perusahaan telah menghentakkan diskon sebesar Rp '.number_format($totalDiscount, 0, ',', '.').' ('.number_format($avgDiscountPercent, 2)."% dari Gross).\n".
-                       "📊 Evaluasi: Principal yang paling menguras budget promosi adalah $topDisc.\n".
-                       '💡 Saran Eksekusi: Jika Net Margin masih hijau, diskon ini sukses menjadi magnet penetrasi pasar. Jika margin megap-megap, segera bekukan program promo agresif milik produk-produk teratas di list ini.';
-
-        return view('analytics.discount', compact(
-            'period', 'periods', 'totalGross', 'totalDiscount', 'totalNet', 'avgDiscountPercent',
-            'principalDiscounts', 'topDiscountedProducts', 'aiNarrative'
-        ));
-    }
-
-    public function rfmAnalysis(Request $request)
-    {
-        $period = $request->get('period', Transaction::max('period') ?? date('Y-m'));
-        $periods = Transaction::select('period')->distinct()->orderByDesc('period')->pluck('period');
-
-        $outletStats = Transaction::withFilters(request())
-            ->join('outlets', 'transactions.outlet_id', '=', 'outlets.id')
-            ->select(
-                'outlets.name as outlet_name',
-                DB::raw('MAX(CASE WHEN transactions.type = "I" THEN so_date END) as last_order_date'),
-                DB::raw('COUNT(DISTINCT CASE WHEN transactions.type = "I" THEN so_no END) as frequency'),
-                DB::raw('SUM(CASE WHEN transactions.type = "I" THEN transactions.taxed_amt WHEN transactions.type = "R" THEN -ABS(transactions.taxed_amt) ELSE 0 END) as monetary')
-            )
-            ->groupBy('outlets.name')
-            ->get();
-
-        $count = $outletStats->count();
-
-        $tiers = [
-            'Champion' => 0,
-            'Loyal' => 0,
-            'Need Attention' => 0,
-            'At Risk' => 0,
-        ];
-
-        if ($count > 0) {
-            $rSorted = $outletStats->sortBy('last_order_date')->pluck('outlet_name')->toArray();
-            $fSorted = $outletStats->sortBy('frequency')->pluck('outlet_name')->toArray();
-            $mSorted = $outletStats->sortBy('monetary')->pluck('outlet_name')->toArray();
-
-            $rIndex = array_flip(array_values($rSorted));
-            $fIndex = array_flip(array_values($fSorted));
-            $mIndex = array_flip(array_values($mSorted));
-
-            $outletStats = $outletStats->map(function ($item) use ($count, $rIndex, $fIndex, $mIndex, &$tiers) {
-                $name = $item->outlet_name;
-                $rScore = $rIndex[$name] >= ($count * 0.66) ? 3 : ($rIndex[$name] >= ($count * 0.33) ? 2 : 1);
-                $fScore = $fIndex[$name] >= ($count * 0.66) ? 3 : ($fIndex[$name] >= ($count * 0.33) ? 2 : 1);
-                $mScore = $mIndex[$name] >= ($count * 0.66) ? 3 : ($mIndex[$name] >= ($count * 0.33) ? 2 : 1);
-
-                $overall = $rScore + $fScore + $mScore;
-
-                if ($overall >= 8) {
-                    $segment = 'Champion';
-                } elseif ($overall >= 6) {
-                    $segment = 'Loyal';
-                } elseif ($overall >= 4) {
-                    $segment = 'Need Attention';
-                } else {
-                    $segment = 'At Risk';
-                }
-
-                $item->r_score = $rScore;
-                $item->f_score = $fScore;
-                $item->m_score = $mScore;
-                $item->overall = $overall;
-                $item->segment = $segment;
-                $tiers[$segment]++;
-
-                return $item;
-            });
-
-            $selectedSegment = $request->get('segment', 'all');
-            if ($selectedSegment !== 'all') {
-                $outletStats = $outletStats->filter(function ($item) use ($selectedSegment) {
-                    return $item->segment === $selectedSegment;
-                });
-            }
-
-            // Sort by monetary to rank inside the group
-            $outletStats = $outletStats->sortByDesc('monetary')->values();
-        }
-
-        // --- DISTORA AI NARRATIVE GENERATOR ---
-        $champCount = $tiers['Champion'];
-        $riskCount = $tiers['At Risk'];
-        $aiNarrative = "🔍 Fakta: Ada $champCount toko 'Sultan' (Champions) yang loyal & sering belanja, sementara $riskCount toko masuk zona merah (At Risk/Sleepers).\n".
-                       "💡 Saran Eksekusi: Kasih reward eksklusif / bonus produk untuk para Champions biar kompetitor gigit jari. Sebaliknya, bentuk tim Taktis Khusus untuk mengepung balik $riskCount toko At Risk sebelum mereka lupa nama brand kita!";
-
-        return view('analytics.rfm', compact('period', 'periods', 'outletStats', 'tiers', 'count', 'aiNarrative'));
     }
 
     public function crossSelling(Request $request)
@@ -447,6 +197,23 @@ class AdvancedAnalyticsController extends Controller
 
         $affinities = array_slice($affinities, 0, 100);
 
+        // --- CSV EXPORT ---
+        if ($request->get('export') === 'csv') {
+            $rows = [];
+            foreach ($affinities as $a) {
+                foreach ($a['associations'] as $target => $count) {
+                    $pct = $a['total_baskets'] > 0 ? round(($count / $a['total_baskets']) * 100, 1) : 0;
+                    $rows[] = [$a['item'], $a['total_baskets'], $target, $count, $pct];
+                }
+            }
+
+            return $this->streamCsv(
+                "CrossSelling_{$period}.csv",
+                ['Produk Utama', 'Total Toko', 'Produk Terkait', 'Jumlah Toko', 'Afinitas %'],
+                $rows
+            );
+        }
+
         return view('analytics.cross-selling', compact('period', 'periods', 'affinities', 'aiNarrative'));
     }
 
@@ -459,7 +226,7 @@ class AdvancedAnalyticsController extends Controller
         $kpis = Transaction::withFilters(request())
             ->selectRaw('
                 SUM(CASE WHEN type = "I" THEN taxed_amt WHEN type = "R" THEN -ABS(taxed_amt) ELSE 0 END) as total_revenue,
-                SUM(cogs) as total_cogs
+                SUM(CASE WHEN type = "I" THEN cogs WHEN type = "R" THEN -ABS(cogs) ELSE 0 END) as total_cogs
             ')->first();
 
         $totalRevenue = $kpis->total_revenue ?? 0;
@@ -474,7 +241,7 @@ class AdvancedAnalyticsController extends Controller
             ->select(
                 'principals.name as principal_name',
                 DB::raw('SUM(CASE WHEN transactions.type = "I" THEN transactions.taxed_amt WHEN transactions.type = "R" THEN -ABS(transactions.taxed_amt) ELSE 0 END) as revenue'),
-                DB::raw('SUM(transactions.cogs) as cogs')
+                DB::raw('SUM(CASE WHEN transactions.type = "I" THEN transactions.cogs WHEN transactions.type = "R" THEN -ABS(transactions.cogs) ELSE 0 END) as cogs')
             )
             ->groupBy('principals.name')
             ->having('revenue', '>', 0)
@@ -496,7 +263,7 @@ class AdvancedAnalyticsController extends Controller
                 'products.name as product_name',
                 'principals.name as principal_name',
                 DB::raw('SUM(CASE WHEN transactions.type = "I" THEN transactions.taxed_amt WHEN transactions.type = "R" THEN -ABS(transactions.taxed_amt) ELSE 0 END) as revenue'),
-                DB::raw('SUM(transactions.cogs) as cogs')
+                DB::raw('SUM(CASE WHEN transactions.type = "I" THEN transactions.cogs WHEN transactions.type = "R" THEN -ABS(transactions.cogs) ELSE 0 END) as cogs')
             )
             ->groupBy('products.name', 'principals.name')
             ->having('revenue', '>', 0)
@@ -514,6 +281,24 @@ class AdvancedAnalyticsController extends Controller
         $bottomProd = $productMargins->last() ? trim($productMargins->last()->product_name) : 'none';
         $aiNarrative = '🔍 Fakta: Blended Laba Kotor stabil di angka '.number_format($blendedMargin, 2).'% dengan cuan bersih tunai Rp '.number_format($totalGrossProfit, 0, ',', '.').".\n".
                        "💡 Saran Eksekusi: Ada produk beresiko di jajaran paling bawah (contoh: $bottomProd) yang marginnya dimakan diskon atau HPP bengkak. Kaji ulang harga dasar. Jangan sampai lelah jualan tapi hasilnya bakar duit.";
+
+        // --- CSV EXPORT ---
+        if ($request->get('export') === 'csv') {
+            $rows = $productMargins->map(fn ($p) => [
+                $p->product_name,
+                str_replace('PT. ', '', $p->principal_name),
+                $p->revenue,
+                $p->cogs,
+                $p->gross_profit,
+                round($p->margin_percent, 2),
+            ])->toArray();
+
+            return $this->streamCsv(
+                "Margin_{$period}.csv",
+                ['Produk', 'Principal', 'Revenue', 'COGS', 'Gross Profit', 'Margin %'],
+                $rows
+            );
+        }
 
         return view('analytics.margin', compact(
             'period', 'periods', 'totalRevenue', 'totalCogs', 'totalGrossProfit', 'blendedMargin',
@@ -632,6 +417,25 @@ class AdvancedAnalyticsController extends Controller
                            '💡 Saran Eksekusi: '.($underperformers > 0 ? 'Bantu tim yang masih berdarah-darah untuk mendobrak sales!' : 'Jaga momentum dan pastikan semua kiriman terproses tepat waktu!');
         }
 
+        // --- CSV EXPORT ---
+        if ($request->get('export') === 'csv') {
+            $rows = $tracking->map(fn ($t) => [
+                $t->salesman_name,
+                $t->target,
+                $t->total_revenue,
+                round($t->progress, 2),
+                $t->shortfall,
+                $t->required_run_rate,
+                round($t->historical_ratio, 2),
+            ])->toArray();
+
+            return $this->streamCsv(
+                "TargetTracker_{$period}.csv",
+                ['Salesman', 'Target', 'Sales MTD', 'Progress %', 'Shortfall', 'Run Rate/Hari', 'Kontribusi Historis %'],
+                $rows
+            );
+        }
+
         return view('analytics.target-tracker', compact('period', 'periods', 'tracking', 'teamTarget', 'remainingDays', 'currentDay', 'workingDays', 'isCurrentMonth', 'aiNarrative'));
     }
 
@@ -667,6 +471,149 @@ class AdvancedAnalyticsController extends Controller
         }
 
         return back()->with('success', 'Target berhasil disimpan ke database!');
+    }
+
+    public function restockPredictor(Request $request)
+    {
+        $principals = Principal::orderBy('name')->pluck('name', 'id');
+        $selectedPrincipal = $request->get('principal_id', 'all');
+        $search = $request->get('search');
+
+        $targetDate = Carbon::now();
+        $sixMonthsAgo = $targetDate->copy()->subMonths(6)->format('Y-m-d');
+
+        $principalFilter = '';
+        $bindings = [$sixMonthsAgo];
+
+        if ($selectedPrincipal !== 'all') {
+            $principalFilter = ' AND pr.principal_id = ? ';
+            $bindings[] = $selectedPrincipal;
+        }
+
+        // MySQL 8.0+ Window Function to calculate average days between purchases per outlet per product
+        $sql = "
+            SELECT 
+                o.name as outlet_name,
+                pr.name as product_name,
+                p.name as principal_name,
+                agg.avg_cycle_days,
+                agg.avg_qty_per_order,
+                agg.last_purchase_date,
+                DATE_ADD(agg.last_purchase_date, INTERVAL ROUND(agg.avg_cycle_days) DAY) as next_purchase_date
+            FROM (
+                SELECT 
+                    outlet_id, 
+                    product_id, 
+                    AVG(DATEDIFF(so_date, prev_date)) as avg_cycle_days,
+                    AVG(daily_qty) as avg_qty_per_order,
+                    MAX(so_date) as last_purchase_date,
+                    COUNT(so_date) as purchase_count
+                FROM (
+                    SELECT 
+                        t.outlet_id, 
+                        t.product_id, 
+                        t.so_date,
+                        SUM(t.qty_base) as daily_qty,
+                        LAG(t.so_date) OVER (PARTITION BY t.outlet_id, t.product_id ORDER BY t.so_date) as prev_date
+                    FROM transactions t
+                    JOIN products pr ON t.product_id = pr.id
+                    WHERE t.so_date >= ? AND t.type = 'I'
+                    $principalFilter
+                    GROUP BY t.outlet_id, t.product_id, t.so_date
+                ) AS sub
+                WHERE prev_date IS NOT NULL AND so_date != prev_date
+                GROUP BY outlet_id, product_id
+                HAVING purchase_count > 1 AND avg_cycle_days > 5
+            ) as agg
+            JOIN outlets o ON agg.outlet_id = o.id
+            JOIN products pr ON agg.product_id = pr.id
+            JOIN principals p ON pr.principal_id = p.id
+        ";
+
+        if (! empty($search)) {
+            $sql .= ' WHERE o.name LIKE ? OR pr.name LIKE ?';
+            $bindings[] = "%{$search}%";
+            $bindings[] = "%{$search}%";
+        }
+
+        $sql .= ' ORDER BY next_purchase_date ASC LIMIT 3000';
+
+        $results = DB::select($sql, $bindings);
+
+        $predictions = [];
+        $groupedOutlets = [];
+
+        foreach ($results as $row) {
+            $nextDate = Carbon::parse($row->next_purchase_date);
+            $diffDays = (int) $targetDate->diffInDays($nextDate, false);
+
+            $row->diff_days = $diffDays;
+
+            $predictions[] = $row;
+
+            if (! isset($groupedOutlets[$row->outlet_name])) {
+                $groupedOutlets[$row->outlet_name] = [
+                    'outlet_name' => $row->outlet_name,
+                    'items' => [],
+                ];
+            }
+
+            $groupedOutlets[$row->outlet_name]['items'][] = $row;
+        }
+
+        $groupedOutlets = array_values($groupedOutlets);
+        usort($groupedOutlets, function ($a, $b) {
+            return count($b['items']) <=> count($a['items']); // Sort by total items
+        });
+
+        foreach ($groupedOutlets as &$g) {
+            usort($g['items'], function ($a, $b) {
+                return $a->avg_cycle_days <=> $b->avg_cycle_days; // Sort by cycle length
+            });
+        }
+        unset($g);
+
+        $totalAnalyzed = count($results);
+        $totalOutlets = count($groupedOutlets);
+
+        // --- CSV EXPORT ---
+        if ($request->get('export') === 'csv') {
+            $rows = array_map(function ($p) {
+                return [
+                    $p->outlet_name,
+                    $p->product_name,
+                    $p->principal_name,
+                    round($p->avg_cycle_days),
+                    round($p->avg_qty_per_order),
+                    $p->last_purchase_date,
+                    $p->next_purchase_date,
+                ];
+            }, $predictions);
+
+            return $this->streamCsv(
+                "PolaSiklusToko_{$targetDate->format('Ymd')}.csv",
+                ['Toko', 'Produk', 'Principal', 'Siklus Rata-Rata (Hari)', 'Rata-Rata Volume Beli', 'Terakhir Beli', 'Estimasi Pesan Berikutnya'],
+                $rows
+            );
+        }
+
+        $perPage = 30;
+        $page = Paginator::resolveCurrentPage() ?: 1;
+        $groupedCollection = collect($groupedOutlets);
+        $paginatedPredictions = new LengthAwarePaginator(
+            $groupedCollection->forPage($page, $perPage),
+            $groupedCollection->count(),
+            $perPage,
+            $page,
+            ['path' => Paginator::resolveCurrentPath(), 'query' => $request->query()]
+        );
+
+        $aiNarrative = "🔍 Fakta: AI memonitor {$totalAnalyzed} pola beli-ulang dari {$totalOutlets} toko.\n💡 Insight: Tampilan ini murni menampilkan pola perilaku belanja tiap toko (Siklus Hari & Rata-rata Volume). Gunakan data ini untuk memahami karakter pesanan outlet.";
+
+        return view('analytics.restock-predictor', compact(
+            'paginatedPredictions', 'principals', 'selectedPrincipal', 'search',
+            'totalAnalyzed', 'totalOutlets', 'aiNarrative'
+        ));
     }
 
     public function cohortAnalysis(Request $request)
@@ -816,6 +763,15 @@ class AdvancedAnalyticsController extends Controller
         $period = $request->get('period', Transaction::max('period') ?? date('Y-m'));
         $periods = Transaction::select('period')->distinct()->orderByDesc('period')->pluck('period');
 
+        // Promo Uplift needs multi-month data to compare baseline vs promo months.
+        // If no explicit period filter is set, auto-inject the full available range.
+        if (! $request->has('start_period') && ! $request->has('end_period') && $periods->isNotEmpty()) {
+            $request->merge([
+                'start_period' => $periods->last(),
+                'end_period' => $periods->first(),
+            ]);
+        }
+
         // Pull monthly data per product with filters applied
         $data = Transaction::withFilters($request)
             ->invoices()
@@ -951,10 +907,340 @@ class AdvancedAnalyticsController extends Controller
                 : '')
             .'💡 Saran Eksekusi: Ulangi promo yang SUKSES bulan depan. Untuk yang GAGAL, bekukan program hingga stok dan strategi dimatangkan!';
 
+        // --- CSV EXPORT ---
+        if ($request->get('export') === 'csv') {
+            $rows = array_map(fn ($r) => [
+                $r['product_name'],
+                $r['principal_name'],
+                $r['baseline_period'],
+                $r['baseline_disc_pct'],
+                $r['baseline_qty'],
+                $r['promo_period'],
+                $r['promo_disc_pct'],
+                $r['promo_qty'],
+                round($r['uplift_pct'], 1),
+                $r['promo_subsidy'],
+                $r['profit_diff'],
+                $r['is_success'] ? 'SUKSES' : 'GAGAL',
+                implode(', ', $r['anomaly_flags']),
+            ], $results);
+
+            return $this->streamCsv(
+                "PromoUplift_{$period}.csv",
+                ['Produk', 'Principal', 'Bln Normal', 'Disc Normal %', 'Qty Normal', 'Bln Promo', 'Disc Promo %', 'Qty Promo', 'Uplift %', 'Subsidi', 'Selisih Laba', 'Status', 'Flag'],
+                $rows
+            );
+        }
+
         return view('analytics.promo-uplift', compact(
             'period', 'periods', 'results', 'chartData',
             'successCount', 'failCount', 'totalSubsidy', 'anomalyCount',
             'aiNarrative'
+        ));
+    }
+
+    /**
+     * Salesman Profitability Analysis
+     * Ranks salesmen not just by revenue, but by gross profit contribution and margin quality.
+     * Detects "Discount Kings" — salesmen who sell a lot but burn margin.
+     */
+    public function salesmanProfitability(Request $request)
+    {
+        $period = $request->get('period', Transaction::max('period') ?? date('Y-m'));
+        $periods = Transaction::select('period')->distinct()->orderByDesc('period')->pluck('period');
+
+        $startPeriod = $request->get('start_period', $request->get('period', $period));
+        $endPeriod = $request->get('end_period', $request->get('period', $period));
+
+        $salesmen = Transaction::withFilters($request)
+            ->join('salesmen', 'transactions.salesman_id', '=', 'salesmen.id')
+            ->select(
+                'salesmen.id as salesman_id',
+                'salesmen.name as salesman_name',
+                DB::raw('SUM(CASE WHEN transactions.type = "I" THEN transactions.taxed_amt ELSE 0 END) as gross_sales'),
+                DB::raw('SUM(CASE WHEN transactions.type = "R" THEN ABS(transactions.taxed_amt) ELSE 0 END) as total_returns'),
+                DB::raw('SUM(CASE WHEN transactions.type = "I" THEN transactions.cogs WHEN transactions.type = "R" THEN -ABS(transactions.cogs) ELSE 0 END) as net_cogs'),
+                DB::raw('SUM(CASE WHEN transactions.type = "I" THEN transactions.disc_total ELSE 0 END) as total_discount'),
+                DB::raw('SUM(CASE WHEN transactions.type = "I" THEN transactions.gross ELSE 0 END) as total_gross'),
+                DB::raw('COUNT(DISTINCT CASE WHEN transactions.type = "I" THEN transactions.outlet_id END) as outlet_count'),
+                DB::raw('COUNT(DISTINCT CASE WHEN transactions.type = "I" THEN transactions.so_no END) as invoice_count')
+            )
+            ->groupBy('salesmen.id', 'salesmen.name')
+            ->having('gross_sales', '>', 0)
+            ->get()
+            ->map(function ($s) {
+                $s->net_sales = $s->gross_sales - $s->total_returns;
+                $s->gross_profit = $s->net_sales - $s->net_cogs;
+                $s->margin_percent = $s->net_sales > 0 ? ($s->gross_profit / $s->net_sales) * 100 : 0;
+                $s->discount_depth = $s->total_gross > 0 ? ($s->total_discount / $s->total_gross) * 100 : 0;
+                $s->return_rate = $s->gross_sales > 0 ? ($s->total_returns / $s->gross_sales) * 100 : 0;
+                $s->avg_per_outlet = $s->outlet_count > 0 ? $s->net_sales / $s->outlet_count : 0;
+                $s->avg_per_invoice = $s->invoice_count > 0 ? $s->net_sales / $s->invoice_count : 0;
+
+                return $s;
+            });
+
+        // Overall KPIs
+        $totalNetSales = $salesmen->sum('net_sales');
+        $totalGrossProfit = $salesmen->sum('gross_profit');
+        $avgMargin = $totalNetSales > 0 ? ($totalGrossProfit / $totalNetSales) * 100 : 0;
+
+        // Assign contribution % and profitability rank
+        $salesmen = $salesmen->map(function ($s) use ($totalNetSales, $totalGrossProfit) {
+            $s->revenue_contribution = $totalNetSales > 0 ? ($s->net_sales / $totalNetSales) * 100 : 0;
+            $s->profit_contribution = $totalGrossProfit > 0 ? ($s->gross_profit / $totalGrossProfit) * 100 : 0;
+
+            // Efficiency Score: Profit contribution vs Revenue contribution
+            // > 1 means they bring more profit than their revenue share (efficient)
+            // < 1 means they burn margin relative to their sales volume (inefficient)
+            $s->efficiency_ratio = $s->revenue_contribution > 0
+                ? $s->profit_contribution / $s->revenue_contribution
+                : 0;
+
+            return $s;
+        });
+
+        // Sort options
+        $sortBy = $request->get('sort', 'gross_profit');
+        $salesmen = $salesmen->sortByDesc($sortBy)->values();
+
+        // Rank by profit
+        $profitRanked = $salesmen->sortByDesc('gross_profit')->values();
+        $revenueRanked = $salesmen->sortByDesc('net_sales')->values();
+
+        $salesmen = $salesmen->map(function ($s) use ($profitRanked, $revenueRanked) {
+            $s->profit_rank = $profitRanked->search(fn ($x) => $x->salesman_id === $s->salesman_id) + 1;
+            $s->revenue_rank = $revenueRanked->search(fn ($x) => $x->salesman_id === $s->salesman_id) + 1;
+            $s->rank_shift = $s->revenue_rank - $s->profit_rank; // Positive = promoted when ranked by profit
+
+            return $s;
+        });
+
+        // Detect "Discount Kings" — high revenue but low margin
+        $discountKings = $salesmen->filter(fn ($s) => $s->efficiency_ratio < 0.8 && $s->net_sales > 0)->count();
+
+        // --- DISTORA AI NARRATIVE GENERATOR ---
+        $topProfit = $salesmen->sortByDesc('gross_profit')->first();
+        $worstMargin = $salesmen->sortBy('margin_percent')->first();
+        $aiNarrative = '🔍 Fakta: Ranking berubah drastis saat dilihat dari kacamata LABA, bukan omset. '.
+            ($topProfit ? "Kontributor laba #1 adalah {$topProfit->salesman_name} dengan cuan Rp ".number_format($topProfit->gross_profit, 0, ',', '.').'.' : '')."\n".
+            ($discountKings > 0
+                ? "⚠️ Peringatan: Ada {$discountKings} salesman yang jualan banyak tapi marginnya HABIS dimakan diskon & return (efisiensi < 0.8x). Mereka adalah 'Raja Diskon' yang perlu diawasi!\n"
+                : "✅ Bagus: Semua salesman memiliki efisiensi margin yang sehat.\n").
+            ($worstMargin ? "💡 Saran: Evaluasi {$worstMargin->salesman_name} yang margin-nya hanya ".number_format($worstMargin->margin_percent, 1).'%. Apakah outlet-nya memang marjinal atau dia terlalu agresif beri diskon?' : '');
+
+        // --- CSV EXPORT ---
+        if ($request->get('export') === 'csv') {
+            $rows = $salesmen->map(fn ($s) => [
+                $s->salesman_name,
+                $s->net_sales,
+                $s->gross_profit,
+                round($s->margin_percent, 2),
+                round($s->discount_depth, 2),
+                round($s->return_rate, 2),
+                $s->outlet_count,
+                $s->invoice_count,
+                round($s->efficiency_ratio, 2),
+                $s->profit_rank,
+            ])->toArray();
+
+            return $this->streamCsv(
+                "SalesmanProfitability_{$period}.csv",
+                ['Salesman', 'Net Sales', 'Gross Profit', 'Margin %', 'Discount Depth %', 'Return Rate %', 'Jumlah Outlet', 'Jumlah Invoice', 'Efisiensi Ratio', 'Rank Laba'],
+                $rows
+            );
+        }
+
+        return view('analytics.salesman-profitability', compact(
+            'period', 'periods', 'salesmen', 'totalNetSales', 'totalGrossProfit',
+            'avgMargin', 'discountKings', 'sortBy', 'aiNarrative'
+        ));
+    }
+
+    /**
+     * Outlet Growth Trajectory Analysis
+     * Classifies each outlet as Growing 📈, Stable ➡️, Declining 📉, New 🆕, or Dead 💀
+     * based on 6-month sales trend using linear regression slope.
+     */
+    public function outletTrajectory(Request $request)
+    {
+        $period = $request->get('period', Transaction::max('period') ?? date('Y-m'));
+        $periods = Transaction::select('period')->distinct()->orderByDesc('period')->pluck('period');
+
+        // Look back 6 months from the selected period
+        $endDate = Carbon::parse($period.'-01');
+        $lookbackMonths = 6;
+        $startDate = $endDate->copy()->subMonths($lookbackMonths - 1);
+        $periodRange = [];
+        for ($i = 0; $i < $lookbackMonths; $i++) {
+            $periodRange[] = $startDate->copy()->addMonths($i)->format('Y-m');
+        }
+
+        // Filter segment
+        $segment = $request->get('segment', 'all');
+
+        // Fetch monthly sales per outlet for the 6-month window
+        $rawQuery = Transaction::query()
+            ->whereIn('transactions.period', $periodRange)
+            ->join('outlets', 'transactions.outlet_id', '=', 'outlets.id');
+
+        // Apply principal filter if present
+        if ($request->has('principal_id') && ! empty($request->get('principal_id')) && $request->get('principal_id') !== 'all') {
+            $rawQuery->whereHas('product', function ($q) use ($request) {
+                $q->where('principal_id', $request->get('principal_id'));
+            });
+        }
+
+        $monthlySales = $rawQuery->select(
+            'transactions.outlet_id',
+            'outlets.name as outlet_name',
+            'outlets.city',
+            'outlets.code as outlet_code',
+            'transactions.period',
+            DB::raw('SUM(CASE WHEN transactions.type = "I" THEN transactions.taxed_amt WHEN transactions.type = "R" THEN -ABS(transactions.taxed_amt) ELSE 0 END) as net_sales')
+        )
+            ->groupBy('transactions.outlet_id', 'outlets.name', 'outlets.city', 'outlets.code', 'transactions.period')
+            ->get()
+            ->groupBy('outlet_id');
+
+        $trajectories = [];
+        $segments = ['Growing' => 0, 'Stable' => 0, 'Declining' => 0, 'New' => 0, 'Dead' => 0];
+
+        foreach ($monthlySales as $outletId => $monthlyData) {
+            $outlet = $monthlyData->first();
+            $activeMonths = $monthlyData->pluck('net_sales', 'period');
+
+            // Build 6-month series (fill zeroes for missing months)
+            $series = [];
+            foreach ($periodRange as $p) {
+                $series[$p] = (float) ($activeMonths[$p] ?? 0);
+            }
+
+            $values = array_values($series);
+            $n = count($values);
+            $monthCount = count(array_filter($values, fn ($v) => $v > 0));
+            $totalSales = array_sum($values);
+            $latestSales = end($values);
+            $prevSales = $values[$n - 2] ?? 0;
+
+            // Calculate linear regression slope to determine trend direction
+            $sumX = 0;
+            $sumY = 0;
+            $sumXY = 0;
+            $sumX2 = 0;
+            for ($i = 0; $i < $n; $i++) {
+                $sumX += $i;
+                $sumY += $values[$i];
+                $sumXY += $i * $values[$i];
+                $sumX2 += $i * $i;
+            }
+            $denominator = ($n * $sumX2) - ($sumX * $sumX);
+            $slope = $denominator > 0 ? (($n * $sumXY) - ($sumX * $sumY)) / $denominator : 0;
+            $avgSales = $totalSales / max($monthCount, 1);
+
+            // Normalize slope as percentage of average sales
+            $slopePct = $avgSales > 0 ? ($slope / $avgSales) * 100 : 0;
+
+            // Classify
+            if ($monthCount <= 1 && $latestSales > 0) {
+                $classification = 'New';
+                $icon = '🆕';
+            } elseif ($monthCount <= 1 && $latestSales <= 0) {
+                $classification = 'Dead';
+                $icon = '💀';
+            } elseif ($latestSales <= 0 && $prevSales <= 0) {
+                $classification = 'Dead';
+                $icon = '💀';
+            } elseif ($slopePct > 10) {
+                $classification = 'Growing';
+                $icon = '📈';
+            } elseif ($slopePct < -10) {
+                $classification = 'Declining';
+                $icon = '📉';
+            } else {
+                $classification = 'Stable';
+                $icon = '➡️';
+            }
+
+            $segments[$classification]++;
+
+            $trajectories[] = (object) [
+                'outlet_id' => $outletId,
+                'outlet_name' => $outlet->outlet_name,
+                'outlet_code' => $outlet->outlet_code,
+                'city' => $outlet->city,
+                'classification' => $classification,
+                'icon' => $icon,
+                'total_sales' => $totalSales,
+                'latest_sales' => $latestSales,
+                'avg_sales' => $avgSales,
+                'active_months' => $monthCount,
+                'slope_pct' => round($slopePct, 1),
+                'series' => $series,
+            ];
+        }
+
+        // Filter by segment
+        if ($segment !== 'all') {
+            $trajectories = array_values(array_filter($trajectories, fn ($t) => $t->classification === $segment));
+        }
+
+        // Sort: Declining first (most urgent), then by total sales
+        usort($trajectories, function ($a, $b) {
+            $order = ['Declining' => 0, 'Dead' => 1, 'New' => 2, 'Stable' => 3, 'Growing' => 4];
+            $classCompare = ($order[$a->classification] ?? 5) <=> ($order[$b->classification] ?? 5);
+            if ($classCompare !== 0) {
+                return $classCompare;
+            }
+
+            return $b->total_sales <=> $a->total_sales;
+        });
+
+        $totalOutlets = array_sum($segments);
+
+        // --- DISTORA AI NARRATIVE GENERATOR ---
+        $decliningValue = collect($trajectories)->where('classification', 'Declining')->sum('total_sales');
+        $aiNarrative = "🔍 Fakta: Dari {$totalOutlets} outlet yang terdata, ".
+            "{$segments['Growing']} outlet sedang TUMBUH 📈, ".
+            "{$segments['Stable']} STABIL ➡️, ".
+            "{$segments['Declining']} MENURUN 📉, ".
+            "{$segments['New']} BARU 🆕, dan ".
+            "{$segments['Dead']} MATI 💀.\n".
+            ($segments['Declining'] > 0
+                ? '⚠️ Perhatian: '.$segments['Declining'].' outlet sedang dalam tren PENURUNAN dengan total kontribusi Rp '.number_format($decliningValue, 0, ',', '.').". Ini adalah toko yang BELUM mati tapi sedang menuju ke sana — selamatkan sebelum terlambat!\n"
+                : "✅ Semua outlet dalam kondisi sehat, tidak ada yang menunjukkan tren penurunan.\n").
+            '💡 Saran: Prioritaskan kunjungan ke outlet Declining. Tanya langsung: kenapa order berkurang? Kompetitor masuk? Stok kita tidak cocok? Toko sepi pembeli?';
+
+        // --- CSV EXPORT ---
+        if ($request->get('export') === 'csv') {
+            $headers = ['Outlet', 'Kode', 'Kota', 'Klasifikasi', 'Slope %', 'Bulan Aktif'];
+            $salesHeaders = array_map(fn ($p) => 'Sales '.Carbon::parse($p.'-01')->format('M Y'), $periodRange);
+            $headers = array_merge($headers, $salesHeaders, ['Sales Terakhir', 'Rata-rata', 'Total 6 Bln']);
+
+            $rows = array_map(function ($t) use ($periodRange) {
+                $row = [
+                    $t->outlet_name,
+                    $t->outlet_code,
+                    $t->city,
+                    $t->classification,
+                    $t->slope_pct,
+                    $t->active_months,
+                ];
+                $salesData = array_map(fn ($p) => $t->series[$p] ?? 0, $periodRange);
+
+                return array_merge($row, $salesData, [$t->latest_sales, $t->avg_sales, $t->total_sales]);
+            }, $trajectories);
+
+            return $this->streamCsv(
+                "OutletTrajectory_{$period}.csv",
+                $headers,
+                $rows
+            );
+        }
+
+        return view('analytics.outlet-trajectory', compact(
+            'period', 'periods', 'trajectories', 'segments', 'totalOutlets',
+            'segment', 'periodRange', 'aiNarrative'
         ));
     }
 }

@@ -17,8 +17,78 @@
 @else
     @include('components.ai-insight')
 
+    <!-- SYSTEM ALERTS -->
+    @if($criticalStockCount > 0 || $overstockCount > 0 || $overdueArAmount > 0)
+    <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+        @if($criticalStockCount > 0)
+        <a href="{{ route('sales-per.stock', ['period' => $period]) }}" class="card" style="flex: 1; border-left: 4px solid var(--accent-red); background: rgba(239, 68, 68, 0.05); display: flex; align-items: center; gap: 1rem; min-width: 250px; text-decoration: none; transition: transform 0.2s;">
+            <div style="padding: 0.5rem; background: rgba(239, 68, 68, 0.15); border-radius: 8px; color: var(--accent-red);">
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            </div>
+            <div>
+                <div style="font-size: 0.75rem; color: var(--accent-red); font-weight: 700; letter-spacing: 0.05em;">STOK KRITIS</div>
+                <div style="font-size: 1.1rem; font-weight: 700; color: var(--text-primary);">{{ $criticalStockCount }} SKU Hampir Habis</div>
+            </div>
+        </a>
+        @endif
+        
+        @if($overstockCount > 0)
+        <a href="{{ route('sales-per.stock', ['period' => $period]) }}" class="card" style="flex: 1; border-left: 4px solid var(--accent-yellow); background: rgba(245, 158, 11, 0.05); display: flex; align-items: center; gap: 1rem; min-width: 250px; text-decoration: none; transition: transform 0.2s;">
+            <div style="padding: 0.5rem; background: rgba(245, 158, 11, 0.15); border-radius: 8px; color: var(--accent-yellow);">
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+            </div>
+            <div>
+                <div style="font-size: 0.75rem; color: var(--accent-yellow); font-weight: 700; letter-spacing: 0.05em;">OVERSTOCK</div>
+                <div style="font-size: 1.1rem; font-weight: 700; color: var(--text-primary);">{{ $overstockCount }} SKU Macet</div>
+            </div>
+        </a>
+        @endif
+        
+        @if($overdueArAmount > 0)
+        <a href="{{ route('ar.dashboard') }}" class="card" style="flex: 1; border-left: 4px solid var(--accent-red); background: rgba(239, 68, 68, 0.05); display: flex; align-items: center; gap: 1rem; min-width: 250px; text-decoration: none; transition: transform 0.2s;">
+            <div style="padding: 0.5rem; background: rgba(239, 68, 68, 0.15); border-radius: 8px; color: var(--accent-red);">
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <div>
+                <div style="font-size: 0.75rem; color: var(--accent-red); font-weight: 700; letter-spacing: 0.05em;">PIUTANG JATUH TEMPO</div>
+                <div style="font-size: 1.1rem; font-weight: 700; color: var(--text-primary);">Rp {{ number_format($overdueArAmount / 1000000, 1, ',', '.') }} Juta</div>
+            </div>
+        </a>
+        @endif
+    </div>
+    @endif
+
+    <!-- TARGET TRACKER GLOBAL -->
+    <div class="card" style="margin-bottom: 1.5rem; padding: 1.5rem; background: linear-gradient(to right, rgba(99, 102, 241, 0.05), rgba(30, 41, 59, 0));">
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 0.75rem;">
+            <div>
+                <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;">🎯 Target Penjualan Global ({{ \Carbon\Carbon::parse($period.'-01')->translatedFormat('F Y') }})</div>
+                <div style="font-size: 1.75rem; font-weight: 800; font-family: monospace; color: var(--text-primary); margin-top: 0.25rem;">
+                    Rp {{ number_format($totalSales, 0, ',', '.') }} <span style="font-size: 1.1rem; color: var(--text-muted); font-weight: 500;">/ Rp {{ number_format($globalTarget, 0, ',', '.') }}</span>
+                </div>
+            </div>
+            <div style="text-align: right;">
+                <div style="font-size: 1.5rem; font-weight: 800; color: {{ $globalProgress >= 100 ? 'var(--accent-green)' : 'var(--accent-blue)' }};">{{ number_format($globalProgress, 1) }}%</div>
+            </div>
+        </div>
+        <div style="width: 100%; background: rgba(0,0,0,0.2); border-radius: 10px; height: 16px; overflow: hidden; border: 1px solid var(--border-color);">
+            <div style="height: 100%; background: {{ $globalProgress >= 100 ? 'var(--accent-green)' : 'linear-gradient(90deg, var(--accent-blue), #818cf8)' }}; width: {{ min(100, $globalProgress) }}%; border-radius: 10px; transition: width 1s ease; position: relative; overflow: hidden;">
+            </div>
+        </div>
+    </div>
+
     <!-- KPI Cards -->
-    <div class="kpi-grid">
+    <div class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+        <div class="card kpi-card" style="border-top: 3px solid var(--accent-blue);">
+            <div class="card-header">
+                <span class="card-title" title="Omset khusus transaksi hari ini (berdasarkan tanggal dokumen)">Omset Hari Ini ({{ \Carbon\Carbon::parse($displayDate)->format('d/m') }})</span>
+                <div class="kpi-icon blue"><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>
+            </div>
+            <div class="kpi-value" style="color: var(--accent-blue);" title="Rp {{ number_format($todaySales, 0, ',', '.') }}">Rp {{ number_format($todaySales / 1000, 0, ',', '.') }}K</div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div class="kpi-label">Faktur tgl dokumen {{ \Carbon\Carbon::parse($displayDate)->format('d M') }}</div>
+            </div>
+        </div>
         <div class="card kpi-card">
             <div class="card-header">
                 <span class="card-title" title="Total Nilai Transaksi Kotor (Belum potong diskon/retur)">Total Sales</span>

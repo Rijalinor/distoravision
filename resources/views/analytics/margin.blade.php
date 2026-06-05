@@ -3,10 +3,12 @@
 @section('top-bar-actions')
 <form method="GET" style="display:flex;gap:0.75rem;align-items:center;">
     @include('components.filter')
+    @include('components.export-button')
 </form>
 @endsection
 
 @section('content')
+@include('components.promo-tabs')
 <div class="kpi-grid" style="grid-template-columns: repeat(4, 1fr);">
     <div class="card kpi-card" style="border-top: 4px solid var(--accent-blue);">
         <div class="card-title" title="Total Pendapatan Kotor (Net Sales) sebelum dikurangi harga modal produksi barang.">Net Sales (Pendapatan)</div>

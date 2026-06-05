@@ -3,32 +3,38 @@
 namespace App\Exports\Sheets;
 
 use App\Models\Transaction;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Concerns\FromArray;
-use Maatwebsite\Excel\Concerns\WithTitle;
-use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use Maatwebsite\Excel\Concerns\WithEvents;
+use Maatwebsite\Excel\Concerns\WithStyles;
+use Maatwebsite\Excel\Concerns\WithTitle;
 use Maatwebsite\Excel\Events\AfterSheet;
+use PhpOffice\PhpSpreadsheet\Style\Color;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
-use PhpOffice\PhpSpreadsheet\Style\Alignment;
 
-class SalesmanSheet implements FromArray, WithTitle, WithStyles, WithColumnWidths, WithEvents
+class SalesmanSheet implements FromArray, WithColumnWidths, WithEvents, WithStyles, WithTitle
 {
     use ExcelStyler;
 
     protected Request $request;
+
     protected string $period;
+
     protected int $dataRowCount = 0;
 
     public function __construct(Request $request, string $period)
     {
         $this->request = $request;
-        $this->period  = $period;
+        $this->period = $period;
     }
 
-    public function title(): string { return 'Rapor Salesman'; }
+    public function title(): string
+    {
+        return 'Rapor Salesman';
+    }
 
     public function columnWidths(): array
     {
@@ -37,8 +43,8 @@ class SalesmanSheet implements FromArray, WithTitle, WithStyles, WithColumnWidth
 
     public function array(): array
     {
-        $prevPeriod = \Carbon\Carbon::parse($this->period . '-01')->subMonth()->format('Y-m');
-        $prevReq    = new \Illuminate\Http\Request();
+        $prevPeriod = Carbon::parse($this->period.'-01')->subMonth()->format('Y-m');
+        $prevReq = new Request;
         $prevReq->merge(['start_period' => $prevPeriod, 'end_period' => $prevPeriod, 'principal_id' => $this->request->get('principal_id')]);
 
         $salesmen = Transaction::withFilters($this->request)
@@ -57,17 +63,17 @@ class SalesmanSheet implements FromArray, WithTitle, WithStyles, WithColumnWidth
             ->groupBy('salesmen.name')->get()->keyBy('salesman_name');
 
         $rows = [
-            ['RAPOR INDIVIDU SALESMAN — PERIODE ' . $this->period, '', '', '', '', '', '', '', '', '', '', ''],
+            ['RAPOR INDIVIDU SALESMAN — PERIODE '.$this->period, '', '', '', '', '', '', '', '', '', '', ''],
             ['#', 'NAMA SALESMAN', 'NET SALES (Rp)', 'SALES BLN LALU (Rp)', 'DELTA MoM (%)', 'RETUR (Rp)', 'RETURN RATE (%)', 'GROSS PROFIT (Rp)', 'MARGIN (%)', 'JML INVOICE', 'OUTLET AKTIF', 'TOTAL QTY'],
         ];
 
         foreach ($salesmen as $i => $s) {
-            $prev       = (float) ($prevSalesMap[$s->salesman_name]->prev_sales ?? 0);
-            $mom        = $prev > 0 ? (($s->net_sales - $prev) / $prev) * 100 : 0;
-            $returns    = (float) ($returnMap[$s->salesman_name]->total_returns ?? 0);
+            $prev = (float) ($prevSalesMap[$s->salesman_name]->prev_sales ?? 0);
+            $mom = $prev > 0 ? (($s->net_sales - $prev) / $prev) * 100 : 0;
+            $returns = (float) ($returnMap[$s->salesman_name]->total_returns ?? 0);
             $returnRate = ($s->net_sales + $returns) > 0 ? ($returns / ($s->net_sales + $returns)) * 100 : 0;
-            $gp         = (float) $s->net_sales - (float) $s->cogs;
-            $margin     = $s->net_sales > 0 ? ($gp / $s->net_sales) * 100 : 0;
+            $gp = (float) $s->net_sales - (float) $s->cogs;
+            $margin = $s->net_sales > 0 ? ($gp / $s->net_sales) * 100 : 0;
 
             $rows[] = [
                 $i + 1,
@@ -93,7 +99,10 @@ class SalesmanSheet implements FromArray, WithTitle, WithStyles, WithColumnWidth
         return $rows;
     }
 
-    public function styles(Worksheet $sheet): array { return []; }
+    public function styles(Worksheet $sheet): array
+    {
+        return [];
+    }
 
     public function registerEvents(): array
     {
@@ -101,7 +110,7 @@ class SalesmanSheet implements FromArray, WithTitle, WithStyles, WithColumnWidth
             AfterSheet::class => function (AfterSheet $event) {
                 $ws = $event->sheet->getDelegate();
                 $lastDataRow = 2 + $this->dataRowCount;
-                $totalRow    = $lastDataRow + 1;
+                $totalRow = $lastDataRow + 1;
 
                 $this->styleTitle($ws, 'A1:L1');
                 $ws->getRowDimension(1)->setRowHeight(28);
@@ -134,13 +143,12 @@ class SalesmanSheet implements FromArray, WithTitle, WithStyles, WithColumnWidth
                 for ($row = 3; $row <= $lastDataRow; $row++) {
                     $val = $ws->getCell("E{$row}")->getValue();
                     if (is_numeric($val) && $val < 0) {
-                        $ws->getStyle("E{$row}")->getFont()->setColor(new \PhpOffice\PhpSpreadsheet\Style\Color('FFDC2626'));
+                        $ws->getStyle("E{$row}")->getFont()->setColor(new Color('FFDC2626'));
                     } elseif (is_numeric($val) && $val > 0) {
-                        $ws->getStyle("E{$row}")->getFont()->setColor(new \PhpOffice\PhpSpreadsheet\Style\Color('FF16A34A'));
+                        $ws->getStyle("E{$row}")->getFont()->setColor(new Color('FF16A34A'));
                     }
                 }
             },
         ];
     }
 }
-

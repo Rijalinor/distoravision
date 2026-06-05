@@ -17,6 +17,6 @@ class Principal extends Model
     public function transactions(): HasMany
     {
         return $this->hasMany(Transaction::class, 'product_id')
-            ->whereHas('product', fn($q) => $q->where('principal_id', $this->id));
+            ->whereHas('product', fn ($q) => $q->where('principal_id', $this->id));
     }
 }

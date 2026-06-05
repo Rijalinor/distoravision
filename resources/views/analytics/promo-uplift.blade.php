@@ -3,10 +3,12 @@
 @section('top-bar-actions')
 <form method="GET" style="display:flex;gap:0.75rem;align-items:center;">
     @include('components.filter')
+    @include('components.export-button')
 </form>
 @endsection
 
 @section('content')
+@include('components.promo-tabs')
 <div x-data="{ tooltip: '', show: false, cx: 0, cy: 0 }" @mousemove.window="cx = $event.clientX; cy = $event.clientY">
 {{-- AI Narrative --}}
 <div class="card" style="margin-bottom:1.5rem; border-left: 4px solid var(--primary); background: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(168,85,247,0.05));">

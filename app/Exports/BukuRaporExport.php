@@ -2,27 +2,29 @@
 
 namespace App\Exports;
 
-use App\Exports\Sheets\SummarySheet;
-use App\Exports\Sheets\SalesmanSheet;
-use App\Exports\Sheets\ProductSheet;
-use App\Exports\Sheets\OutletSheet;
-use App\Exports\Sheets\ParetoSheet;
-use App\Exports\Sheets\RfmSheet;
 use App\Exports\Sheets\ChurnSheet;
 use App\Exports\Sheets\DiscountSheet;
-use Maatwebsite\Excel\Concerns\WithMultipleSheets;
+use App\Exports\Sheets\OutletSheet;
+use App\Exports\Sheets\ParetoSheet;
+use App\Exports\Sheets\ProductSheet;
+use App\Exports\Sheets\RfmSheet;
+use App\Exports\Sheets\SalesmanSheet;
+use App\Exports\Sheets\SummarySheet;
 use Illuminate\Http\Request;
+use Maatwebsite\Excel\Concerns\WithMultipleSheets;
 
 class BukuRaporExport implements WithMultipleSheets
 {
     protected Request $request;
+
     protected string $period;
+
     protected string $principalName;
 
     public function __construct(Request $request, string $period, string $principalName)
     {
-        $this->request       = $request;
-        $this->period        = $period;
+        $this->request = $request;
+        $this->period = $period;
         $this->principalName = $principalName;
     }
 

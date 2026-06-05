@@ -2,11 +2,10 @@
 
 namespace App\Models;
 
+use App\Traits\FilterableTransactions;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-
-use App\Traits\FilterableTransactions;
 
 class Transaction extends Model
 {
@@ -21,13 +20,13 @@ class Transaction extends Model
                 if ($user->isSalesman() && $user->salesman_id) {
                     $builder->where($builder->qualifyColumn('salesman_id'), $user->salesman_id);
                 } elseif ($user->isSupervisor()) {
-                    $productIds = \App\Models\Product::whereIn('principal_id', $user->principals()->pluck('principals.id'))->pluck('id');
+                    $productIds = Product::whereIn('principal_id', $user->principals()->pluck('principals.id'))->pluck('id');
                     $builder->whereIn($builder->qualifyColumn('product_id'), $productIds);
                 }
             }
         });
 
-        if (app()->runningInConsole() || !request()->hasSession()) {
+        if (app()->runningInConsole() || ! request()->hasSession()) {
             return;
         }
 
@@ -35,8 +34,9 @@ class Transaction extends Model
         if (request()->session()->get('demo_mode_active', false)) {
             // Demo ON: only read fake rows.
             static::addGlobalScope('demo_fake_only', function (Builder $builder) use ($fakePrefix) {
-                $builder->where($builder->qualifyColumn('so_no'), 'like', $fakePrefix . '%');
+                $builder->where($builder->qualifyColumn('so_no'), 'like', $fakePrefix.'%');
             });
+
             return;
         }
 
@@ -44,7 +44,7 @@ class Transaction extends Model
         static::addGlobalScope('exclude_demo_fake_rows', function (Builder $builder) use ($fakePrefix) {
             $builder->where(function (Builder $q) use ($fakePrefix) {
                 $q->whereNull($q->qualifyColumn('so_no'))
-                  ->orWhere($q->qualifyColumn('so_no'), 'not like', $fakePrefix . '%');
+                    ->orWhere($q->qualifyColumn('so_no'), 'not like', $fakePrefix.'%');
             });
         });
     }

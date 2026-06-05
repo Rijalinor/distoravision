@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Imports\SecondaryDataImport;
 use App\Models\ImportLog;
+use App\Models\Transaction;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -17,10 +18,13 @@ class ProcessSecondaryDataImport implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public $timeout = 0; // No timeout
+
     public $failOnTimeout = false;
 
     protected $importLog;
+
     protected $filePath;
+
     protected $importMode;
 
     /**
@@ -48,7 +52,7 @@ class ProcessSecondaryDataImport implements ShouldQueue
             // Jika import gagal, delete di-rollback otomatis
             if ($this->importMode === 'ganti') {
                 DB::transaction(function () {
-                    \App\Models\Transaction::withoutGlobalScopes()
+                    Transaction::withoutGlobalScopes()
                         ->where('period', $this->importLog->period)
                         ->delete();
 
@@ -63,10 +67,10 @@ class ProcessSecondaryDataImport implements ShouldQueue
             }
 
             // Cleanup temp file
-            if (file_exists(storage_path('app/private/' . $this->filePath))) {
-                unlink(storage_path('app/private/' . $this->filePath));
-            } elseif (file_exists(storage_path('app/' . $this->filePath))) {
-                unlink(storage_path('app/' . $this->filePath));
+            if (file_exists(storage_path('app/private/'.$this->filePath))) {
+                unlink(storage_path('app/private/'.$this->filePath));
+            } elseif (file_exists(storage_path('app/'.$this->filePath))) {
+                unlink(storage_path('app/'.$this->filePath));
             }
         } catch (\Exception $e) {
             $this->importLog->update([
@@ -96,7 +100,7 @@ class ProcessSecondaryDataImport implements ShouldQueue
             'skipped_rows' => $import->getDuplicateCount(),
             'failed_rows' => $import->getFailedCount(),
             'status' => $status,
-            'errors' => !empty($import->getErrors()) ? implode("\n", $import->getErrors()) : null,
+            'errors' => ! empty($import->getErrors()) ? implode("\n", $import->getErrors()) : null,
             'completed_at' => now(),
         ]);
     }

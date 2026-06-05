@@ -22,15 +22,15 @@ class PrincipalController extends Controller
 
         $principals = Principal::select('principals.*')
             ->selectSub(
-                \App\Models\Transaction::join('products', 'transactions.product_id', '=', 'products.id')
+                Transaction::join('products', 'transactions.product_id', '=', 'products.id')
                     ->whereColumn('products.principal_id', 'principals.id')
                     ->where('transactions.type', 'I')
                     ->withFilters(request())
-                    ->selectRaw('COALESCE(SUM(transactions.taxed_amt), 0)'), 
+                    ->selectRaw('COALESCE(SUM(transactions.taxed_amt), 0)'),
                 'total_sales'
             )
             ->selectSub(
-                \App\Models\Transaction::join('products', 'transactions.product_id', '=', 'products.id')
+                Transaction::join('products', 'transactions.product_id', '=', 'products.id')
                     ->whereColumn('products.principal_id', 'principals.id')
                     ->where('transactions.type', 'R')
                     ->withFilters(request())
@@ -38,7 +38,7 @@ class PrincipalController extends Controller
                 'total_returns'
             )
             ->selectSub(
-                \App\Models\Transaction::join('products', 'transactions.product_id', '=', 'products.id')
+                Transaction::join('products', 'transactions.product_id', '=', 'products.id')
                     ->whereColumn('products.principal_id', 'principals.id')
                     ->where('transactions.type', 'I')
                     ->withFilters(request())
@@ -47,9 +47,9 @@ class PrincipalController extends Controller
             )
             ->orderByDesc('total_sales')
             ->get();
-        
+
         if ($request->session()->get('demo_mode_active', false)) {
-            $principals = $principals->filter(fn($p) => (float) ($p->total_sales ?? 0) > 0)->values();
+            $principals = $principals->filter(fn ($p) => (float) ($p->total_sales ?? 0) > 0)->values();
         }
 
         return view('principals.index', compact('principals', 'period', 'periods'));
@@ -61,12 +61,12 @@ class PrincipalController extends Controller
         $periods = Transaction::select('period')->distinct()->orderByDesc('period')->pluck('period');
 
         $stats = [
-            'total_sales' => Transaction::whereHas('product', fn($q) => $q->where('principal_id', $principal->id))
+            'total_sales' => Transaction::whereHas('product', fn ($q) => $q->where('principal_id', $principal->id))
                 ->withFilters(request())->invoices()->sum('taxed_amt'),
-            'total_returns' => Transaction::whereHas('product', fn($q) => $q->where('principal_id', $principal->id))
+            'total_returns' => Transaction::whereHas('product', fn ($q) => $q->where('principal_id', $principal->id))
                 ->withFilters(request())->returns()->sum(DB::raw('ABS(taxed_amt)')),
             'product_count' => $principal->products()->count(),
-            'outlet_reach' => Transaction::whereHas('product', fn($q) => $q->where('principal_id', $principal->id))
+            'outlet_reach' => Transaction::whereHas('product', fn ($q) => $q->where('principal_id', $principal->id))
                 ->withFilters(request())->distinct('outlet_id')->count('outlet_id'),
         ];
 
@@ -85,4 +85,3 @@ class PrincipalController extends Controller
         return view('principals.show', compact('principal', 'period', 'periods', 'stats', 'topProducts', 'returnedProducts'));
     }
 }
-

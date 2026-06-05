@@ -16,14 +16,20 @@ use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithChunkReading;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 
-class SecondaryDataImport implements ToCollection, WithHeadingRow, WithChunkReading
+class SecondaryDataImport implements ToCollection, WithChunkReading, WithHeadingRow
 {
     protected ImportLog $importLog;
+
     protected int $importedCount = 0;
+
     protected int $failedCount = 0;
+
     protected int $duplicateCount = 0;
+
     protected array $errors = [];
+
     protected bool $hasImportLogIdColumn = false;
+
     protected bool $hasDedupeKeyColumn = false;
 
     // Column mapping from config
@@ -31,9 +37,13 @@ class SecondaryDataImport implements ToCollection, WithHeadingRow, WithChunkRead
 
     // Caches to avoid repeated DB queries
     protected array $branchCache = [];
+
     protected array $salesmanCache = [];
+
     protected array $principalCache = [];
+
     protected array $outletCache = [];
+
     protected array $productCache = [];
 
     public function __construct(ImportLog $importLog)
@@ -51,6 +61,7 @@ class SecondaryDataImport implements ToCollection, WithHeadingRow, WithChunkRead
     protected function col(Collection $row, string $key, $default = null)
     {
         $excelColumn = $this->columnMap[$key] ?? $key;
+
         return $row[$excelColumn] ?? $default;
     }
 
@@ -67,16 +78,16 @@ class SecondaryDataImport implements ToCollection, WithHeadingRow, WithChunkRead
             } catch (\Exception $e) {
                 $this->failedCount++;
                 if (count($this->errors) < 50) {
-                    $this->errors[] = "Row " . ($index + 2) . ": " . $e->getMessage();
+                    $this->errors[] = 'Row '.($index + 2).': '.$e->getMessage();
                 }
             }
         }
 
         // Update import log periodically
-        $errorText = !empty($this->errors) ? implode("\n", $this->errors) : null;
+        $errorText = ! empty($this->errors) ? implode("\n", $this->errors) : null;
         if ($this->duplicateCount > 0) {
             $dupLine = "Duplicate rows skipped: {$this->duplicateCount}";
-            $errorText = $errorText ? ($errorText . "\n" . $dupLine) : $dupLine;
+            $errorText = $errorText ? ($errorText."\n".$dupLine) : $dupLine;
         }
 
         $this->importLog->update([
@@ -170,7 +181,7 @@ class SecondaryDataImport implements ToCollection, WithHeadingRow, WithChunkRead
             'gi_gr_date' => $giDate,
             'si_cn_no' => $this->col($row, 'sicn_no') ?? $this->col($row, 'si_cn_no'),
             'month' => $this->col($row, 'month'),
-            'week' => !empty($this->col($row, 'week')) ? (int) $this->col($row, 'week') : null,
+            'week' => ! empty($this->col($row, 'week')) ? (int) $this->col($row, 'week') : null,
             'warehouse' => $this->col($row, 'warehouse'),
             'tax_invoice' => $this->col($row, 'tax_invoice'),
             'qty_base' => $qtyBase,
@@ -223,6 +234,7 @@ class SecondaryDataImport implements ToCollection, WithHeadingRow, WithChunkRead
 
         // Backward compatibility when dedupe column does not exist yet.
         Transaction::withoutGlobalScopes()->create($payload);
+
         return 'imported';
     }
 
@@ -295,7 +307,7 @@ class SecondaryDataImport implements ToCollection, WithHeadingRow, WithChunkRead
         }
 
         $type = strtoupper(trim((string) ($this->col($row, 'type', 'I'))));
-        if (!in_array($type, ['I', 'R'], true)) {
+        if (! in_array($type, ['I', 'R'], true)) {
             throw new \InvalidArgumentException("Field 'type' harus I atau R.");
         }
     }
@@ -338,6 +350,7 @@ class SecondaryDataImport implements ToCollection, WithHeadingRow, WithChunkRead
         );
 
         $this->branchCache[$code] = $branch->id;
+
         return $branch->id;
     }
 
@@ -354,6 +367,7 @@ class SecondaryDataImport implements ToCollection, WithHeadingRow, WithChunkRead
         );
 
         $this->salesmanCache[$salesCode] = $salesman->id;
+
         return $salesman->id;
     }
 
@@ -371,6 +385,7 @@ class SecondaryDataImport implements ToCollection, WithHeadingRow, WithChunkRead
         );
 
         $this->principalCache[$cacheKey] = $principal->id;
+
         return $principal->id;
     }
 
@@ -393,13 +408,14 @@ class SecondaryDataImport implements ToCollection, WithHeadingRow, WithChunkRead
         );
 
         $this->outletCache[$code] = $outlet->id;
+
         return $outlet->id;
     }
 
     protected function getOrCreateProduct(int $principalId, string $itemNo, string $name, ?string $uomSku): int
     {
         $itemNo = trim($itemNo);
-        $cacheKey = $principalId . ':' . $itemNo;
+        $cacheKey = $principalId.':'.$itemNo;
         if (isset($this->productCache[$cacheKey])) {
             return $this->productCache[$cacheKey];
         }
@@ -410,6 +426,7 @@ class SecondaryDataImport implements ToCollection, WithHeadingRow, WithChunkRead
         );
 
         $this->productCache[$cacheKey] = $product->id;
+
         return $product->id;
     }
 
@@ -424,6 +441,7 @@ class SecondaryDataImport implements ToCollection, WithHeadingRow, WithChunkRead
             if (preg_match('/^\d{2}-\d{2}-\d{4}$/', $dateStr)) {
                 return Carbon::createFromFormat('d-m-Y', $dateStr)->format('Y-m-d');
             }
+
             // Try other common formats
             return Carbon::parse($dateStr)->format('Y-m-d');
         } catch (\Exception $e) {
@@ -446,6 +464,7 @@ class SecondaryDataImport implements ToCollection, WithHeadingRow, WithChunkRead
             if (empty($value) || $value === '-') {
                 return 0;
             }
+
             return (float) $value;
         }
 

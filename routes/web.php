@@ -7,15 +7,20 @@ use App\Http\Controllers\ArImportController;
 use App\Http\Controllers\ColumnMappingController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DemoModeController;
+use App\Http\Controllers\ForecastingController;
 use App\Http\Controllers\ImportController;
 use App\Http\Controllers\OutletController;
 use App\Http\Controllers\PeriodController;
 use App\Http\Controllers\PrincipalController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ProductTrajectoryController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RegionalController;
 use App\Http\Controllers\SalesmanController;
 use App\Http\Controllers\SalesmanDashboardController;
+use App\Http\Controllers\SalesPerAnalyticsController;
+use App\Http\Controllers\SalesPerImportController;
+use App\Http\Controllers\SalesPerStockController;
 use App\Http\Controllers\TvDashboardController;
 use App\Http\Controllers\UserController;
 use App\Http\Middleware\AdminMiddleware;
@@ -47,6 +52,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/ar/imports', [ArImportController::class, 'store'])->name('ar.imports.store');
         Route::delete('/ar/imports/{arImportLog}', [ArImportController::class, 'destroy'])->name('ar.imports.destroy');
 
+        // Import Sales Per
+        Route::get('/sales-per/imports', [SalesPerImportController::class, 'index'])->name('sales-per.imports.index');
+        Route::get('/sales-per/imports/create', [SalesPerImportController::class, 'create'])->name('sales-per.imports.create');
+        Route::post('/sales-per/imports', [SalesPerImportController::class, 'store'])->name('sales-per.imports.store');
+        Route::delete('/sales-per/imports/{salesPerImportLog}', [SalesPerImportController::class, 'destroy'])->name('sales-per.imports.destroy');
+
         // Settings
         Route::resource('users', UserController::class)->except(['show']);
         Route::get('/settings/column-mapping', [ColumnMappingController::class, 'edit'])->name('settings.column-mapping');
@@ -72,6 +83,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // AR Dashboard (read-only, scoped by ACL)
     Route::get('/ar/dashboard', [ArAnalyticsController::class, 'dashboard'])->name('ar.dashboard');
 
+    // Sales Per Dashboard
+    Route::get('/sales-per/dashboard', [SalesPerAnalyticsController::class, 'dashboard'])->name('sales-per.dashboard');
+    Route::get('/sales-per/stock', [SalesPerStockController::class, 'dashboard'])->name('sales-per.stock');
+    Route::get('/sales-per/stock/tab-kritis', [SalesPerStockController::class, 'loadTabKritis'])->name('sales-per.stock.tab-kritis');
+    Route::get('/sales-per/stock/tab-tertahan', [SalesPerStockController::class, 'loadTabTertahan'])->name('sales-per.stock.tab-tertahan');
+    Route::get('/sales-per/stock/tab-semua', [SalesPerStockController::class, 'loadTabSemua'])->name('sales-per.stock.tab-semua');
+
     // Salesmen
     Route::get('/salesmen', [SalesmanController::class, 'index'])->name('salesmen.index');
     Route::get('/salesmen/{salesman}', [SalesmanController::class, 'show'])->name('salesmen.show');
@@ -92,13 +110,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Advanced Analytics (open to all roles)
     Route::get('/analytics/pareto', [AdvancedAnalyticsController::class, 'pareto'])->name('analytics.pareto');
-    Route::get('/analytics/sleeping-outlets', [AdvancedAnalyticsController::class, 'sleepingOutlets'])->name('analytics.sleeping-outlets');
-    Route::get('/analytics/discount', [AdvancedAnalyticsController::class, 'discountEffectiveness'])->name('analytics.discount');
-    Route::get('/analytics/rfm', [AdvancedAnalyticsController::class, 'rfmAnalysis'])->name('analytics.rfm');
     Route::get('/analytics/cross-selling', [AdvancedAnalyticsController::class, 'crossSelling'])->name('analytics.cross-selling');
     Route::get('/analytics/target-tracker', [AdvancedAnalyticsController::class, 'targetTracker'])->name('analytics.target-tracker');
     Route::get('/analytics/cohort', [AdvancedAnalyticsController::class, 'cohortAnalysis'])->name('analytics.cohort');
+    Route::get('/analytics/restock-predictor', [AdvancedAnalyticsController::class, 'restockPredictor'])->name('analytics.restock-predictor');
     Route::get('/analytics/promo-uplift', [AdvancedAnalyticsController::class, 'promoUplift'])->name('analytics.promo-uplift');
+
+    // Forecasting
+    Route::get('/inventory/forecast', [ForecastingController::class, 'index'])->name('inventory.forecast');
+    Route::get('/inventory/forecast/multi-period', [ForecastingController::class, 'multiPeriodForecast'])->name('inventory.forecast.multi-period');
+    Route::get('/analytics/salesman-profitability', [AdvancedAnalyticsController::class, 'salesmanProfitability'])->name('analytics.salesman-profitability');
+    Route::get('/analytics/outlet-trajectory', [AdvancedAnalyticsController::class, 'outletTrajectory'])->name('analytics.outlet-trajectory');
+    Route::get('/analytics/product-trajectory', [ProductTrajectoryController::class, 'index'])->name('analytics.product-trajectory');
 
     // TV Dashboard Wallboard
     Route::get('/tv-dashboard', [TvDashboardController::class, 'index'])->name('tv.dashboard');

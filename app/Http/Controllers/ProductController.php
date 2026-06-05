@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Product;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class ProductController extends Controller
 {
@@ -19,32 +18,32 @@ class ProductController extends Controller
             ->join('principals', 'products.principal_id', '=', 'principals.id')
             ->addSelect('principals.name as principal_name')
             ->selectSub(
-                \App\Models\Transaction::whereColumn('transactions.product_id', 'products.id')
+                Transaction::whereColumn('transactions.product_id', 'products.id')
                     ->where('type', 'I')->withFilters(request())
                     ->selectRaw('COALESCE(SUM(taxed_amt), 0)'),
                 'total_sales'
             )
             ->selectSub(
-                \App\Models\Transaction::whereColumn('transactions.product_id', 'products.id')
+                Transaction::whereColumn('transactions.product_id', 'products.id')
                     ->where('type', 'R')->withFilters(request())
                     ->selectRaw('COALESCE(SUM(ABS(taxed_amt)), 0)'),
                 'total_returns'
             )
             ->selectSub(
-                \App\Models\Transaction::whereColumn('transactions.product_id', 'products.id')
+                Transaction::whereColumn('transactions.product_id', 'products.id')
                     ->where('type', 'I')->withFilters(request())
                     ->selectRaw('COALESCE(SUM(qty_base), 0)'),
                 'total_qty'
             );
-        
+
         if ($request->session()->get('demo_mode_active', false)) {
-            $query->whereHas('transactions', fn($q) => $q->withFilters(request()));
+            $query->whereHas('transactions', fn ($q) => $q->withFilters(request()));
         }
 
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('products.name', 'like', "%{$search}%")
-                  ->orWhere('products.item_no', 'like', "%{$search}%");
+                    ->orWhere('products.item_no', 'like', "%{$search}%");
             });
         }
 
@@ -53,4 +52,3 @@ class ProductController extends Controller
         return view('products.index', compact('products', 'period', 'periods', 'search'));
     }
 }
-

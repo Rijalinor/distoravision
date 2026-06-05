@@ -3,34 +3,36 @@
 namespace App\Exports\Sheets;
 
 use App\Models\Transaction;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Concerns\FromArray;
-use Maatwebsite\Excel\Concerns\WithTitle;
-use Maatwebsite\Excel\Concerns\WithStyles;
-use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use Maatwebsite\Excel\Concerns\WithEvents;
+use Maatwebsite\Excel\Concerns\WithStyles;
+use Maatwebsite\Excel\Concerns\WithTitle;
 use Maatwebsite\Excel\Events\AfterSheet;
-use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
-use PhpOffice\PhpSpreadsheet\Style\Fill;
-use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
-use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class SummarySheet implements FromArray, WithTitle, WithStyles, WithColumnWidths, WithEvents
+class SummarySheet implements FromArray, WithColumnWidths, WithEvents, WithStyles, WithTitle
 {
     use ExcelStyler;
 
     protected Request $request;
+
     protected string $period;
+
     protected string $principalName;
+
     protected array $computed = [];
 
     public function __construct(Request $request, string $period, string $principalName)
     {
-        $this->request       = $request;
-        $this->period        = $period;
+        $this->request = $request;
+        $this->period = $period;
         $this->principalName = $principalName;
 
         $this->computeData();
@@ -42,28 +44,28 @@ class SummarySheet implements FromArray, WithTitle, WithStyles, WithColumnWidths
             ->selectRaw('SUM(taxed_amt) as total_omset, SUM(cogs) as total_cogs, SUM(gross) as gross_sales, SUM(disc_total) as total_discount, COUNT(DISTINCT so_no) as invoice_count, COUNT(DISTINCT outlet_id) as outlet_count')
             ->first();
 
-        $totalOmset   = (float) ($kpis->total_omset ?? 0);
-        $totalCogs    = (float) ($kpis->total_cogs ?? 0);
+        $totalOmset = (float) ($kpis->total_omset ?? 0);
+        $totalCogs = (float) ($kpis->total_cogs ?? 0);
         $totalReturns = (float) Transaction::withFilters($this->request)->returns()->sum(DB::raw('ABS(taxed_amt)'));
-        $netSales     = $totalOmset - $totalReturns;
-        $grossProfit  = $netSales - $totalCogs;
-        $totalDiscou  = (float) ($kpis->total_discount ?? 0);
+        $netSales = $totalOmset - $totalReturns;
+        $grossProfit = $netSales - $totalCogs;
+        $totalDiscou = (float) ($kpis->total_discount ?? 0);
         $blendedMargi = $netSales > 0 ? ($grossProfit / $netSales) * 100 : 0;
-        $returnRate   = ($netSales + $totalReturns) > 0 ? ($totalReturns / ($netSales + $totalReturns)) * 100 : 0;
+        $returnRate = ($netSales + $totalReturns) > 0 ? ($totalReturns / ($netSales + $totalReturns)) * 100 : 0;
 
-        $prevPeriod  = \Carbon\Carbon::parse($this->period . '-01')->subMonth()->format('Y-m');
-        $prevReq     = new \Illuminate\Http\Request();
+        $prevPeriod = Carbon::parse($this->period.'-01')->subMonth()->format('Y-m');
+        $prevReq = new Request;
         $prevReq->merge(['start_period' => $prevPeriod, 'end_period' => $prevPeriod, 'principal_id' => $this->request->get('principal_id')]);
-        $prevSales   = (float) Transaction::withFilters($prevReq)->invoices()->sum('taxed_amt');
+        $prevSales = (float) Transaction::withFilters($prevReq)->invoices()->sum('taxed_amt');
         $prevReturns = (float) Transaction::withFilters($prevReq)->returns()->sum(DB::raw('ABS(taxed_amt)'));
-        $prevNet     = $prevSales - $prevReturns;
-        $momNet      = $prevNet > 0 ? (($netSales - $prevNet) / $prevNet) * 100 : 0;
+        $prevNet = $prevSales - $prevReturns;
+        $momNet = $prevNet > 0 ? (($netSales - $prevNet) / $prevNet) * 100 : 0;
 
-        $prevOutlets    = Transaction::withFilters($prevReq)->groupBy('outlet_id')->having(DB::raw('SUM(CASE WHEN type = "I" THEN taxed_amt WHEN type = "R" THEN -ABS(taxed_amt) ELSE 0 END)'), '>', 0)->pluck('outlet_id')->unique();
+        $prevOutlets = Transaction::withFilters($prevReq)->groupBy('outlet_id')->having(DB::raw('SUM(CASE WHEN type = "I" THEN taxed_amt WHEN type = "R" THEN -ABS(taxed_amt) ELSE 0 END)'), '>', 0)->pluck('outlet_id')->unique();
         $currentOutlets = Transaction::withFilters($this->request)->groupBy('outlet_id')->having(DB::raw('SUM(CASE WHEN type = "I" THEN taxed_amt WHEN type = "R" THEN -ABS(taxed_amt) ELSE 0 END)'), '>', 0)->pluck('outlet_id')->unique();
-        $churnedIds     = $prevOutlets->diff($currentOutlets);
-        $churnedCount   = $churnedIds->count();
-        $churnedLoss    = $churnedCount > 0 ? (float) Transaction::withFilters($prevReq)->whereIn('outlet_id', $churnedIds)->sum(DB::raw('CASE WHEN type = "I" THEN taxed_amt WHEN type = "R" THEN -ABS(taxed_amt) ELSE 0 END')) : 0;
+        $churnedIds = $prevOutlets->diff($currentOutlets);
+        $churnedCount = $churnedIds->count();
+        $churnedLoss = $churnedCount > 0 ? (float) Transaction::withFilters($prevReq)->whereIn('outlet_id', $churnedIds)->sum(DB::raw('CASE WHEN type = "I" THEN taxed_amt WHEN type = "R" THEN -ABS(taxed_amt) ELSE 0 END')) : 0;
 
         $topPrincipal = Transaction::withFilters($this->request)->invoices()
             ->join('products', 'transactions.product_id', '=', 'products.id')
@@ -78,7 +80,10 @@ class SummarySheet implements FromArray, WithTitle, WithStyles, WithColumnWidths
         );
     }
 
-    public function title(): string { return 'Ringkasan Eksekutif'; }
+    public function title(): string
+    {
+        return 'Ringkasan Eksekutif';
+    }
 
     public function columnWidths(): array
     {
@@ -92,7 +97,7 @@ class SummarySheet implements FromArray, WithTitle, WithStyles, WithColumnWidths
 
         return [
             /* 1 */ ['BUKU RAPOR PENJUALAN 360°', '', '', ''],
-            /* 2 */ ['DistoraVision Enterprise Analytics  ·  Digenerate: ' . $generatedAt, '', '', ''],
+            /* 2 */ ['DistoraVision Enterprise Analytics  ·  Digenerate: '.$generatedAt, '', '', ''],
             /* 3 */ [],
             /* 4 */ ['Periode Laporan', $this->period, 'Principal / Brand', $this->principalName],
             /* 5 */ [],
@@ -100,27 +105,30 @@ class SummarySheet implements FromArray, WithTitle, WithStyles, WithColumnWidths
             /* 7 */ ['Metrik', 'Nilai (Rp / %)', 'Pembanding', 'Keterangan'],
             /* 8 */ ['Omset (Taxed Amount)',   $totalOmset,   '',        'Omset bruto setelah diskon sebelum retur'],
             /* 9 */ ['Total Retur',            $totalReturns, '',        'Nilai retur BAST yang dikembalikan'],
-            /* 10*/['Net Sales (Omset-Retur)', $netSales,     $prevNet,  'Sales bersih setelah dikurangi retur'],
-            /* 11*/['Return Rate',             $returnRate,   '',        'Persentase retur terhadap omset'],
-            /* 12*/['HPP (COGS)',              $totalCogs,    '',        'Harga pokok penjualan'],
-            /* 13*/['Gross Profit',            $grossProfit,  '',        'Laba kotor sebelum biaya operasional'],
-            /* 14*/['Blended Margin',          $blendedMargi, '',        'Rata-rata % keuntungan keseluruhan'],
-            /* 15*/['Total Diskon Diberikan',  $totalDiscou,  '',        'Subsidi promo ke toko-toko'],
-            /* 16*/['Total Invoice / Faktur',  (int)($kpis->invoice_count ?? 0), '', 'Jumlah faktur penjualan unik'],
-            /* 17*/['Outlet Aktif',            (int)($kpis->outlet_count ?? 0),  '', 'Toko yang bertransaksi bulan ini'],
-            /* 18*/['MoM Growth (Net Sales)',  $momNet,       '',        'Pertumbuhan vs bulan sebelumnya'],
-            /* 19*/ [],
-            /* 20*/ ['B.   PERINGATAN DINI & RISIKO BISNIS', '', '', ''],
-            /* 21*/ ['Indikator Risiko', 'Jumlah', 'Nilai Opportunity Loss (Rp)', 'Status'],
-            /* 22*/ ['Toko Churn / Berhenti Order', $churnedCount, $churnedLoss, $churnedCount > 10 ? '⚠️ WASPADA' : ($churnedCount > 0 ? '🟡 PANTAU' : '✅ AMAN')],
-            /* 23*/ [],
-            /* 24*/ ['C.   PRINCIPAL DOMINASI OMSET', '', '', ''],
-            /* 25*/ ['Principal', 'Revenue (Rp)', '', ''],
-            /* 26*/ [$topPrincipal->name ?? 'N/A', (float)($topPrincipal->rev ?? 0), '', ''],
+            /* 10 */ ['Net Sales (Omset-Retur)', $netSales,     $prevNet,  'Sales bersih setelah dikurangi retur'],
+            /* 11 */ ['Return Rate',             $returnRate,   '',        'Persentase retur terhadap omset'],
+            /* 12 */ ['HPP (COGS)',              $totalCogs,    '',        'Harga pokok penjualan'],
+            /* 13 */ ['Gross Profit',            $grossProfit,  '',        'Laba kotor sebelum biaya operasional'],
+            /* 14 */ ['Blended Margin',          $blendedMargi, '',        'Rata-rata % keuntungan keseluruhan'],
+            /* 15 */ ['Total Diskon Diberikan',  $totalDiscou,  '',        'Subsidi promo ke toko-toko'],
+            /* 16 */ ['Total Invoice / Faktur',  (int) ($kpis->invoice_count ?? 0), '', 'Jumlah faktur penjualan unik'],
+            /* 17 */ ['Outlet Aktif',            (int) ($kpis->outlet_count ?? 0),  '', 'Toko yang bertransaksi bulan ini'],
+            /* 18 */ ['MoM Growth (Net Sales)',  $momNet,       '',        'Pertumbuhan vs bulan sebelumnya'],
+            /* 19 */ [],
+            /* 20 */ ['B.   PERINGATAN DINI & RISIKO BISNIS', '', '', ''],
+            /* 21 */ ['Indikator Risiko', 'Jumlah', 'Nilai Opportunity Loss (Rp)', 'Status'],
+            /* 22 */ ['Toko Churn / Berhenti Order', $churnedCount, $churnedLoss, $churnedCount > 10 ? '⚠️ WASPADA' : ($churnedCount > 0 ? '🟡 PANTAU' : '✅ AMAN')],
+            /* 23 */ [],
+            /* 24 */ ['C.   PRINCIPAL DOMINASI OMSET', '', '', ''],
+            /* 25 */ ['Principal', 'Revenue (Rp)', '', ''],
+            /* 26 */ [$topPrincipal->name ?? 'N/A', (float) ($topPrincipal->rev ?? 0), '', ''],
         ];
     }
 
-    public function styles(Worksheet $sheet): array { return []; }
+    public function styles(Worksheet $sheet): array
+    {
+        return [];
+    }
 
     public function registerEvents(): array
     {
@@ -136,9 +144,9 @@ class SummarySheet implements FromArray, WithTitle, WithStyles, WithColumnWidths
 
                 // Info row 4
                 $ws->getStyle('A4:D4')->applyFromArray([
-                    'font'   => ['bold' => true, 'size' => 11],
-                    'fill'   => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFDBEAFE']],
-                    'borders'=> ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['argb' => 'FF93C5FD']]],
+                    'font' => ['bold' => true, 'size' => 11],
+                    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFDBEAFE']],
+                    'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['argb' => 'FF93C5FD']]],
                 ]);
                 $ws->getStyle('A4')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
                 $ws->getStyle('C4')->getFont()->setBold(true);
@@ -192,5 +200,3 @@ class SummarySheet implements FromArray, WithTitle, WithStyles, WithColumnWidths
         ];
     }
 }
-
-

@@ -7,6 +7,7 @@
 @endsection
 
 @section('content')
+@include('components.salesman-tabs')
 <div class="card">
     <div class="card-header"><span class="card-title">Ranking Salesman - {{ \Carbon\Carbon::parse($period.'-01')->translatedFormat('F Y') }}</span></div>
     <table class="data-table">

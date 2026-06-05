@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Salesman extends Model
 {
     protected $table = 'salesmen';
+
     protected $fillable = ['branch_id', 'sales_code', 'name'];
 
     public function branch(): BelongsTo

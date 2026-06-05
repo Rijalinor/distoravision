@@ -19,15 +19,16 @@ Artisan::command('demo:seed {period} {--rows=1500}', function () {
     $period = (string) $this->argument('period');
     $rows = max(100, (int) $this->option('rows'));
 
-    if (!preg_match('/^\d{4}-\d{2}$/', $period)) {
+    if (! preg_match('/^\d{4}-\d{2}$/', $period)) {
         $this->error('Format period wajib YYYY-MM. Contoh: 2026-03');
+
         return self::FAILURE;
     }
 
     $prefix = (string) env('DEMO_FAKE_SO_PREFIX', 'DMO-');
     $this->info("Generate fake data period {$period} dengan prefix {$prefix} ...");
 
-    Transaction::where('period', $period)->where('so_no', 'like', $prefix . '%')->delete();
+    Transaction::where('period', $period)->where('so_no', 'like', $prefix.'%')->delete();
 
     $branches = collect([
         ['code' => 'DMO-JKT', 'name' => 'Demo Branch Jakarta'],
@@ -43,24 +44,25 @@ Artisan::command('demo:seed {period} {--rows=1500}', function () {
 
     $salesmen = collect(range(1, 12))->map(function ($i) use ($branches) {
         return Salesman::firstOrCreate(
-            ['sales_code' => 'SDMO-' . str_pad((string) $i, 3, '0', STR_PAD_LEFT)],
+            ['sales_code' => 'SDMO-'.str_pad((string) $i, 3, '0', STR_PAD_LEFT)],
             [
                 'branch_id' => $branches[($i - 1) % $branches->count()]->id,
-                'name' => 'Salesman Demo ' . $i,
+                'name' => 'Salesman Demo '.$i,
             ]
         );
     })->values();
 
     $outlets = collect(range(1, 90))->map(function ($i) {
         $cities = ['Jakarta', 'Bandung', 'Surabaya', 'Semarang', 'Yogyakarta'];
+
         return Outlet::firstOrCreate(
-            ['code' => 'ODMO-' . str_pad((string) $i, 4, '0', STR_PAD_LEFT)],
+            ['code' => 'ODMO-'.str_pad((string) $i, 4, '0', STR_PAD_LEFT)],
             [
-                'name' => 'Outlet Demo ' . $i,
-                'address' => 'Jl. Demo No. ' . $i,
+                'name' => 'Outlet Demo '.$i,
+                'address' => 'Jl. Demo No. '.$i,
                 'city' => $cities[($i - 1) % count($cities)],
-                'route' => 'R' . (($i - 1) % 12 + 1),
-                'phone' => '08' . str_pad((string) random_int(100000000, 999999999), 9, '0', STR_PAD_LEFT),
+                'route' => 'R'.(($i - 1) % 12 + 1),
+                'phone' => '08'.str_pad((string) random_int(100000000, 999999999), 9, '0', STR_PAD_LEFT),
             ]
         );
     })->values();
@@ -69,13 +71,13 @@ Artisan::command('demo:seed {period} {--rows=1500}', function () {
     foreach ($principals as $principalIndex => $principal) {
         for ($i = 1; $i <= 10; $i++) {
             $products->push(Product::firstOrCreate(
-                ['principal_id' => $principal->id, 'item_no' => 'SKU-DMO-' . ($principalIndex + 1) . '-' . str_pad((string) $i, 2, '0', STR_PAD_LEFT)],
-                ['name' => 'Demo Product ' . ($principalIndex + 1) . '-' . $i, 'uom_sku' => 'PCS']
+                ['principal_id' => $principal->id, 'item_no' => 'SKU-DMO-'.($principalIndex + 1).'-'.str_pad((string) $i, 2, '0', STR_PAD_LEFT)],
+                ['name' => 'Demo Product '.($principalIndex + 1).'-'.$i, 'uom_sku' => 'PCS']
             ));
         }
     }
 
-    $start = Carbon::createFromFormat('Y-m-d', $period . '-01')->startOfMonth();
+    $start = Carbon::createFromFormat('Y-m-d', $period.'-01')->startOfMonth();
     $days = $start->daysInMonth - 1;
     $rowsData = [];
 
@@ -113,7 +115,7 @@ Artisan::command('demo:seed {period} {--rows=1500}', function () {
             'outlet_id' => $outlet->id,
             'product_id' => $product->id,
             'type' => $type,
-            'so_no' => $prefix . strtoupper(Str::random(10)) . '-' . $i,
+            'so_no' => $prefix.strtoupper(Str::random(10)).'-'.$i,
             'so_date' => $date->format('Y-m-d'),
             'ref_no' => null,
             'pfi_cn_no' => null,

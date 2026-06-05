@@ -116,14 +116,11 @@
     {{-- TAB NAVIGATION --}}
     @php
     $tabs = [
-        'overview' => ['icon' => '📊', 'label' => 'Ringkasan'],
-        'aging' => ['icon' => '⏰', 'label' => 'Aging'],
-        'credit-risk' => ['icon' => '⚠️', 'label' => 'Credit Risk'],
-        'top-outlets' => ['icon' => '🏪', 'label' => 'Top Outlet'],
-        'payment' => ['icon' => '💳', 'label' => 'Payment'],
-        'salesman' => ['icon' => '👤', 'label' => 'Salesman'],
-        'giro' => ['icon' => '🏦', 'label' => 'Giro'],
-        'detail' => ['icon' => '📋', 'label' => 'Detail'],
+        'aging' => ['icon' => '⏰', 'label' => 'Aging & Ringkasan'],
+        'dso' => ['icon' => '⏱️', 'label' => 'DSO Tracking'],
+        'evaluasi' => ['icon' => '⚠️', 'label' => 'Evaluasi Penagihan'],
+        'prioritas' => ['icon' => '🚨', 'label' => 'Prioritas Penindakan'],
+        'data' => ['icon' => '📋', 'label' => 'Data Giro & Invoice'],
     ];
     @endphp
     <div style="display:flex;gap:0.25rem;margin-bottom:1.5rem;flex-wrap:wrap;background:var(--bg-darker);padding:0.35rem;border-radius:10px;">
@@ -171,35 +168,7 @@
 
     {{-- ═══════════════ TAB CONTENT ═══════════════ --}}
 
-    @if($tab === 'overview')
-        <div class="card">
-            <div class="card-header"><span class="card-title">📊 Ringkasan AR</span></div>
-            <div style="padding:1.5rem;color:var(--text-secondary);line-height:2;font-size:0.85rem;">
-                <p>Selamat datang di Dashboard AR. Gunakan tab di atas untuk navigasi:</p>
-                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:1rem;margin-top:1rem;">
-                    @foreach($tabs as $key => $t)
-                        @if($key !== 'overview')
-                        <a href="{{ route('ar.dashboard', ['tab' => $key]) }}" style="display:block;padding:0.75rem 1rem;border-radius:8px;border:1px solid var(--border-color);text-decoration:none;color:var(--text-primary);transition:all 0.2s;" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--border-color)'">
-                            <span style="font-size:1.2rem;">{{ $t['icon'] }}</span> <strong>{{ $t['label'] }}</strong>
-                            <div style="font-size:0.7rem;color:var(--text-muted);margin-top:0.25rem;">
-                                @switch($key)
-                                    @case('aging') Lihat distribusi umur piutang @break
-                                    @case('credit-risk') Outlet yang melebihi limit kredit @break
-                                    @case('top-outlets') 20 outlet piutang terbesar @break
-                                    @case('payment') Perilaku pembayaran & outlet bandel @break
-                                    @case('salesman') Piutang per salesman @break
-                                    @case('giro') Monitoring giro & bank @break
-                                    @case('detail') Cari data piutang spesifik @break
-                                @endswitch
-                            </div>
-                        </a>
-                        @endif
-                    @endforeach
-                </div>
-            </div>
-        </div>
-
-    @elseif($tab === 'aging')
+    @if($tab === 'aging')
         <div class="card">
             <div class="card-header"><span class="card-title">⏰ Aging Analysis</span></div>
             <p style="padding:0.75rem 1rem 0;font-size:0.75rem;color:var(--text-muted);">Klik bucket untuk lihat detail outlet pada kategori tersebut.</p>
@@ -235,116 +204,9 @@
         </div>
         @endif
 
-    @elseif($tab === 'credit-risk')
-        <div class="card">
-            <div class="card-header"><span class="card-title">⚠️ Credit Risk Analysis</span></div>
-            <p style="padding:0.75rem 1rem 0;font-size:0.75rem;color:var(--text-muted);">Outlet dengan utilisasi kredit tinggi. Utilisasi = AR Balance ÷ Credit Limit × 100%.</p>
-            <div style="display:flex;gap:0.75rem;flex-wrap:wrap;padding:1rem;">
-                @foreach(['Low' => ['🟢','var(--accent-green)'], 'Medium' => ['🔵','var(--primary-light)'], 'High' => ['🟡','var(--accent-yellow)'], 'Over Limit' => ['🔴','var(--accent-red)']] as $level => $cfg)
-                <div style="flex:1;min-width:100px;padding:0.75rem;border-radius:8px;background:var(--bg-darker);text-align:center;">
-                    <div style="font-size:1.2rem;">{{ $cfg[0] }}</div>
-                    <div class="font-mono" style="font-size:1.3rem;font-weight:700;color:{{ $cfg[1] }};">{{ $riskLevels[$level] ?? 0 }}</div>
-                    <div style="font-size:0.7rem;color:var(--text-muted);">{{ $level }}</div>
-                </div>
-                @endforeach
-            </div>
-            <table class="data-table"><thead><tr><th title="Nama dan kode outlet tujuan">Outlet</th><th title="Salesman yang bertanggung jawab atas outlet ini">Salesman</th><th class="text-right" title="Sisa nilai piutang yang belum dibayar lunas oleh outlet">AR Balance</th><th class="text-right" title="Batas maksimal piutang yang diperbolehkan untuk outlet ini">Limit</th><th class="text-right" title="Persentase pemakaian limit kredit (AR Balance ÷ Limit). Lebih dari 100% berarti Over Limit">Utilisasi</th><th class="text-right" title="Collection Mention: Berapa kali surat tagihan sudah dicetak/keluar dari sistem">CM</th></tr></thead>
-            <tbody>
-            @forelse($creditRisk as $cr)
-                <tr>
-                    <td><div style="font-weight:600;">{{ Str::limit($cr->outlet_name, 22) }}</div><div style="font-size:0.7rem;color:var(--text-muted);">{{ $cr->outlet_code }}</div></td>
-                    <td style="font-size:0.8rem;">{{ Str::limit($cr->salesman_name, 15) }}</td>
-                    <td class="text-right font-mono" style="color:var(--accent-red);font-weight:600;">{{ number_format($cr->total_balance, 0, ',', '.') }}</td>
-                    <td class="text-right font-mono">
-                        @if($cr->credit_limit > 1)
-                            {{ number_format($cr->credit_limit, 0, ',', '.') }}
-                        @else
-                            <span style="color:var(--text-muted);">-</span>
-                        @endif
-                    </td>
-                    <td class="text-right">
-                        @if($cr->credit_limit > 1)
-                            <span class="badge {{ $cr->utilization_pct > 100 ? 'badge-red' : 'badge-yellow' }}">{{ $cr->utilization_pct }}%</span>
-                        @else
-                            <span class="badge badge-red">Over Limit</span>
-                        @endif
-                    </td>
-                    <td class="text-right"><span class="badge {{ $cr->max_cm >= 3 ? 'badge-red' : 'badge-blue' }}">{{ $cr->max_cm }}x</span></td>
-                </tr>
-            @empty
-                <tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text-muted);">Semua outlet dalam batas limit 👍</td></tr>
-            @endforelse
-            </tbody></table>
-            <div class="pagination-wrapper">{{ $creditRisk->links() }}</div>
-        </div>
-
-    @elseif($tab === 'top-outlets')
-        <div class="card">
-            <div class="card-header"><span class="card-title">🏪 Outlet Piutang Terbesar</span></div>
-            <p style="padding:0.75rem 1rem 0;font-size:0.75rem;color:var(--text-muted);">Ranking outlet berdasarkan total AR Balance. Ini daftar prioritas penagihan.</p>
-            <table class="data-table"><thead><tr><th>#</th><th title="Nama dan kode outlet tujuan">Outlet</th><th title="Salesman yang bertanggung jawab atas outlet ini">Salesman</th><th class="text-right" title="Sisa nilai piutang yang belum dibayar lunas oleh outlet">AR Balance</th><th class="text-right">Invoices</th><th class="text-right" title="Keterlambatan terlama (Max Overdue) dari semua invoice milik outlet ini">Max OD</th><th class="text-right" title="Collection Mention: Berapa kali surat tagihan sudah dicetak/keluar dari sistem">CM</th></tr></thead>
-            <tbody>
-            @foreach($topOutlets as $i => $o)
-                <tr>
-                    <td style="font-weight:700;color:var(--text-muted);">{{ $topOutlets->firstItem() + $i }}</td>
-                    <td><div style="font-weight:600;">{{ Str::limit($o->outlet_name, 22) }}</div><div style="font-size:0.7rem;color:var(--text-muted);">{{ $o->outlet_code }}</div></td>
-                    <td style="font-size:0.8rem;">{{ Str::limit($o->salesman_name, 18) }}</td>
-                    <td class="text-right font-mono" style="color:var(--accent-red);font-weight:700;">{{ number_format($o->total_balance, 0, ',', '.') }}</td>
-                    <td class="text-right font-mono">{{ $o->invoice_count }}</td>
-                    <td class="text-right">@if($o->max_overdue > 90)<span class="badge badge-red">{{ $o->max_overdue }} hr</span>@elseif($o->max_overdue > 30)<span class="badge badge-yellow">{{ $o->max_overdue }} hr</span>@else<span class="badge badge-green">{{ $o->max_overdue }} hr</span>@endif</td>
-                    <td class="text-right"><span class="badge {{ $o->max_cm >= 3 ? 'badge-red' : 'badge-blue' }}">{{ $o->max_cm }}x</span></td>
-                </tr>
-            @endforeach
-            </tbody></table>
-            <div class="pagination-wrapper">{{ $topOutlets->links() }}</div>
-        </div>
-
-    @elseif($tab === 'payment')
-        <div class="card" style="margin-bottom:1rem;">
-            <div class="card-header"><span class="card-title">💳 Payment Behavior</span></div>
-            <p style="padding:0.75rem 1rem 0;font-size:0.75rem;color:var(--text-muted);">Seberapa baik outlet membayar tagihan mereka.</p>
-            <div style="display:flex;gap:1rem;justify-content:center;padding:1.5rem;">
-                <div style="text-align:center;padding:1rem;background:var(--bg-darker);border-radius:10px;flex:1;max-width:160px;">
-                    <div style="font-size:2rem;">🔴</div>
-                    <div class="font-mono" style="font-size:1.5rem;font-weight:700;color:var(--accent-red);">{{ number_format($paymentSummary->zero_pay_count ?? 0) }}</div>
-                    <div style="font-size:0.75rem;color:var(--text-muted);">Belum Bayar<br>Sama Sekali</div>
-                </div>
-                <div style="text-align:center;padding:1rem;background:var(--bg-darker);border-radius:10px;flex:1;max-width:160px;">
-                    <div style="font-size:2rem;">🟡</div>
-                    <div class="font-mono" style="font-size:1.5rem;font-weight:700;color:var(--accent-yellow);">{{ number_format($paymentSummary->partial_pay_count ?? 0) }}</div>
-                    <div style="font-size:0.75rem;color:var(--text-muted);">Bayar<br>Sebagian</div>
-                </div>
-                <div style="text-align:center;padding:1rem;background:var(--bg-darker);border-radius:10px;flex:1;max-width:160px;">
-                    <div style="font-size:2rem;">🟢</div>
-                    <div class="font-mono" style="font-size:1.5rem;font-weight:700;color:var(--accent-green);">{{ number_format($paymentSummary->full_pay_count ?? 0) }}</div>
-                    <div style="font-size:0.75rem;color:var(--text-muted);">Lunas</div>
-                </div>
-            </div>
-        </div>
-        <div class="card">
-            <div class="card-header"><span class="card-title">🚩 Worst Payers (Outlet Paling Susah Bayar)</span></div>
-            <table class="data-table"><thead><tr><th title="Nama dan kode outlet tujuan">Outlet</th><th title="Salesman yang bertanggung jawab atas outlet ini">Salesman</th><th class="text-right">Tagihan</th><th class="text-right" title="Total nilai yang sudah dibayar oleh outlet">Dibayar</th><th class="text-right" title="Total sisa tagihan (sama dengan AR Balance)">Sisa</th><th class="text-right" title="Persentase pembayaran (Total Dibayar ÷ Total Tagihan). Makin kecil, makin susah ditagih">% Bayar</th><th class="text-right" title="Collection Mention: Berapa kali surat tagihan sudah dicetak/keluar dari sistem">CM</th></tr></thead>
-            <tbody>
-            @forelse($worstPayers as $wp)
-                <tr>
-                    <td><div style="font-weight:600;">{{ Str::limit($wp->outlet_name, 22) }}</div><div style="font-size:0.7rem;color:var(--text-muted);">{{ $wp->outlet_code }}</div></td>
-                    <td style="font-size:0.8rem;">{{ Str::limit($wp->salesman_name, 15) }}</td>
-                    <td class="text-right font-mono">{{ number_format($wp->total_invoiced, 0, ',', '.') }}</td>
-                    <td class="text-right font-mono text-green">{{ number_format($wp->total_paid, 0, ',', '.') }}</td>
-                    <td class="text-right font-mono" style="color:var(--accent-red);font-weight:600;">{{ number_format($wp->total_balance, 0, ',', '.') }}</td>
-                    <td class="text-right">@if($wp->payment_pct == 0)<span class="badge badge-red">0%</span>@elseif($wp->payment_pct < 50)<span class="badge badge-yellow">{{ $wp->payment_pct }}%</span>@else<span class="badge badge-green">{{ $wp->payment_pct }}%</span>@endif</td>
-                    <td class="text-right"><span class="badge {{ $wp->max_cm >= 3 ? 'badge-red' : 'badge-blue' }}">{{ $wp->max_cm }}x</span></td>
-                </tr>
-            @empty
-                <tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-muted);">Tidak ada data</td></tr>
-            @endforelse
-            </tbody></table>
-            <div class="pagination-wrapper">{{ $worstPayers->links() }}</div>
-        </div>
-
-    @elseif($tab === 'salesman')
-        <div class="card">
-            <div class="card-header"><span class="card-title">👤 AR per Salesman</span></div>
+    @elseif($tab === 'evaluasi')
+        <div class="card" style="margin-bottom: 1.5rem;">
+            <div class="card-header"><span class="card-title">👤 Performa Penagihan Salesman</span></div>
             <p style="padding:0.75rem 1rem 0;font-size:0.75rem;color:var(--text-muted);">Ranking salesman berdasarkan total piutang outlet mereka. "Bandel" = invoice dengan CM ≥ 3.</p>
             <table class="data-table"><thead><tr><th title="Salesman yang bertanggung jawab atas outlet ini">Salesman</th><th class="text-right" title="Sisa nilai piutang yang belum dibayar lunas oleh outlet">AR Balance</th><th class="text-right">Outlets</th><th class="text-right">Invoices</th><th class="text-right">Bandel</th><th class="text-right" title="Rata-rata hari keterlambatan pembayaran">Avg OD</th></tr></thead>
             <tbody>
@@ -363,9 +225,101 @@
             </tbody></table>
         </div>
 
-    @elseif($tab === 'giro')
+        <div class="card">
+            <div class="card-header"><span class="card-title">🚩 Daftar Outlet Bermasalah (Worst Payers)</span></div>
+            <p style="padding:0.75rem 1rem 0;font-size:0.75rem;color:var(--text-muted);">Gabungan dari outlet dengan tunggakan terbesar, susah bayar, atau over limit.</p>
+            <table class="data-table"><thead><tr><th title="Nama dan kode outlet tujuan">Outlet</th><th title="Salesman yang bertanggung jawab atas outlet ini">Salesman</th><th class="text-right" title="Total sisa tagihan (sama dengan AR Balance)">Sisa Hutang</th><th class="text-right" title="Batas limit hutang yang diperbolehkan">Limit Kredit</th><th class="text-right" title="Persentase pembayaran (Total Dibayar ÷ Total Tagihan). Makin kecil, makin susah ditagih">% Bayar</th><th class="text-right" title="Collection Mention: Berapa kali surat tagihan sudah dicetak/keluar dari sistem">CM</th><th class="text-right" title="Keterlambatan terlama dari outlet ini">Max OD</th></tr></thead>
+            <tbody>
+            @forelse($worstOutlets as $wp)
+                <tr>
+                    <td><div style="font-weight:600;">{{ Str::limit($wp->outlet_name, 22) }}</div><div style="font-size:0.7rem;color:var(--text-muted);">{{ $wp->outlet_code }}</div></td>
+                    <td style="font-size:0.8rem;">{{ Str::limit($wp->salesman_name, 15) }}</td>
+                    <td class="text-right font-mono" style="color:var(--accent-red);font-weight:600;">{{ number_format($wp->total_balance, 0, ',', '.') }}</td>
+                    <td class="text-right font-mono">
+                        @if($wp->credit_limit > 1)
+                            @if($wp->total_balance > $wp->credit_limit)
+                                <span style="color:var(--accent-red); font-weight:700;">Over Limit!</span><br>
+                            @endif
+                            <span style="font-size: 0.7rem; color:var(--text-muted);">{{ number_format($wp->credit_limit, 0, ',', '.') }}</span>
+                        @else
+                            <span style="color:var(--text-muted);">-</span>
+                        @endif
+                    </td>
+                    <td class="text-right">@if($wp->payment_pct == 0)<span class="badge badge-red">0%</span>@elseif($wp->payment_pct < 50)<span class="badge badge-yellow">{{ $wp->payment_pct }}%</span>@else<span class="badge badge-green">{{ $wp->payment_pct }}%</span>@endif</td>
+                    <td class="text-right"><span class="badge {{ $wp->max_cm >= 3 ? 'badge-red' : 'badge-blue' }}">{{ $wp->max_cm }}x</span></td>
+                    <td class="text-right">@if($wp->max_overdue > 90)<span class="badge badge-red">{{ $wp->max_overdue }} hr</span>@elseif($wp->max_overdue > 30)<span class="badge badge-yellow">{{ $wp->max_overdue }} hr</span>@else<span class="badge badge-green">{{ $wp->max_overdue }} hr</span>@endif</td>
+                </tr>
+            @empty
+                <tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-muted);">Tidak ada data</td></tr>
+            @endforelse
+            </tbody></table>
+            <div class="pagination-wrapper">{{ $worstOutlets->links() }}</div>
+        </div>
+
+    @elseif($tab === 'prioritas')
+        <div style="display:flex; gap: 1rem; margin-bottom: 1.5rem;">
+            <div class="card" style="flex:1; border-left: 4px solid var(--accent-red); padding: 1.5rem;">
+                <div style="font-size:0.8rem; color:var(--text-muted); font-weight:600; margin-bottom: 0.5rem;">TOTAL INVOICE KRITIS</div>
+                <div class="font-mono" style="font-size: 2rem; font-weight: 800; color: var(--accent-red);">{{ number_format($kpiPrioritas->total_invoices ?? 0) }}</div>
+                <div style="font-size:0.75rem; color:var(--text-muted);">Nota butuh perhatian segera</div>
+            </div>
+            <div class="card" style="flex:1; border-left: 4px solid var(--accent-yellow); padding: 1.5rem;">
+                <div style="font-size:0.8rem; color:var(--text-muted); font-weight:600; margin-bottom: 0.5rem;">TOTAL RUPIAH NYANGKUT</div>
+                <div class="font-mono" style="font-size: 2rem; font-weight: 800; color: var(--accent-yellow);">Rp {{ number_format(($kpiPrioritas->total_amount ?? 0) / 1000000, 1, ',', '.') }} Jt</div>
+                <div style="font-size:0.75rem; color:var(--text-muted);">Nilai AR pada nota kritis</div>
+            </div>
+        </div>
+
+        <div class="card" style="border: 1px solid var(--accent-red); background: linear-gradient(to right, rgba(239, 68, 68, 0.03), transparent);">
+            <div class="card-header" style="border-bottom: 1px solid rgba(239, 68, 68, 0.1); display:flex; justify-content: space-between; align-items:center;">
+                <span class="card-title" style="color: var(--accent-red); font-weight: 800; display: flex; align-items: center; gap: 0.5rem;">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    DAFTAR NOTA PRIORITAS (Urgent)
+                </span>
+                <form method="GET" style="display:flex;gap:0.5rem; align-items:center;">
+                    <input type="hidden" name="tab" value="prioritas">
+                    @if($currentBranch)<input type="hidden" name="branch" value="{{ $currentBranch }}">@endif
+                    @foreach($filters as $fk => $fv)@if($fv)<input type="hidden" name="{{ $fk }}" value="{{ $fv }}">@endif @endforeach
+                    <input type="text" name="search" class="form-input" placeholder="Cari nama/SN..."
+                        value="{{ $search }}" style="width:180px;padding:0.35rem 0.5rem;font-size:0.75rem;">
+                    <button type="submit" class="btn btn-secondary" style="padding:0.35rem 0.75rem;font-size:0.75rem;">🔍</button>
+                </form>
+            </div>
+            <p style="padding:0.75rem 1rem 0;font-size:0.75rem;color:var(--text-muted);">Daftar nota/invoice yang <strong>HARUS SEGERA</strong> ditindaklanjuti hari ini (Menunggak > 60 Hari atau sudah ditagih ≥ 3x).</p>
+            <div style="overflow-x:auto;">
+                <table class="data-table"><thead><tr><th title="Nama dan kode outlet tujuan">Outlet / PFI</th><th title="Salesman yang bertanggung jawab atas outlet ini">Salesman</th><th class="text-right" title="Sisa nilai piutang yang belum dibayar lunas oleh outlet">Nilai Tagihan</th><th class="text-right" title="Indikator Bahaya">Status Bahaya</th></tr></thead>
+                <tbody>
+                @forelse($urgentInvoices as $ui)
+                    <tr style="background: rgba(239, 68, 68, 0.02);">
+                        <td>
+                            <div style="font-weight:700; color:var(--text-primary);">{{ Str::limit($ui->outlet_name, 25) }}</div>
+                            <code style="font-size:0.75rem;padding:0.1rem 0.3rem;border-radius:3px;background:rgba(239,68,68,0.1);color:var(--accent-red); font-weight: 600;">{{ $ui->pfi_sn }}</code>
+                        </td>
+                        <td style="font-size:0.8rem; font-weight:500;">{{ Str::limit($ui->salesman_name, 18) }}<br><span style="font-size:0.7rem; color:var(--text-muted);">{{ Str::limit($ui->principal_name, 15) }}</span></td>
+                        <td class="text-right font-mono" style="font-weight:800;color:var(--accent-red); font-size:1.1rem;">
+                            {{ number_format($ui->ar_balance, 0, ',', '.') }}<br>
+                            <span style="font-size:0.7rem;color:var(--text-muted);font-weight:400;">Jatuh Tempo: {{ $ui->due_date?->format('d/m/Y') ?: '-' }}</span>
+                        </td>
+                        <td class="text-right">
+                            @if($ui->overdue_days > 60)
+                                <span class="badge badge-red" style="font-size: 0.7rem; margin-bottom: 2px; border: 1px solid rgba(239,68,68,0.5);">Overdue {{ $ui->overdue_days }} Hari</span><br>
+                            @endif
+                            @if($ui->cm >= 3)
+                                <span class="badge" style="font-size: 0.7rem; background: var(--accent-yellow); color: #000; border: 1px solid rgba(0,0,0,0.1); font-weight: 700;">Sudah Ditagih {{ $ui->cm }}x</span>
+                            @endif
+                        </td>
+                    </tr>
+                @empty
+                    <tr><td colspan="4" style="text-align:center;padding:3rem;color:var(--text-muted);font-size:1rem;">🎉 Luar biasa! Tidak ada nota kritis hari ini.</td></tr>
+                @endforelse
+                </tbody></table>
+            </div>
+            <div class="pagination-wrapper" style="padding: 1rem;">{{ $urgentInvoices->links() }}</div>
+        </div>
+
+    @elseif($tab === 'data')
         <div class="card" style="margin-bottom:1rem;">
-            <div class="card-header"><span class="card-title">🏦 Giro per Bank</span></div>
+            <div class="card-header"><span class="card-title">🏦 Ringkasan Giro per Bank</span></div>
             <div style="display:flex;gap:0.75rem;flex-wrap:wrap;padding:1rem;">
                 @forelse($giroPerBank as $gb)
                 <div style="flex:1;min-width:140px;background:var(--bg-darker);padding:0.75rem;border-radius:8px;border:1px solid var(--border-color);">
@@ -374,64 +328,63 @@
                     <div style="font-size:0.65rem;color:var(--text-muted);">{{ $gb->giro_count }} giro</div>
                 </div>
                 @empty
-                <p style="color:var(--text-muted);">Tidak ada data giro</p>
+                <p style="color:var(--text-muted); width: 100%; text-align: center;">Tidak ada data pencairan giro terdeteksi.</p>
                 @endforelse
             </div>
         </div>
-        <div class="card">
-            <div class="card-header"><span class="card-title">📄 Daftar Giro</span></div>
-            <table class="data-table"><thead><tr><th>Giro No</th><th title="Nama dan kode outlet tujuan">Outlet</th><th>Bank</th><th class="text-right">Amount</th><th title="Tanggal jatuh tempo pembayaran invoice">Due Date</th></tr></thead>
-            <tbody>
-            @forelse($giroList as $g)
-                <tr>
-                    <td><code style="font-size:0.75rem;padding:0.1rem 0.3rem;border-radius:3px;background:rgba(99,102,241,0.1);color:var(--primary-light);">{{ $g->giro_no }}</code></td>
-                    <td><div style="font-size:0.8rem;">{{ Str::limit($g->outlet_name, 20) }}</div><div style="font-size:0.7rem;color:var(--text-muted);">{{ $g->outlet_code }}</div></td>
-                    <td style="font-size:0.8rem;">{{ $g->bank_name ?: '-' }}</td>
-                    <td class="text-right font-mono" style="font-weight:600;">{{ number_format($g->giro_amount, 0, ',', '.') }}</td>
-                    <td style="font-size:0.8rem;">{{ $g->giro_due_date ? \Carbon\Carbon::parse($g->giro_due_date)->format('d/m/Y') : '-' }}</td>
-                </tr>
-            @empty
-                <tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--text-muted);">Tidak ada data giro</td></tr>
-            @endforelse
-            </tbody></table>
-            <div class="pagination-wrapper">{{ $giroList->links() }}</div>
-        </div>
 
-    @elseif($tab === 'detail')
-        <div class="card">
-            <div class="card-header">
-                <span class="card-title">📋 Detail Piutang Outstanding</span>
-                <form method="GET" style="display:flex;gap:0.5rem;">
-                    <input type="hidden" name="tab" value="detail">
-                    @if($currentBranch)<input type="hidden" name="branch" value="{{ $currentBranch }}">@endif
-                    @foreach($filters as $fk => $fv)@if($fv)<input type="hidden" name="{{ $fk }}" value="{{ $fv }}">@endif @endforeach
-                    <input type="text" name="search" class="form-input" placeholder="Cari outlet, salesman, PFI/SN..."
-                        value="{{ $search }}" style="width:260px;padding:0.35rem 0.75rem;font-size:0.8rem;">
-                    <button type="submit" class="btn btn-secondary" style="padding:0.35rem 0.75rem;font-size:0.8rem;">🔍</button>
-                </form>
+        <div style="display:flex; gap: 1rem; flex-wrap: wrap;">
+            <!-- Giro List (Half width if large screen) -->
+            <div class="card" style="flex: 1; min-width: 350px;">
+                <div class="card-header"><span class="card-title">📄 Daftar Giro Masuk</span></div>
+                <table class="data-table"><thead><tr><th>Giro No / Bank</th><th title="Nama outlet">Outlet</th><th class="text-right">Amount / Due</th></tr></thead>
+                <tbody>
+                @forelse($giroList as $g)
+                    <tr>
+                        <td><code style="font-size:0.75rem;padding:0.1rem 0.3rem;border-radius:3px;background:rgba(99,102,241,0.1);color:var(--primary-light);">{{ $g->giro_no }}</code><br><span style="font-size:0.7rem;color:var(--text-muted);">{{ $g->bank_name ?: '-' }}</span></td>
+                        <td><div style="font-size:0.8rem; font-weight:600;">{{ Str::limit($g->outlet_name, 20) }}</div><div style="font-size:0.7rem;color:var(--text-muted);">{{ Str::limit($g->salesman_name, 15) }}</div></td>
+                        <td class="text-right"><div class="font-mono" style="font-weight:600; color:var(--text-primary);">{{ number_format($g->giro_amount, 0, ',', '.') }}</div><div style="font-size:0.7rem;color:var(--text-muted);">{{ $g->giro_due_date ? \Carbon\Carbon::parse($g->giro_due_date)->format('d/m/Y') : '-' }}</div></td>
+                    </tr>
+                @empty
+                    <tr><td colspan="3" style="text-align:center;padding:2rem;color:var(--text-muted);">Tidak ada data giro</td></tr>
+                @endforelse
+                </tbody></table>
+                <div class="pagination-wrapper" style="padding: 0.5rem;">{{ $giroList->appends(['detail_page' => request('detail_page')])->links() }}</div>
             </div>
-            <div style="overflow-x:auto;">
-            <table class="data-table"><thead><tr><th title="Nama dan kode outlet tujuan">Outlet</th><th title="Salesman yang bertanggung jawab atas outlet ini">Salesman</th><th title="Nomor faktur / invoice">PFI/SN</th><th title="Tanggal terbit invoice">Tgl Invoice</th><th title="Brand atau principal dari barang yang dibeli">Principal</th><th class="text-right" title="Sisa nilai piutang yang belum dibayar lunas oleh outlet">AR Balance</th><th class="text-right" title="Jumlah hari keterlambatan pembayaran dihitung dari tanggal jatuh tempo">Overdue</th><th class="text-right" title="Collection Mention: Berapa kali surat tagihan sudah dicetak/keluar dari sistem">CM</th><th title="Tanggal jatuh tempo pembayaran invoice">Due Date</th></tr></thead>
-            <tbody>
-            @forelse($details as $d)
-                <tr>
-                    <td><div style="font-weight:600;">{{ Str::limit($d->outlet_name, 22) }}</div><div style="font-size:0.7rem;color:var(--text-muted);">{{ $d->outlet_code }}</div></td>
-                    <td style="font-size:0.8rem;">{{ Str::limit($d->salesman_name, 18) }}</td>
-                    <td><code style="font-size:0.7rem;padding:0.1rem 0.3rem;border-radius:3px;background:rgba(99,102,241,0.1);color:var(--primary-light);">{{ $d->pfi_sn }}</code></td>
-                    <td style="font-size:0.8rem;">{{ $d->doc_date?->format('d/m/Y') ?: '-' }}</td>
-                    <td style="font-size:0.8rem;">{{ Str::limit($d->principal_name, 18) ?: '-' }}</td>
-                    <td class="text-right font-mono" style="font-weight:700;color:var(--accent-red);">{{ number_format($d->ar_balance, 0, ',', '.') }}</td>
-                    <td class="text-right">@if($d->overdue_days > 90)<span class="badge badge-red">{{ $d->overdue_days }} hr</span>@elseif($d->overdue_days > 30)<span class="badge badge-yellow">{{ $d->overdue_days }} hr</span>@elseif($d->overdue_days > 0)<span class="badge badge-blue">{{ $d->overdue_days }} hr</span>@else<span class="badge badge-green">Current</span>@endif</td>
-                    <td class="text-right"><span class="badge {{ $d->cm >= 3 ? 'badge-red' : 'badge-blue' }}">{{ $d->cm }}x</span></td>
-                    <td style="font-size:0.8rem;">{{ $d->due_date?->format('d/m/Y') ?: '-' }}</td>
-                </tr>
-            @empty
-                <tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--text-muted);">Tidak ada data</td></tr>
-            @endforelse
-            </tbody></table>
+
+            <!-- Master Invoice List -->
+            <div class="card" style="flex: 2; min-width: 450px;">
+                <div class="card-header" style="display:flex; justify-content: space-between; align-items:center;">
+                    <span class="card-title">📋 Data Master Invoice (Belum Lunas)</span>
+                    <form method="GET" style="display:flex;gap:0.5rem; align-items:center;">
+                        <input type="hidden" name="tab" value="data">
+                        @if($currentBranch)<input type="hidden" name="branch" value="{{ $currentBranch }}">@endif
+                        @foreach($filters as $fk => $fv)@if($fv)<input type="hidden" name="{{ $fk }}" value="{{ $fv }}">@endif @endforeach
+                        <input type="text" name="search" class="form-input" placeholder="Cari nama/SN..."
+                            value="{{ $search }}" style="width:160px;padding:0.25rem 0.5rem;font-size:0.75rem;">
+                        <button type="submit" class="btn btn-secondary" style="padding:0.25rem 0.5rem;font-size:0.75rem;">Cari</button>
+                    </form>
+                </div>
+                <div style="overflow-x:auto;">
+                <table class="data-table"><thead><tr><th title="Nama dan kode outlet tujuan">Outlet / PFI</th><th title="Salesman yang bertanggung jawab atas outlet ini">Sales / Principal</th><th class="text-right" title="Sisa nilai piutang yang belum dibayar lunas oleh outlet">AR Balance</th><th class="text-right" title="Collection Mention: Berapa kali surat tagihan sudah dicetak/keluar dari sistem">CM / Overdue</th></tr></thead>
+                <tbody>
+                @forelse($details as $d)
+                    <tr>
+                        <td><div style="font-weight:600;">{{ Str::limit($d->outlet_name, 22) }}</div><code style="font-size:0.7rem;padding:0.1rem 0.3rem;border-radius:3px;background:rgba(99,102,241,0.1);color:var(--primary-light);">{{ $d->pfi_sn }}</code></td>
+                        <td><div style="font-size:0.8rem; font-weight: 500;">{{ Str::limit($d->salesman_name, 18) }}</div><div style="font-size:0.7rem; color:var(--text-muted);">{{ Str::limit($d->principal_name, 18) ?: '-' }}</div></td>
+                        <td class="text-right font-mono" style="font-weight:700;color:var(--accent-red);">{{ number_format($d->ar_balance, 0, ',', '.') }}<br><span style="font-size:0.7rem;color:var(--text-muted);font-weight:400;">Due: {{ $d->due_date?->format('d/m/Y') ?: '-' }}</span></td>
+                        <td class="text-right"><span class="badge {{ $d->cm >= 3 ? 'badge-red' : 'badge-blue' }}">{{ $d->cm }}x</span><br>@if($d->overdue_days > 90)<span class="badge badge-red" style="margin-top:2px;">{{ $d->overdue_days }} hr</span>@elseif($d->overdue_days > 30)<span class="badge badge-yellow" style="margin-top:2px;">{{ $d->overdue_days }} hr</span>@elseif($d->overdue_days > 0)<span class="badge badge-blue" style="margin-top:2px;">{{ $d->overdue_days }} hr</span>@else<span class="badge badge-green" style="margin-top:2px;">Current</span>@endif</td>
+                    </tr>
+                @empty
+                    <tr><td colspan="4" style="text-align:center;padding:2rem;color:var(--text-muted);">Tidak ada data</td></tr>
+                @endforelse
+                </tbody></table>
+                </div>
+                <div class="pagination-wrapper" style="padding: 0.5rem;">{{ $details->appends(['giro_page' => request('giro_page')])->links() }}</div>
             </div>
-            <div class="pagination-wrapper">{{ $details->links() }}</div>
         </div>
+    @elseif($tab === 'dso')
+        @include('ar.partials.tab-dso')
     @endif
 @endif
 

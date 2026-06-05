@@ -6,30 +6,36 @@ use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Concerns\FromArray;
-use Maatwebsite\Excel\Concerns\WithTitle;
-use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use Maatwebsite\Excel\Concerns\WithEvents;
+use Maatwebsite\Excel\Concerns\WithStyles;
+use Maatwebsite\Excel\Concerns\WithTitle;
 use Maatwebsite\Excel\Events\AfterSheet;
-use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class RfmSheet implements FromArray, WithTitle, WithStyles, WithColumnWidths, WithEvents
+class RfmSheet implements FromArray, WithColumnWidths, WithEvents, WithStyles, WithTitle
 {
     use ExcelStyler;
 
     protected Request $request;
+
     protected string $period;
+
     protected int $dataRowCount = 0;
+
     protected int $summaryEndRow = 6;
 
     public function __construct(Request $request, string $period)
     {
         $this->request = $request;
-        $this->period  = $period;
+        $this->period = $period;
     }
 
-    public function title(): string { return 'Segmentasi RFM'; }
+    public function title(): string
+    {
+        return 'Segmentasi RFM';
+    }
 
     public function columnWidths(): array
     {
@@ -50,30 +56,31 @@ class RfmSheet implements FromArray, WithTitle, WithStyles, WithColumnWidths, Wi
             $rSorted = $outletStats->sortBy('last_order_date')->pluck('outlet_name')->toArray();
             $fSorted = $outletStats->sortBy('frequency')->pluck('outlet_name')->toArray();
             $mSorted = $outletStats->sortBy('monetary')->pluck('outlet_name')->toArray();
-            $rIndex  = array_flip($rSorted);
-            $fIndex  = array_flip($fSorted);
-            $mIndex  = array_flip($mSorted);
+            $rIndex = array_flip($rSorted);
+            $fIndex = array_flip($fSorted);
+            $mIndex = array_flip($mSorted);
 
             $outletStats = $outletStats->map(function ($item) use ($count, $rIndex, $fIndex, $mIndex, &$tiers) {
-                $name    = $item->outlet_name;
-                $rScore  = $rIndex[$name] >= ($count * 0.66) ? 3 : ($rIndex[$name] >= ($count * 0.33) ? 2 : 1);
-                $fScore  = $fIndex[$name] >= ($count * 0.66) ? 3 : ($fIndex[$name] >= ($count * 0.33) ? 2 : 1);
-                $mScore  = $mIndex[$name] >= ($count * 0.66) ? 3 : ($mIndex[$name] >= ($count * 0.33) ? 2 : 1);
+                $name = $item->outlet_name;
+                $rScore = $rIndex[$name] >= ($count * 0.66) ? 3 : ($rIndex[$name] >= ($count * 0.33) ? 2 : 1);
+                $fScore = $fIndex[$name] >= ($count * 0.66) ? 3 : ($fIndex[$name] >= ($count * 0.33) ? 2 : 1);
+                $mScore = $mIndex[$name] >= ($count * 0.66) ? 3 : ($mIndex[$name] >= ($count * 0.33) ? 2 : 1);
                 $overall = $rScore + $fScore + $mScore;
                 $segment = $overall >= 8 ? 'Champion' : ($overall >= 6 ? 'Loyal' : ($overall >= 4 ? 'Need Attention' : 'At Risk'));
                 $tiers[$segment]++;
-                $item->r_score  = $rScore;
-                $item->f_score  = $fScore;
-                $item->m_score  = $mScore;
-                $item->overall  = $overall;
-                $item->segment  = $segment;
+                $item->r_score = $rScore;
+                $item->f_score = $fScore;
+                $item->m_score = $mScore;
+                $item->overall = $overall;
+                $item->segment = $segment;
+
                 return $item;
             })->sortByDesc('monetary')->values();
         }
 
         $rows = [
             // 1
-            ['ANALISA RFM — SEGMENTASI PELANGGAN — PERIODE ' . $this->period, '', '', '', '', '', '', '', '', ''],
+            ['ANALISA RFM — SEGMENTASI PELANGGAN — PERIODE '.$this->period, '', '', '', '', '', '', '', '', ''],
             // 2 - Summary header
             ['REKAPITULASI SEGMEN', 'JUMLAH TOKO', '', '', '', '', '', '', '', ''],
             // 3
@@ -81,7 +88,7 @@ class RfmSheet implements FromArray, WithTitle, WithStyles, WithColumnWidths, Wi
             // 4
             ['🤝 Loyal (Steady Buyer)',              $tiers['Loyal'],         '', '', '', '', '', '', '', ''],
             // 5
-            ['👀 Need Attention (Fading)',           $tiers['Need Attention'],'', '', '', '', '', '', '', ''],
+            ['👀 Need Attention (Fading)',           $tiers['Need Attention'], '', '', '', '', '', '', '', ''],
             // 6
             ['⚠️ At Risk (Almost Lost)',             $tiers['At Risk'],       '', '', '', '', '', '', '', ''],
             // 7 - Data header
@@ -90,22 +97,26 @@ class RfmSheet implements FromArray, WithTitle, WithStyles, WithColumnWidths, Wi
 
         if ($count > 0) {
             foreach ($outletStats as $i => $o) {
-                $rows[] = [$i + 1, $o->outlet_name, $o->last_order_date, (int)$o->frequency, (float)$o->monetary, $o->r_score, $o->f_score, $o->m_score, $o->overall, $o->segment];
+                $rows[] = [$i + 1, $o->outlet_name, $o->last_order_date, (int) $o->frequency, (float) $o->monetary, $o->r_score, $o->f_score, $o->m_score, $o->overall, $o->segment];
             }
         }
 
         $this->dataRowCount = $count;
+
         return $rows;
     }
 
-    public function styles(Worksheet $sheet): array { return []; }
+    public function styles(Worksheet $sheet): array
+    {
+        return [];
+    }
 
     public function registerEvents(): array
     {
         return [
             AfterSheet::class => function (AfterSheet $event) {
                 $ws = $event->sheet->getDelegate();
-                $dataStart   = 8;
+                $dataStart = 8;
                 $lastDataRow = $dataStart - 1 + $this->dataRowCount;
 
                 $this->styleTitle($ws, 'A1:J1');
@@ -133,16 +144,16 @@ class RfmSheet implements FromArray, WithTitle, WithStyles, WithColumnWidths, Wi
                     // Color code rows by segment
                     for ($row = $dataStart; $row <= $lastDataRow; $row++) {
                         $seg = $ws->getCell("J{$row}")->getValue();
-                        $bg  = match (true) {
-                            str_contains((string)$seg, 'Champion')     => 'FFD1FAE5',
-                            str_contains((string)$seg, 'Loyal')        => 'FFDBEAFE',
-                            str_contains((string)$seg, 'Need')         => 'FFFEF3C7',
-                            default                                     => 'FFFEE2E2',
+                        $bg = match (true) {
+                            str_contains((string) $seg, 'Champion') => 'FFD1FAE5',
+                            str_contains((string) $seg, 'Loyal') => 'FFDBEAFE',
+                            str_contains((string) $seg, 'Need') => 'FFFEF3C7',
+                            default => 'FFFEE2E2',
                         };
                         $ws->getStyle("A{$row}:J{$row}")->applyFromArray([
-                            'fill'    => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => $bg]],
+                            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => $bg]],
                             'borders' => ['bottom' => ['borderStyle' => 'thin', 'color' => ['argb' => $this->clrBorder]]],
-                            'font'    => ['size' => 10, 'name' => 'Calibri'],
+                            'font' => ['size' => 10, 'name' => 'Calibri'],
                         ]);
                     }
                     $this->formatCurrencyCol($ws, "E{$dataStart}:E{$lastDataRow}");
@@ -156,4 +167,3 @@ class RfmSheet implements FromArray, WithTitle, WithStyles, WithColumnWidths, Wi
         ];
     }
 }
-

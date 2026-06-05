@@ -7,13 +7,13 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable, LogsActivity;
+    use HasFactory, LogsActivity, Notifiable;
 
     public function getActivitylogOptions(): LogOptions
     {
@@ -21,7 +21,7 @@ class User extends Authenticatable
             ->logFillable()
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs()
-            ->setDescriptionForEvent(fn(string $eventName) => "User has been {$eventName}");
+            ->setDescriptionForEvent(fn (string $eventName) => "User has been {$eventName}");
     }
 
     /**
@@ -62,12 +62,12 @@ class User extends Authenticatable
 
     public function salesman()
     {
-        return $this->belongsTo(\App\Models\Salesman::class);
+        return $this->belongsTo(Salesman::class);
     }
 
     public function principals()
     {
-        return $this->belongsToMany(\App\Models\Principal::class);
+        return $this->belongsToMany(Principal::class);
     }
 
     public function isAdmin()

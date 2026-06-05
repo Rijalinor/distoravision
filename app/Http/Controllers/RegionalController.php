@@ -32,4 +32,3 @@ class RegionalController extends Controller
         return view('regional.index', compact('cities', 'period', 'periods'));
     }
 }
-

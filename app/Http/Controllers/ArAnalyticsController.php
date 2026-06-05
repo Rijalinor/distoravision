@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\ArImportLog;
 use App\Models\ArReceivable;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class ArAnalyticsController extends Controller
 {
@@ -18,20 +17,20 @@ class ArAnalyticsController extends Controller
             ->orderByDesc('report_date')
             ->first();
 
-        if (!$latestImport) {
-            return view('ar.dashboard', ['hasData' => false, 'latestImport' => null, 'tab' => 'overview']);
+        if (! $latestImport) {
+            return view('ar.dashboard', ['hasData' => false, 'latestImport' => null, 'tab' => 'aging']);
         }
 
-        $tab = $request->input('tab', 'overview');
+        $tab = $request->input('tab', 'aging');
         $branch = $request->input('branch');
         $search = $request->input('search');
 
         // ── GLOBAL FILTERS ──────────────────────────────────────────
         $filters = [
-            'start_date'  => $request->input('start_date'),
-            'end_date'    => $request->input('end_date'),
-            'salesman'    => $request->input('salesman'),
-            'principal'   => $request->input('principal'),
+            'start_date' => $request->input('start_date'),
+            'end_date' => $request->input('end_date'),
+            'salesman' => $request->input('salesman'),
+            'principal' => $request->input('principal'),
         ];
 
         // Base query scoped to latest import
@@ -54,7 +53,9 @@ class ArAnalyticsController extends Controller
 
         // Filter options (from full dataset, unfiltered)
         $scopedQuery = ArReceivable::where('ar_import_log_id', $latestImport->id);
-        if ($branch) $scopedQuery->where('branch_sheet', $branch);
+        if ($branch) {
+            $scopedQuery->where('branch_sheet', $branch);
+        }
 
         $branches = ArReceivable::where('ar_import_log_id', $latestImport->id)
             ->distinct()->pluck('branch_sheet')->sort()->values();
@@ -98,7 +99,7 @@ class ArAnalyticsController extends Controller
         ];
 
         // Load tab-specific data
-        $method = 'loadTab' . str_replace(' ', '', ucwords(str_replace('-', ' ', $tab)));
+        $method = 'loadTab'.str_replace(' ', '', ucwords(str_replace('-', ' ', $tab)));
         if (method_exists($this, $method)) {
             $data = array_merge($data, $this->$method(clone $baseQuery, $request));
         }
@@ -106,19 +107,7 @@ class ArAnalyticsController extends Controller
         return view('ar.dashboard', $data);
     }
 
-    // ── TAB: OVERVIEW (default) ──────────────────────────────────────
-    protected function loadTabOverview($query, Request $request): array
-    {
-        // Giro summary
-        $giroSummary = (clone $query)->whereNotNull('giro_no')->where('giro_no', '!=', '')
-            ->where('giro_amount', '>', 0)
-            ->selectRaw('COUNT(DISTINCT giro_no) as total_giros, SUM(giro_amount) as total_giro_amount')
-            ->first();
-
-        return ['giroSummary' => $giroSummary];
-    }
-
-    // ── TAB: AGING ───────────────────────────────────────────────────
+    // ── TAB: AGING & RINGKASAN (default) ─────────────────────────────
     protected function loadTabAging($query, Request $request): array
     {
         $agingData = (clone $query)->where('ar_balance', '>', 0)
@@ -147,95 +136,81 @@ class ArAnalyticsController extends Controller
         $agingDetail = null;
         if ($bucket) {
             $dq = (clone $query)->where('ar_balance', '>', 0);
-            if ($bucket === 'Current') $dq->where('overdue_days', '<=', 0);
-            elseif ($bucket === '1-30') $dq->whereBetween('overdue_days', [1, 30]);
-            elseif ($bucket === '31-60') $dq->whereBetween('overdue_days', [31, 60]);
-            elseif ($bucket === '61-90') $dq->whereBetween('overdue_days', [61, 90]);
-            else $dq->where('overdue_days', '>', 90);
+            if ($bucket === 'Current') {
+                $dq->where('overdue_days', '<=', 0);
+            } elseif ($bucket === '1-30') {
+                $dq->whereBetween('overdue_days', [1, 30]);
+            } elseif ($bucket === '31-60') {
+                $dq->whereBetween('overdue_days', [31, 60]);
+            } elseif ($bucket === '61-90') {
+                $dq->whereBetween('overdue_days', [61, 90]);
+            } else {
+                $dq->where('overdue_days', '>', 90);
+            }
             $agingDetail = $dq->orderByDesc('ar_balance')->paginate(20)->appends($request->query());
         }
 
         return ['agingBuckets' => $agingBuckets, 'agingDetail' => $agingDetail, 'currentBucket' => $bucket];
     }
 
-    // ── TAB: CREDIT RISK ─────────────────────────────────────────────
-    protected function loadTabCreditRisk($query, Request $request): array
+    // ── TAB: EVALUASI PENAGIHAN ──────────────────────────────────────
+    protected function loadTabEvaluasi($query, Request $request): array
     {
-        $creditRisk = (clone $query)->where('ar_balance', '>', 0)
-            ->selectRaw('
-                outlet_code, outlet_name, salesman_name,
-                SUM(ar_balance) as total_balance, MAX(credit_limit) as credit_limit,
-                CASE 
-                    WHEN MAX(credit_limit) > 1 THEN ROUND(SUM(ar_balance) / MAX(credit_limit) * 100, 1)
-                    ELSE 0 
-                END as utilization_pct,
-                MAX(overdue_days) as max_overdue, MAX(cm) as max_cm
-            ')
-            ->groupBy('outlet_code', 'outlet_name', 'salesman_name')
-            ->orderByDesc(DB::raw('CASE WHEN MAX(credit_limit) > 1 THEN SUM(ar_balance) / MAX(credit_limit) ELSE 0 END'))
-            ->paginate(20)->appends($request->query());
-
-        $riskBuckets = (clone $query)->where('ar_balance', '>', 0)->where('credit_limit', '>', 0)
-            ->selectRaw("
-                CASE
-                    WHEN SUM(ar_balance) <= MAX(credit_limit) * 0.5 THEN 'Low'
-                    WHEN SUM(ar_balance) <= MAX(credit_limit) * 0.8 THEN 'Medium'
-                    WHEN SUM(ar_balance) <= MAX(credit_limit) THEN 'High'
-                    ELSE 'Over Limit'
-                END as risk_level, COUNT(*) as count
-            ")->groupBy('outlet_code')->get()->groupBy('risk_level')->map(fn($g) => $g->count());
-
-        $riskLevels = ['Low' => 0, 'Medium' => 0, 'High' => 0, 'Over Limit' => 0];
-        foreach ($riskBuckets as $level => $count) $riskLevels[$level] = $count;
-
-        return ['creditRisk' => $creditRisk, 'riskLevels' => $riskLevels];
-    }
-
-    // ── TAB: TOP OUTLETS ─────────────────────────────────────────────
-    protected function loadTabTopOutlets($query, Request $request): array
-    {
-        $topOutlets = (clone $query)->where('ar_balance', '>', 0)
-            ->selectRaw('outlet_code, outlet_name, salesman_name, SUM(ar_balance) as total_balance, MAX(credit_limit) as credit_limit, MAX(overdue_days) as max_overdue, MAX(cm) as max_cm, COUNT(*) as invoice_count')
-            ->groupBy('outlet_code', 'outlet_name', 'salesman_name')
-            ->orderByDesc('total_balance')->paginate(20)->appends($request->query());
-
-        return ['topOutlets' => $topOutlets];
-    }
-
-    // ── TAB: PAYMENT BEHAVIOR ────────────────────────────────────────
-    protected function loadTabPayment($query, Request $request): array
-    {
-        $paymentSummary = (clone $query)->where('ar_amount', '>', 0)->selectRaw('
-            SUM(ar_amount) as total_invoiced, SUM(ar_paid) as total_paid, SUM(ar_balance) as total_balance,
-            COUNT(CASE WHEN ar_paid = 0 AND ar_balance > 0 THEN 1 END) as zero_pay_count,
-            COUNT(CASE WHEN ar_paid > 0 AND ar_balance > 0 THEN 1 END) as partial_pay_count,
-            COUNT(CASE WHEN ar_balance <= 0 THEN 1 END) as full_pay_count
-        ')->first();
-
-        $worstPayers = (clone $query)->where('ar_amount', '>', 0)->where('ar_balance', '>', 0)
-            ->selectRaw('outlet_code, outlet_name, salesman_name, COUNT(*) as invoice_count, SUM(ar_amount) as total_invoiced, SUM(ar_paid) as total_paid, SUM(ar_balance) as total_balance, ROUND(SUM(ar_paid)/SUM(ar_amount)*100,1) as payment_pct, AVG(overdue_days) as avg_overdue, MAX(cm) as max_cm')
-            ->groupBy('outlet_code', 'outlet_name', 'salesman_name')
-            ->having('total_balance', '>', 0)->orderBy('payment_pct')
-            ->paginate(20)->appends($request->query());
-
-        return ['paymentSummary' => $paymentSummary, 'worstPayers' => $worstPayers];
-    }
-
-    // ── TAB: SALESMAN ────────────────────────────────────────────────
-    protected function loadTabSalesman($query, Request $request): array
-    {
+        // 1. Salesman Performance
         $salesmanAr = (clone $query)->where('ar_balance', '>', 0)
             ->selectRaw('salesman_code, salesman_name, SUM(ar_balance) as total_balance, COUNT(DISTINCT outlet_code) as outlet_count, MAX(overdue_days) as max_overdue, AVG(overdue_days) as avg_overdue, COUNT(*) as invoice_count, SUM(CASE WHEN cm >= 3 THEN 1 ELSE 0 END) as stubborn_invoices')
             ->groupBy('salesman_code', 'salesman_name')
             ->orderByDesc('total_balance')->get();
 
-        return ['salesmanAr' => $salesmanAr];
+        // 2. Problematic Outlets (Top AR, Worst Payers, Over Limit)
+        $worstOutlets = (clone $query)->where('ar_amount', '>', 0)->where('ar_balance', '>', 0)
+            ->selectRaw('outlet_code, outlet_name, salesman_name, COUNT(*) as invoice_count, SUM(ar_amount) as total_invoiced, SUM(ar_paid) as total_paid, SUM(ar_balance) as total_balance, ROUND(SUM(ar_paid)/SUM(ar_amount)*100,1) as payment_pct, MAX(overdue_days) as max_overdue, MAX(cm) as max_cm, MAX(credit_limit) as credit_limit')
+            ->groupBy('outlet_code', 'outlet_name', 'salesman_name')
+            ->having('total_balance', '>', 0)->orderByDesc('total_balance')
+            ->paginate(20)->appends($request->query());
+
+        return ['salesmanAr' => $salesmanAr, 'worstOutlets' => $worstOutlets];
     }
 
-
-    // ── TAB: GIRO ────────────────────────────────────────────────────
-    protected function loadTabGiro($query, Request $request): array
+    // ── TAB: PRIORITAS PENINDAKAN ────────────────────────────────────
+    protected function loadTabPrioritas($query, Request $request): array
     {
+        $dq = (clone $query)->where('ar_balance', '>', 0)
+            ->where(function ($q) {
+                $q->where('overdue_days', '>', 60)
+                    ->orWhere('cm', '>=', 3);
+            });
+
+        $search = $request->input('search');
+        if ($search) {
+            $dq->where(function ($q) use ($search) {
+                $q->where('outlet_name', 'like', "%{$search}%")
+                    ->orWhere('outlet_code', 'like', "%{$search}%")
+                    ->orWhere('pfi_sn', 'like', "%{$search}%")
+                    ->orWhere('salesman_name', 'like', "%{$search}%");
+            });
+        }
+
+        $urgentInvoices = $dq->selectRaw('outlet_code, outlet_name, salesman_name, pfi_sn, ar_balance, overdue_days, cm, due_date, principal_name')
+            ->orderByDesc('ar_balance')
+            ->paginate(20)->appends($request->query());
+
+        // Kpi for this tab
+        $kpiPrioritas = (clone $query)->where('ar_balance', '>', 0)
+            ->where(function ($q) {
+                $q->where('overdue_days', '>', 60)
+                    ->orWhere('cm', '>=', 3);
+            })
+            ->selectRaw('COUNT(*) as total_invoices, SUM(ar_balance) as total_amount')
+            ->first();
+
+        return ['urgentInvoices' => $urgentInvoices, 'kpiPrioritas' => $kpiPrioritas];
+    }
+
+    // ── TAB: DATA GIRO & INVOICE ─────────────────────────────────────
+    protected function loadTabData($query, Request $request): array
+    {
+        // 1. Giro
         $giroPerBank = (clone $query)->whereNotNull('giro_no')->where('giro_no', '!=', '')
             ->where('giro_amount', '>', 0)->whereNotNull('bank_name')
             ->selectRaw('bank_name, COUNT(DISTINCT giro_no) as giro_count, SUM(giro_amount) as total_amount')
@@ -244,27 +219,148 @@ class ArAnalyticsController extends Controller
         $giroList = (clone $query)->whereNotNull('giro_no')->where('giro_no', '!=', '')
             ->where('giro_amount', '>', 0)
             ->selectRaw('giro_no, outlet_code, outlet_name, salesman_name, bank_name, giro_amount, giro_due_date, ar_balance, pfi_sn')
-            ->orderBy('giro_due_date')->paginate(20)->appends($request->query());
+            ->orderBy('giro_due_date')->paginate(10, ['*'], 'giro_page')->appends($request->query());
 
-        return ['giroPerBank' => $giroPerBank, 'giroList' => $giroList];
-    }
-
-
-    // ── TAB: DETAIL ──────────────────────────────────────────────────
-    protected function loadTabDetail($query, Request $request): array
-    {
+        // 2. Invoice Details
         $dq = (clone $query)->where('ar_balance', '>', 0);
         $search = $request->input('search');
         if ($search) {
             $dq->where(function ($q) use ($search) {
                 $q->where('outlet_name', 'like', "%{$search}%")
-                  ->orWhere('outlet_code', 'like', "%{$search}%")
-                  ->orWhere('pfi_sn', 'like', "%{$search}%")
-                  ->orWhere('salesman_name', 'like', "%{$search}%");
+                    ->orWhere('outlet_code', 'like', "%{$search}%")
+                    ->orWhere('pfi_sn', 'like', "%{$search}%")
+                    ->orWhere('salesman_name', 'like', "%{$search}%");
             });
         }
-        $details = $dq->orderByDesc('ar_balance')->paginate(25)->appends($request->query());
+        $details = $dq->orderByDesc('ar_balance')->paginate(20, ['*'], 'detail_page')->appends($request->query());
 
-        return ['details' => $details];
+        return [
+            'giroPerBank' => $giroPerBank,
+            'giroList' => $giroList,
+            'details' => $details,
+        ];
+    }
+
+    // ── TAB: DSO TRACKING ──────────────────────────────────────────
+    protected function loadTabDso($query, Request $request): array
+    {
+        // DSO per Salesman — avg days from invoice to payment
+        $dsoPerSalesman = (clone $query)->where('ar_balance', '>', 0)
+            ->whereNotNull('salesman_name')
+            ->where('salesman_name', '!=', '')
+            ->selectRaw('
+                salesman_name,
+                salesman_code,
+                COUNT(*) as invoice_count,
+                COUNT(DISTINCT outlet_code) as outlet_count,
+                SUM(ar_balance) as total_outstanding,
+                AVG(overdue_days) as avg_dso,
+                MAX(overdue_days) as max_dso,
+                SUM(CASE WHEN overdue_days > 30 THEN ar_balance ELSE 0 END) as overdue_30_value,
+                SUM(CASE WHEN overdue_days > 60 THEN ar_balance ELSE 0 END) as overdue_60_value
+            ')
+            ->groupBy('salesman_name', 'salesman_code')
+            ->orderByDesc('avg_dso')
+            ->get();
+
+        // Global DSO KPIs
+        $dsoKpi = (clone $query)->where('ar_balance', '>', 0)
+            ->selectRaw('
+                AVG(overdue_days) as global_avg_dso,
+                AVG(CASE WHEN overdue_days > 0 THEN overdue_days ELSE NULL END) as avg_overdue_dso,
+                SUM(ar_balance) as total_outstanding,
+                SUM(ar_amount) as total_ar_value,
+                COUNT(DISTINCT outlet_code) as total_outlets,
+                COUNT(*) as total_invoices
+            ')
+            ->first();
+
+        // DSO per Outlet — identify worst payers by payment speed
+        $dsoPerOutlet = (clone $query)->where('ar_balance', '>', 0)
+            ->selectRaw('
+                outlet_code,
+                outlet_name,
+                salesman_name,
+                COUNT(*) as invoice_count,
+                SUM(ar_balance) as total_outstanding,
+                SUM(ar_amount) as total_ar_amount,
+                SUM(ar_paid) as total_ar_paid,
+                AVG(overdue_days) as avg_dso,
+                MAX(overdue_days) as max_dso,
+                MAX(cm) as max_cm
+            ')
+            ->groupBy('outlet_code', 'outlet_name', 'salesman_name')
+            ->orderByDesc('avg_dso')
+            ->paginate(20, ['*'], 'dso_page')
+            ->appends($request->query());
+
+        // Enrich outlet data with payment rate
+        $dsoPerOutlet->getCollection()->transform(function ($item) {
+            $item->payment_rate = $item->total_ar_amount > 0
+                ? ($item->total_ar_paid / $item->total_ar_amount) * 100
+                : 0;
+
+            // Risk classification based on DSO
+            if ($item->avg_dso > 60) {
+                $item->risk_level = 'Kritis';
+                $item->risk_color = 'badge-red';
+            } elseif ($item->avg_dso > 30) {
+                $item->risk_level = 'Waspada';
+                $item->risk_color = 'badge-yellow';
+            } else {
+                $item->risk_level = 'Normal';
+                $item->risk_color = 'badge-green';
+            }
+
+            return $item;
+        });
+
+        // DSO Distribution — how many invoices fall in each DSO range
+        $dsoDistribution = (clone $query)->where('ar_balance', '>', 0)
+            ->selectRaw("
+                CASE
+                    WHEN overdue_days <= 0 THEN 'Current'
+                    WHEN overdue_days BETWEEN 1 AND 15 THEN '1-15 hr'
+                    WHEN overdue_days BETWEEN 16 AND 30 THEN '16-30 hr'
+                    WHEN overdue_days BETWEEN 31 AND 45 THEN '31-45 hr'
+                    WHEN overdue_days BETWEEN 46 AND 60 THEN '46-60 hr'
+                    WHEN overdue_days BETWEEN 61 AND 90 THEN '61-90 hr'
+                    ELSE '>90 hr'
+                END as dso_range,
+                COUNT(*) as count,
+                SUM(ar_balance) as total_value
+            ")
+            ->groupByRaw("
+                CASE
+                    WHEN overdue_days <= 0 THEN 'Current'
+                    WHEN overdue_days BETWEEN 1 AND 15 THEN '1-15 hr'
+                    WHEN overdue_days BETWEEN 16 AND 30 THEN '16-30 hr'
+                    WHEN overdue_days BETWEEN 31 AND 45 THEN '31-45 hr'
+                    WHEN overdue_days BETWEEN 46 AND 60 THEN '46-60 hr'
+                    WHEN overdue_days BETWEEN 61 AND 90 THEN '61-90 hr'
+                    ELSE '>90 hr'
+                END
+            ")
+            ->get()
+            ->keyBy('dso_range');
+
+        $dsoRangeOrder = ['Current', '1-15 hr', '16-30 hr', '31-45 hr', '46-60 hr', '61-90 hr', '>90 hr'];
+        $dsoChartLabels = [];
+        $dsoChartCounts = [];
+        $dsoChartValues = [];
+        foreach ($dsoRangeOrder as $range) {
+            $dsoChartLabels[] = $range;
+            $dsoChartCounts[] = (int) ($dsoDistribution[$range]->count ?? 0);
+            $dsoChartValues[] = (float) ($dsoDistribution[$range]->total_value ?? 0);
+        }
+
+        return [
+            'dsoKpi' => $dsoKpi,
+            'dsoPerSalesman' => $dsoPerSalesman,
+            'dsoPerOutlet' => $dsoPerOutlet,
+            'dsoChartLabels' => $dsoChartLabels,
+            'dsoChartCounts' => $dsoChartCounts,
+            'dsoChartValues' => $dsoChartValues,
+        ];
     }
 }

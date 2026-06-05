@@ -5,11 +5,14 @@ namespace App\Imports;
 use App\Models\ArImportLog;
 use App\Models\ArReceivable;
 use Carbon\Carbon;
+use PhpOffice\PhpSpreadsheet\Shared\Date;
 
 class ArDataImport
 {
     protected ArImportLog $importLog;
+
     protected string $sheetName;
+
     protected array $columnMap = [];
 
     public function __construct(ArImportLog $importLog, string $sheetName)
@@ -26,6 +29,7 @@ class ArDataImport
     public function getColumnValue(array $row, string $key, $default = null)
     {
         $excelColumn = $this->columnMap["ar_{$key}"] ?? $this->columnMap[$key] ?? $key;
+
         return $row[$excelColumn] ?? $default;
     }
 
@@ -39,32 +43,38 @@ class ArDataImport
         $outletCode = trim((string) ($this->getColumnValue($row, 'outlet_id', '') ?? ''));
 
         if ($pfiSn === '') {
-            throw new \InvalidArgumentException("PFI/SN wajib diisi.");
+            throw new \InvalidArgumentException('PFI/SN wajib diisi.');
         }
 
         $principalCode = trim((string) $this->getColumnValue($row, 'ar_principle'));
-        if ($principalCode === '') $principalCode = 'UNKNOWN';
+        if ($principalCode === '') {
+            $principalCode = 'UNKNOWN';
+        }
 
         $principalName = trim((string) $this->getColumnValue($row, 'ar_principle_name'));
-        if ($principalName === '') $principalName = 'UNKNOWN PRINCIPAL';
+        if ($principalName === '') {
+            $principalName = 'UNKNOWN PRINCIPAL';
+        }
 
         $supervisor = trim((string) $this->getColumnValue($row, 'supervisor'));
-        if ($supervisor === '') $supervisor = 'UNASSIGNED';
+        if ($supervisor === '') {
+            $supervisor = 'UNASSIGNED';
+        }
 
         $docDateStr = $this->parseExcelDate($this->getColumnValue($row, 'doc_date'));
         $dueDateStr = $this->parseExcelDate($this->getColumnValue($row, 'due_date'));
-        
+
         $topValue = $this->getColumnValue($row, 'top');
         $top = ($topValue !== null && $topValue !== '') ? (int) $topValue : null;
 
         // Auto-patch due date if missing
-        if (empty($dueDateStr) && !empty($docDateStr) && $top !== null) {
+        if (empty($dueDateStr) && ! empty($docDateStr) && $top !== null) {
             $dueDateStr = Carbon::parse($docDateStr)->addDays($top)->format('Y-m-d');
         }
 
         $overdueDays = (int) ($this->getColumnValue($row, 'overdue_days', 0) ?? 0);
         // Recalculate overdue days if it's 0 but due_date is past the report date
-        if ($overdueDays <= 0 && !empty($dueDateStr)) {
+        if ($overdueDays <= 0 && ! empty($dueDateStr)) {
             $reportDate = Carbon::parse($this->importLog->report_date);
             $due = Carbon::parse($dueDateStr);
             if ($reportDate->gt($due)) {
@@ -116,13 +126,14 @@ class ArDataImport
 
         try {
             if (is_numeric($value) && (int) $value > 30000) {
-                return \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject((int) $value)->format('Y-m-d');
+                return Date::excelToDateTimeObject((int) $value)->format('Y-m-d');
             }
 
             if (is_string($value)) {
                 if (preg_match('/^\d{2}-\d{2}-\d{4}$/', $value)) {
                     return Carbon::createFromFormat('d-m-Y', $value)->format('Y-m-d');
                 }
+
                 return Carbon::parse($value)->format('Y-m-d');
             }
         } catch (\Exception $e) {
@@ -143,8 +154,10 @@ class ArDataImport
             if (empty($value) || $value === '-') {
                 return 0;
             }
+
             return (float) $value;
         }
+
         return 0;
     }
 }

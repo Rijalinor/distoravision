@@ -2,14 +2,15 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Transaction;
-use App\Models\Salesman;
 use App\Models\ArImportLog;
 use App\Models\ArReceivable;
+use App\Models\Outlet;
+use App\Models\Salesman;
 use App\Models\SalesmanTarget;
+use App\Models\Transaction;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
 
 class SalesmanDashboardController extends Controller
 {
@@ -18,14 +19,14 @@ class SalesmanDashboardController extends Controller
         $user = auth()->user();
 
         // Harus role salesman dan punya salesman_id
-        if (!$user->isSalesman() || !$user->salesman_id) {
+        if (! $user->isSalesman() || ! $user->salesman_id) {
             abort(403, 'Dashboard ini hanya untuk akun Salesman.');
         }
 
         $salesman = Salesman::findOrFail($user->salesman_id);
         $period = $request->get('period', Transaction::max('period') ?? date('Y-m'));
         $periods = Transaction::select('period')->distinct()->orderByDesc('period')->pluck('period');
-        $prevM = Carbon::parse($period . '-01')->subMonth()->format('Y-m');
+        $prevM = Carbon::parse($period.'-01')->subMonth()->format('Y-m');
 
         // ══════════════════════════════════════════════════════
         // 1. SALES KPIs
@@ -58,18 +59,22 @@ class SalesmanDashboardController extends Controller
 
         // Auto-estimate if no target set
         if ($targetValue <= 0) {
-            $past3M = Carbon::parse($period . '-01')->subMonths(3)->format('Y-m');
+            $past3M = Carbon::parse($period.'-01')->subMonths(3)->format('Y-m');
+            $historicalMonths = Transaction::where('salesman_id', $salesman->id)->invoices()
+                ->whereBetween('period', [$past3M, $prevM])
+                ->distinct('period')->pluck('period');
             $vPast = Transaction::where('salesman_id', $salesman->id)->invoices()
                 ->whereBetween('period', [$past3M, $prevM])->sum('taxed_amt');
-            $targetValue = ($vPast / 3) * 1.1;
+            $monthCount = max($historicalMonths->count(), 1); // Avoid division by zero for new salesmen
+            $targetValue = ($vPast / $monthCount) * 1.1;
         }
 
         $gap = max(0, $targetValue - $totalSales);
         $targetProgress = $targetValue > 0 ? ($totalSales / $targetValue) * 100 : 0;
-        $daysInM = Carbon::parse($period . '-01')->daysInMonth;
-        $workDays = ceil($daysInM * 0.86);
-        $cwd = Carbon::now()->format('Y-m') === $period ? Carbon::now()->day : $daysInM;
-        $remainingDays = max(1, $workDays - ceil($cwd * 0.86));
+        $workDays = 26; // Consistent working days assumption across all dashboards
+        $isCurrentMonth = Carbon::now()->format('Y-m') === $period;
+        $currentDay = $isCurrentMonth ? (int) date('j') : $workDays;
+        $remainingDays = max(1, $workDays - $currentDay);
         $dailyRunRate = $gap / $remainingDays;
 
         // ══════════════════════════════════════════════════════
@@ -111,7 +116,7 @@ class SalesmanDashboardController extends Controller
 
         $sleepingOutlets = collect();
         if ($sleepingCount > 0) {
-            $sleepingOutlets = \App\Models\Outlet::whereIn('id', $lostOutletIds)
+            $sleepingOutlets = Outlet::whereIn('id', $lostOutletIds)
                 ->select('outlets.*')
                 ->selectSub(
                     Transaction::whereColumn('transactions.outlet_id', 'outlets.id')

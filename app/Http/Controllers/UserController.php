@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
-use App\Models\Salesman;
 use App\Models\Principal;
+use App\Models\Salesman;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
@@ -14,6 +14,7 @@ class UserController extends Controller
     public function index()
     {
         $users = User::with('salesman', 'principals')->get();
+
         return view('settings.users.index', compact('users'));
     }
 
@@ -21,6 +22,7 @@ class UserController extends Controller
     {
         $salesmen = Salesman::orderBy('name')->get();
         $principals = Principal::orderBy('name')->get();
+
         return view('settings.users.create', compact('salesmen', 'principals'));
     }
 
@@ -59,6 +61,7 @@ class UserController extends Controller
 
         $salesmen = Salesman::orderBy('name')->get();
         $principals = Principal::orderBy('name')->get();
+
         return view('settings.users.edit', compact('user', 'salesmen', 'principals'));
     }
 
@@ -82,11 +85,11 @@ class UserController extends Controller
         $user->email = $request->email;
         $user->role = $request->role;
         $user->salesman_id = $request->role === 'salesman' ? $request->salesman_id : null;
-        
+
         if ($request->filled('password')) {
             $user->password = Hash::make($request->password);
         }
-        
+
         $user->save();
 
         if ($request->role === 'supervisor' && $request->has('principals')) {
@@ -105,6 +108,7 @@ class UserController extends Controller
         }
 
         $user->delete();
+
         return redirect()->route('users.index')->with('success', 'User deleted successfully.');
     }
 }
