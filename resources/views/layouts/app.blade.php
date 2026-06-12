@@ -14,14 +14,15 @@
             :root {
                 --sidebar-w: 260px;
                 --sidebar-w-collapsed: 70px;
-                --primary: #6366f1;
-                --primary-light: #818cf8;
-                --bg-dark: #0f172a;
-                --bg-darker: #020617;
-                --bg-card: #1e293b;
-                --bg-card-hover: #334155;
-                --text-primary: #f1f5f9;
-                --text-secondary: #94a3b8;
+                --primary: #2563eb;       /* Solid Electric Blue */
+                --primary-light: #3b82f6; /* Lighter Blue */
+                --primary-dark: #1d4ed8;  /* Hover Blue */
+                --bg-dark: #0f172a;       /* Slate 900 */
+                --bg-darker: #020617;     /* Slate 950 */
+                --bg-card: #1e293b;       /* Slate 800 */
+                --bg-card-hover: #334155; /* Slate 700 */
+                --text-primary: #f8fafc;
+                --text-secondary: #cbd5e1;
                 --text-muted: #64748b;
                 --accent-green: #10b981;
                 --accent-red: #ef4444;
@@ -44,8 +45,8 @@
                 display: flex; align-items: center; gap: 0.75rem;
             }
             .sidebar-logo .logo-icon {
-                width: 36px; height: 36px; border-radius: 10px;
-                background: linear-gradient(135deg, var(--primary), #a855f7);
+                width: 36px; height: 36px; border-radius: 8px;
+                background: var(--primary);
                 display: flex; align-items: center; justify-content: center;
                 font-size: 18px; font-weight: 800; color: white;
             }
@@ -77,10 +78,9 @@
             }
             .nav-link:hover { background: var(--bg-card); color: var(--text-primary); }
             .nav-link.active {
-                background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(168,85,247,0.1));
+                background: rgba(37, 99, 235, 0.15); /* Soft transparent primary */
                 color: var(--primary-light);
-                border: 1px solid rgba(99,102,241,0.3);
-                box-shadow: 0 0 12px rgba(99,102,241,0.15), inset 0 0 12px rgba(99,102,241,0.05);
+                border: 1px solid rgba(37, 99, 235, 0.3);
             }
             .nav-link svg { width: 20px; height: 20px; flex-shrink: 0; min-width: 20px; }
 
@@ -133,8 +133,8 @@
                 display: flex; align-items: center; gap: 0.75rem;
             }
             .sidebar-user .avatar {
-                width: 36px; height: 36px; border-radius: 50%;
-                background: linear-gradient(135deg, var(--primary), #a855f7);
+                width: 36px; height: 36px; border-radius: 8px;
+                background: var(--primary);
                 display: flex; align-items: center; justify-content: center;
                 font-weight: 700; font-size: 14px; color: white;
             }
@@ -315,18 +315,14 @@
             .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
             .kpi-card { padding: 1.25rem; position: relative; overflow: hidden; }
             
-            .kpi-value { font-size: 1.75rem; font-weight: 800; margin: 0.5rem 0; background: linear-gradient(135deg, var(--text-primary), var(--primary-light)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+            .kpi-value { font-size: 1.75rem; font-weight: 800; margin: 0.5rem 0; color: var(--text-primary); }
             .kpi-label { font-size: 0.75rem; color: var(--text-muted); }
-            .kpi-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
-            .kpi-icon::before { content: ''; position: absolute; inset: 0; opacity: 0.2; }
+            .kpi-icon { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+            .kpi-icon::before { content: ''; position: absolute; inset: 0; opacity: 0.15; background: currentColor; }
             .kpi-icon.green { color: var(--accent-green); }
-            .kpi-icon.green::before { background: linear-gradient(135deg, var(--accent-green), transparent); }
             .kpi-icon.red { color: var(--accent-red); }
-            .kpi-icon.red::before { background: linear-gradient(135deg, var(--accent-red), transparent); }
             .kpi-icon.blue { color: var(--accent-blue); }
-            .kpi-icon.blue::before { background: linear-gradient(135deg, var(--accent-blue), transparent); }
             .kpi-icon.yellow { color: var(--accent-yellow); }
-            .kpi-icon.yellow::before { background: linear-gradient(135deg, var(--accent-yellow), transparent); }
 
             /* Trend Badge Animation */
             .badge { display: inline-flex; align-items: center; justify-content: center; padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 600; }
@@ -382,10 +378,10 @@
                 text-decoration: none;
             }
             .btn-primary {
-                background: linear-gradient(135deg, var(--primary), #a855f7);
-                color: white;
+                background: var(--primary);
+                color: white; border: 1px solid var(--primary-dark);
             }
-            .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(99,102,241,0.4); }
+            .btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(37,99,235,0.3); }
             .btn-danger { background: rgba(239,68,68,0.15); color: var(--accent-red); border: 1px solid rgba(239,68,68,0.3); }
             .btn-danger:hover { background: rgba(239,68,68,0.25); }
             .btn-secondary { background: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border-color); }
@@ -565,6 +561,10 @@
 
                     <div class="nav-section-title" style="margin-top: 1.5rem; font-size: 0.7rem; color: var(--text-muted); padding-left: 0.5rem; margin-bottom: 0.5rem;">— ANALYTICS & INTELLIGENCE</div>
                     
+                    <a href="{{ route('ai-chat.index') }}" class="nav-link {{ request()->routeIs('ai-chat.*') ? 'active' : '' }}" title="Distora AI Assistant: Asisten AI pintar untuk tanya jawab data dan performa.">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+                        <span style="font-weight: 600; color: var(--text-primary);">Distora AI Assistant</span>
+                    </a>
                     @if(!Auth::user()->isSalesman())
                     <a href="{{ route('salesmen.index') }}" class="nav-link {{ request()->routeIs('salesmen.*') || request()->routeIs('analytics.target-tracker') ? 'active' : '' }}" title="Salesman Intelligence: Performa salesman harian dan Target Tracker.">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>

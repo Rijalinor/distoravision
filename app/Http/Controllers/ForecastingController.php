@@ -44,7 +44,8 @@ class ForecastingController extends Controller
             'product_id',
             'period',
             DB::raw('SUM(CASE WHEN type="I" THEN qty_base WHEN type="R" THEN -qty_base ELSE 0 END) as total_qty'),
-            DB::raw('COUNT(DISTINCT outlet_id) as active_outlets')
+            DB::raw('COUNT(DISTINCT outlet_id) as active_outlets'),
+            DB::raw('COUNT(DISTINCT so_date) as days_sold')
         )
             ->groupBy('product_id', 'period')
             ->get()
@@ -74,6 +75,7 @@ class ForecastingController extends Controller
 
             $getQty = fn ($p) => max(0, $history->get($p)->total_qty ?? 0);
             $getDays = fn ($p) => $history->get($p)->active_outlets ?? 0;
+            $getDaysSold = fn ($p) => $history->get($p)->days_sold ?? 0;
 
             $t1 = $historyMonths[0]; // Selected period
             $t2 = $historyMonths[1];
@@ -89,15 +91,42 @@ class ForecastingController extends Controller
             $avgOutlets = ($getDays($t2) + $getDays($t3) + $getDays($t4)) / 3;
             $avgQty = ($qtyT2 + $qtyT3 + $qtyT4) / 3;
 
+            $daysSoldT1 = $getDaysSold($t1);
+            $avgDaysSold = ($getDaysSold($t2) + $getDaysSold($t3) + $getDaysSold($t4)) / 3;
+
             $flags = [];
             $usedT1 = $qtyT1;
 
-            // 1. Stockout Detection (Drop in Sales & Order Freq)
-            if ($outletsT1 < ($avgOutlets * 0.4) && $qtyT1 < ($avgQty * 0.5) && $avgOutlets > 0) {
+            // Extract conversion factor from name, e.g. "(1x12x10)" -> 120
+            $conversion = 1;
+            if (preg_match('/\(([\d\sX]+)\)/i', $product->name, $matches)) {
+                $parts = explode('X', strtoupper(str_replace(' ', '', $matches[1])));
+                $calc = 1;
+                foreach ($parts as $p) {
+                    if (is_numeric($p) && $p > 0) {
+                        $calc *= (int) $p;
+                    }
+                }
+                if ($calc > 1) {
+                    $conversion = $calc;
+                }
+            }
+
+            // 1. Advanced Stockout Imputation (Time-Gap Anomaly)
+            if ($avgDaysSold > 10 && $daysSoldT1 > 0 && $daysSoldT1 < ($avgDaysSold * 0.6)) {
+                $runRate = $qtyT1 / $daysSoldT1;
+                $imputedQtyT1 = $runRate * $avgDaysSold;
+                $usedT1 = $imputedQtyT1;
+
+                $recoveredCtn = round(($imputedQtyT1 - $qtyT1) / $conversion);
+                $flags[] = "oos_imputed (+{$recoveredCtn} CTN recovered)";
+            }
+            // 2. Existing Stockout Fallback (No sales at all / Huge Drop)
+            elseif ($outletsT1 < ($avgOutlets * 0.4) && $qtyT1 < ($avgQty * 0.5) && $avgOutlets > 0) {
                 $usedT1 = $qtyT2; // Fallback to T-2
                 $flags[] = 'stockout_drop';
             }
-            // 2. Outlier Trimming (Forward Buying / Promo Spike)
+            // 3. Outlier Trimming (Forward Buying / Promo Spike)
             elseif ($qtyT1 > ($avgQty * 1.5) && $avgQty > 10) {
                 $usedT1 = $avgQty * 1.5;
                 $flags[] = 'promo_spike';
@@ -142,20 +171,7 @@ class ForecastingController extends Controller
                 continue;
             }
 
-            // Extract conversion factor from name, e.g. "(1x12x10)" -> 120
-            $conversion = 1;
-            if (preg_match('/\(([\d\sX]+)\)/i', $product->name, $matches)) {
-                $parts = explode('X', strtoupper(str_replace(' ', '', $matches[1])));
-                $calc = 1;
-                foreach ($parts as $p) {
-                    if (is_numeric($p) && $p > 0) {
-                        $calc *= (int) $p;
-                    }
-                }
-                if ($calc > 1) {
-                    $conversion = $calc;
-                }
-            }
+            // (Conversion extraction moved up for early flag calculation)
 
             $forecasts[] = (object) [
                 'item_no' => $product->item_no,
@@ -244,7 +260,8 @@ class ForecastingController extends Controller
             'product_id',
             'period',
             DB::raw('SUM(CASE WHEN type="I" THEN qty_base WHEN type="R" THEN -qty_base ELSE 0 END) as total_qty'),
-            DB::raw('COUNT(DISTINCT outlet_id) as active_outlets')
+            DB::raw('COUNT(DISTINCT outlet_id) as active_outlets'),
+            DB::raw('COUNT(DISTINCT so_date) as days_sold')
         )
             ->groupBy('product_id', 'period')
             ->get()
@@ -274,6 +291,7 @@ class ForecastingController extends Controller
 
             $getQty = fn ($p) => max(0, $history->get($p)->total_qty ?? 0);
             $getDays = fn ($p) => $history->get($p)->active_outlets ?? 0;
+            $getDaysSold = fn ($p) => $history->get($p)->days_sold ?? 0;
 
             $t1 = $historyMonths[0]; // Current period
             $t2 = $historyMonths[1];
@@ -285,8 +303,22 @@ class ForecastingController extends Controller
 
             $outletsT1 = $getDays($t1);
 
+            $daysSoldT1 = $getDaysSold($t1);
+            $t4 = $historyMonths[3] ?? null; // For multi-period we only extracted t1..t3 variables initially, grab t4 from array
+            $avgDaysSold = ($getDaysSold($t2) + $getDaysSold($t3) + ($t4 ? $getDaysSold($t4) : 0)) / 3;
+
+            $usedT1 = $qtyT1;
+            $oosRecovered = false;
+
+            // Advanced OOS Imputation (Time-Gap Anomaly)
+            if ($avgDaysSold > 10 && $daysSoldT1 > 0 && $daysSoldT1 < ($avgDaysSold * 0.6)) {
+                $runRate = $qtyT1 / $daysSoldT1;
+                $usedT1 = $runRate * $avgDaysSold;
+                $oosRecovered = true;
+            }
+
             // WMA Base Trend (3-Month Weighted Moving Average)
-            $wma = ($qtyT1 * 0.5) + ($qtyT2 * 0.3) + ($qtyT3 * 0.2);
+            $wma = ($usedT1 * 0.5) + ($qtyT2 * 0.3) + ($qtyT3 * 0.2);
 
             // Calculate Recent Growth Trend (Momentum / Slope) over the last 6 months
             $trendValues = [];
@@ -357,8 +389,11 @@ class ForecastingController extends Controller
             $status = 'Normal';
             $icon = '✅';
 
-            // Highlight based on trend
-            if ($wma > 0 && $multiForecast[6] > $wma * 1.5) {
+            // Highlight based on trend and OOS
+            if ($oosRecovered) {
+                $status = 'OOS Recovered';
+                $icon = '🔄';
+            } elseif ($wma > 0 && $multiForecast[6] > $wma * 1.5) {
                 $status = 'Trending Up';
                 $icon = '📈';
             } elseif ($wma > 0 && $multiForecast[6] < $wma * 0.5) {

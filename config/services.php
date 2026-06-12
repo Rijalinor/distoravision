@@ -35,4 +35,12 @@ return [
         ],
     ],
 
+    'groq' => [
+        'api_key' => env('GROQ_API_KEY'),
+        'model' => env('GROQ_MODEL', 'llama-3.1-8b-instant'),
+        'temperature' => 0.3,
+        'max_tokens' => 1500,
+        'timeout' => 30,
+    ],
+
 ];

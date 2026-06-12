@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\AdvancedAnalyticsController;
+use App\Http\Controllers\AiChatController;
 use App\Http\Controllers\ArAnalyticsController;
 use App\Http\Controllers\ArImportController;
 use App\Http\Controllers\ColumnMappingController;
@@ -122,6 +123,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/analytics/salesman-profitability', [AdvancedAnalyticsController::class, 'salesmanProfitability'])->name('analytics.salesman-profitability');
     Route::get('/analytics/outlet-trajectory', [AdvancedAnalyticsController::class, 'outletTrajectory'])->name('analytics.outlet-trajectory');
     Route::get('/analytics/product-trajectory', [ProductTrajectoryController::class, 'index'])->name('analytics.product-trajectory');
+
+    // AI Chat
+    Route::get('/ai-chat', [AiChatController::class, 'index'])->name('ai-chat.index');
+    Route::post('/ai-chat/ask', [AiChatController::class, 'ask'])->middleware('throttle:10,1')->name('ai-chat.ask');
 
     // TV Dashboard Wallboard
     Route::get('/tv-dashboard', [TvDashboardController::class, 'index'])->name('tv.dashboard');
