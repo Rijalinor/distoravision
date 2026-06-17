@@ -8,7 +8,7 @@
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
         body { 
-            background: #020617; /* Very dark blue */
+            background: #070B19; /* Darkest Navy (Stripe 1) */
             color: #f8fafc; 
             overflow: hidden; /* Hide scrollbars for TV */
             height: 100vh;
@@ -23,14 +23,14 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: rgba(15, 23, 42, 0.9);
-            border-bottom: 2px solid #1e293b;
+            background: rgba(17, 22, 51, 0.9); /* Midnight Navy (Stripe 2) */
+            border-bottom: 2px solid #243156; /* Navy border */
             z-index: 10;
         }
         .header h1 {
             font-size: 2rem;
             font-weight: 900;
-            background: linear-gradient(135deg, #818cf8, #c084fc);
+            background: linear-gradient(135deg, #8991c2, #a3aace); /* Lavender Blue (Stripe 4) */
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             text-transform: uppercase;
@@ -100,15 +100,15 @@
             text-align: center;
         }
         .mega-kpi {
-            background: linear-gradient(145deg, #1e293b, #0f172a);
-            border: 2px solid #334155;
+            background: linear-gradient(145deg, #182046, #111633); /* Deep Navy blends */
+            border: 2px solid #243156;
             border-radius: 24px;
             padding: 4rem;
             box-shadow: 0 20px 40px rgba(0,0,0,0.5);
         }
         .mega-kpi.highlight {
-            border-color: #6366f1;
-            box-shadow: 0 20px 50px rgba(99, 102, 241, 0.3);
+            border-color: #8991c2;
+            box-shadow: 0 20px 50px rgba(137, 145, 194, 0.3);
             position: relative;
             overflow: hidden;
         }
@@ -116,7 +116,7 @@
             content: '';
             position: absolute;
             top: 0; left: 0; width: 100%; height: 5px;
-            background: linear-gradient(90deg, #6366f1, #a855f7, #ec4899);
+            background: linear-gradient(90deg, #8991c2, #5a6890, #9396c6); /* Custom theme colors gradient */
         }
         .kpi-label { font-size: 2rem; font-weight: 600; color: #94a3b8; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 2px; }
         .kpi-val { font-size: 8rem; font-weight: 900; background: linear-gradient(to right, #ffffff, #cbd5e1); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
@@ -127,14 +127,14 @@
         .progress-bar-wrap {
             margin-top: 3rem;
             height: 3rem;
-            background: #1e293b;
+            background: #111633;
             border-radius: 99px;
             overflow: hidden;
             position: relative;
         }
         .progress-bar {
             height: 100%;
-            background: linear-gradient(90deg, #6366f1, #a855f7);
+            background: linear-gradient(90deg, #8991c2, #a3aace);
             border-radius: 99px;
             width: 0%;
             transition: width 2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -158,13 +158,13 @@
         .lb-card {
             display: flex;
             align-items: center;
-            background: #1e293b;
+            background: #182046;
             padding: 1rem 1.5rem;
             border-radius: 16px;
-            border-left: 6px solid #334155;
+            border-left: 6px solid #243156;
             transition: transform 0.3s;
         }
-        .lb-card.rank-1 { border-left-color: #fbbf24; background: linear-gradient(to right, rgba(251,191,36,0.1), #1e293b); transform: scale(1.02); }
+        .lb-card.rank-1 { border-left-color: #fbbf24; background: linear-gradient(to right, rgba(251,191,36,0.1), #182046); transform: scale(1.02); }
         .lb-card.rank-2 { border-left-color: #94a3b8; }
         .lb-card.rank-3 { border-left-color: #b45309; }
         .lb-rank { font-size: 2.5rem; font-weight: 900; color: #64748b; width: 65px; flex-shrink: 0; }
@@ -183,9 +183,9 @@
         .stat.ar { color: #f87171; }
 
         .lb-progress-bar-wrap { 
-            height: 10px; background: #334155; border-radius: 5px; overflow:visible; margin-top: 0.5rem; position: relative;
+            height: 10px; background: #111633; border-radius: 5px; overflow:visible; margin-top: 0.5rem; position: relative;
         }
-        .lb-progress-fill { height: 100%; border-radius: 5px; background: #6366f1; transition: width 1s; }
+        .lb-progress-fill { height: 100%; border-radius: 5px; background: #8991c2; transition: width 1s; }
         .rank-1 .lb-progress-fill { background: #fbbf24; }
         
         .lb-pct {
@@ -194,9 +194,9 @@
 
         /* Generic Table / Lists for Slide 3 */
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; }
-        .list-box { background: #1e293b; border-radius: 24px; padding: 3rem; }
-        .list-title { font-size: 2rem; font-weight: 800; margin-bottom: 2rem; color: #818cf8; border-bottom: 2px solid #334155; padding-bottom: 1rem; }
-        .list-item { display: flex; justify-content: space-between; font-size: 1.8rem; margin-bottom: 1.5rem; border-bottom: 1px dashed #334155; padding-bottom: 1rem; }
+        .list-box { background: #182046; border-radius: 24px; padding: 3rem; }
+        .list-title { font-size: 2rem; font-weight: 800; margin-bottom: 2rem; color: #8991c2; border-bottom: 2px solid #243156; padding-bottom: 1rem; }
+        .list-item { display: flex; justify-content: space-between; font-size: 1.8rem; margin-bottom: 1.5rem; border-bottom: 1px dashed #243156; padding-bottom: 1rem; }
         .list-item:last-child { border: none; margin-bottom: 0; padding-bottom: 0; }
         .list-item-name { font-weight: 600; color: #f1f5f9; }
         .list-item-val { font-weight: 800; font-family: monospace; color: #10b981; }
@@ -204,12 +204,12 @@
         /* Footer Progress */
         .footer {
             height: 6px;
-            background: #1e293b;
+            background: #111633;
             width: 100%;
         }
         .footer-progress {
             height: 100%;
-            background: #3b82f6;
+            background: #8991c2;
             width: 0%;
             transition: width 1s linear;
         }

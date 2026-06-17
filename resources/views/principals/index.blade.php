@@ -43,7 +43,7 @@ document.addEventListener('DOMContentLoaded', function(){
             {name:'Returns',data:data.map(p=>parseFloat(p.total_returns))}
         ],
         xaxis:{categories:data.map(p=>p.name.replace('PT. ','').substring(0,15)),labels:{style:{colors:'#94a3b8',fontSize:'10px'},rotate:-45}},
-        colors:['#6366f1','#ef4444'],theme:{mode:'dark'},grid:{borderColor:'#334155'},
+        colors:['#8991c2','#ef4444'],theme:{mode:'dark'},grid:{borderColor:'#243156'},
         dataLabels:{enabled:false},plotOptions:{bar:{borderRadius:4,columnWidth:'60%'}},
         yaxis:{labels:{formatter:v=>'Rp '+(v/1000000).toFixed(0)+'M'}},
         tooltip:{y:{formatter:v=>'Rp '+new Intl.NumberFormat('id-ID').format(v)}}

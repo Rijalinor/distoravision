@@ -101,7 +101,7 @@
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem;" id="outletHeader">
             <div style="font-size:0.8rem;font-weight:600;color:var(--text-primary);">🏪 Daftar Outlet Piutang</div>
             @if($arData['topOutlets']->count() > 5)
-            <button type="button" onclick="showAllOutlets(this)" class="btn btn-secondary" style="padding:0.2rem 0.6rem;font-size:0.7rem;background:rgba(99,102,241,0.1);color:var(--primary-light);border:1px solid rgba(99,102,241,0.2);">Lihat Semua ({{ $arData['topOutlets']->count() }}) &raquo;</button>
+            <button type="button" onclick="showAllOutlets(this)" class="btn btn-secondary" style="padding:0.2rem 0.6rem;font-size:0.7rem;background:rgba(137,145,194,0.1);color:var(--primary-light);border:1px solid rgba(137,145,194,0.2);">Lihat Semua ({{ $arData['topOutlets']->count() }}) &raquo;</button>
             @endif
         </div>
         <table class="data-table">
@@ -138,7 +138,7 @@
                         <span style="position:absolute;left:1.25rem;top:0;bottom:0;width:2px;background:rgba(255,255,255,0.05);"></span>
                         <div style="display:flex;align-items:center;gap:0.5rem;position:relative;">
                             <span style="position:absolute;left:-1.25rem;top:50%;width:10px;height:2px;background:rgba(255,255,255,0.05);"></span>
-                            <code style="background:rgba(99,102,241,0.1);color:var(--primary-light);padding:0.1rem 0.3rem;border-radius:3px;font-size:0.65rem;">{{ $inv->pfi_sn }}</code>
+                            <code style="background:rgba(137,145,194,0.1);color:var(--primary-light);padding:0.1rem 0.3rem;border-radius:3px;font-size:0.65rem;">{{ $inv->pfi_sn }}</code>
                         </div>
                         <div style="color:var(--text-muted);font-size:0.65rem;margin-top:0.2rem;position:relative;">Tgl: {{ $inv->doc_date?->format('d M Y') }}</div>
                     </td>
@@ -220,7 +220,7 @@ document.addEventListener('DOMContentLoaded', function(){
     var wd=@json($weeklyData); var weeks=Object.keys(wd).sort();
     var sales=weeks.map(w=>{var f=wd[w].find(d=>d.type==='I');return f?parseFloat(f.total):0;});
     var ret=weeks.map(w=>{var f=wd[w].find(d=>d.type==='R');return f?parseFloat(f.total):0;});
-    new ApexCharts(document.querySelector("#weeklyChart"),{chart:{type:'bar',height:280,toolbar:{show:false},background:'transparent'},series:[{name:'Sales',data:sales},{name:'Returns',data:ret}],xaxis:{categories:weeks.map(w=>'W'+w)},colors:['#6366f1','#ef4444'],theme:{mode:'dark'},grid:{borderColor:'#334155'},dataLabels:{enabled:false},plotOptions:{bar:{borderRadius:4}},yaxis:{labels:{formatter:v=>'Rp '+(v/1000).toFixed(0)+'K'}},tooltip:{y:{formatter:v=>'Rp '+new Intl.NumberFormat('id-ID').format(v)}}}).render();
+    new ApexCharts(document.querySelector("#weeklyChart"),{chart:{type:'bar',height:280,toolbar:{show:false},background:'transparent'},series:[{name:'Sales',data:sales},{name:'Returns',data:ret}],xaxis:{categories:weeks.map(w=>'W'+w)},colors:['#8991c2','#ef4444'],theme:{mode:'dark'},grid:{borderColor:'#243156'},dataLabels:{enabled:false},plotOptions:{bar:{borderRadius:4}},yaxis:{labels:{formatter:v=>'Rp '+(v/1000).toFixed(0)+'K'}},tooltip:{y:{formatter:v=>'Rp '+new Intl.NumberFormat('id-ID').format(v)}}}).render();
 });
 </script>
 @endsection

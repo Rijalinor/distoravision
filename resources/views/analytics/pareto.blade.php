@@ -101,10 +101,10 @@ document.addEventListener('DOMContentLoaded', function(){
         }],
         chart: { height: 350, type: 'line', toolbar: { show: false }, background: 'transparent' },
         stroke: { width: [0, 4] },
-        colors: ['#6366f1', '#10b981'],
+        colors: ['#8991c2', '#10b981'],
         xaxis: { categories: chartData.map(d => d.name.substring(0,15)), labels: { style: { colors: '#94a3b8', fontSize: '9px' }, rotate: -45 } },
         yaxis: [{
-            title: { text: 'Sales', style: { color: '#6366f1' } },
+            title: { text: 'Sales', style: { color: '#8991c2' } },
             labels: { style: { colors: '#94a3b8' }, formatter: v => (v/1000000).toFixed(0)+'M' }
         }, {
             opposite: true,
@@ -115,7 +115,7 @@ document.addEventListener('DOMContentLoaded', function(){
         annotations: {
             yAxis: [{ y: 80, yAxisIndex: 1, borderColor: '#ef4444', label: { text: '80% Mark', style: { color: '#fff', background: '#ef4444' } } }]
         },
-        theme: { mode: 'dark' }, grid: { borderColor: '#334155' }
+        theme: { mode: 'dark' }, grid: { borderColor: '#243156' }
     }).render();
 });
 </script>

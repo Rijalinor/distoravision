@@ -208,11 +208,11 @@ document.addEventListener('DOMContentLoaded', function() {
             { name: 'Returns', data: returnData }
         ],
         xaxis: { categories: weeks.map(w => 'Week ' + w) },
-        colors: ['#6366f1', '#ef4444'],
+        colors: ['#8991c2', '#ef4444'],
         fill: { type: 'gradient', gradient: { opacityFrom: 0.4, opacityTo: 0 } },
         stroke: { curve: 'smooth', width: 2 },
         theme: { mode: 'dark' },
-        grid: { borderColor: '#334155' },
+        grid: { borderColor: '#243156' },
         dataLabels: { enabled: false },
         yaxis: { labels: { formatter: v => 'Rp ' + (v/1000).toFixed(0) + 'K' } },
         tooltip: { y: { formatter: v => 'Rp ' + new Intl.NumberFormat('id-ID').format(v) } }
@@ -224,7 +224,7 @@ document.addEventListener('DOMContentLoaded', function() {
         chart: { type: 'donut', height: 300, background: 'transparent' },
         series: principalData.map(p => parseFloat(p.total_sales)),
         labels: principalData.map(p => p.name.replace('PT. ', '').substring(0, 20)),
-        colors: ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#84cc16'],
+        colors: ['#8991c2', '#10b981', '#f59e0b', '#ef4444', '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#84cc16'],
         theme: { mode: 'dark' },
         legend: { position: 'bottom', labels: { colors: '#94a3b8' } },
         dataLabels: { enabled: false },
