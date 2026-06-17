@@ -44,7 +44,7 @@ class OutletSheet implements FromArray, WithColumnWidths, WithEvents, WithStyles
         $outlets = Transaction::withFilters($this->request)->invoices()
             ->join('outlets', 'transactions.outlet_id', '=', 'outlets.id')
             ->join('salesmen', 'transactions.salesman_id', '=', 'salesmen.id')
-            ->select('outlets.name as outlet_name', 'outlets.city', DB::raw('LEFT(outlets.code, 3) as region_code'), 'salesmen.name as salesman_name', DB::raw('SUM(transactions.taxed_amt) as net_sales'), DB::raw('SUM(transactions.qty_base) as total_qty'), DB::raw('COUNT(DISTINCT transactions.so_no) as invoice_count'), DB::raw('MAX(transactions.so_date) as last_order_date'))
+            ->select('outlets.name as outlet_name', 'outlets.city', DB::raw('SUBSTR(outlets.code, 1, 3) as region_code'), 'salesmen.name as salesman_name', DB::raw('SUM(transactions.taxed_amt) as net_sales'), DB::raw('SUM(transactions.qty_base) as total_qty'), DB::raw('COUNT(DISTINCT transactions.so_no) as invoice_count'), DB::raw('MAX(transactions.so_date) as last_order_date'))
             ->whereNotNull('outlets.code')
             ->groupBy('outlets.name', 'outlets.city', 'outlets.code', 'salesmen.name')
             ->orderByDesc('net_sales')->get();

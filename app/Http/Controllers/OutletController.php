@@ -52,6 +52,11 @@ class OutletController extends Controller
 
     public function show(Request $request, Outlet $outlet)
     {
+        if (auth()->user()->isSalesman() || auth()->user()->isSupervisor()) {
+            $hasTrx = Transaction::where('outlet_id', $outlet->id)->exists();
+            abort_unless($hasTrx, 403, 'Akses ditolak. Anda tidak memiliki akses ke data outlet ini.');
+        }
+
         $period = $request->get('period', Transaction::max('period') ?? date('Y-m'));
         $periods = Transaction::select('period')->distinct()->orderByDesc('period')->pluck('period');
 

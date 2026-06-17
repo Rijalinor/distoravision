@@ -11,6 +11,9 @@ class SalesPerAnalyticsController extends Controller
 {
     public function dashboard(Request $request)
     {
+        if (auth()->user()->isSalesman()) {
+            abort(403, 'Akses ditolak. Anda tidak diperkenankan mengakses halaman ini.');
+        }
         $periods = SalesPerTransaction::select('period')->distinct()->orderByDesc('period')->pluck('period');
 
         if ($periods->isEmpty()) {

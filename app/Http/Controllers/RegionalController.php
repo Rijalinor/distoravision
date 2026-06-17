@@ -16,7 +16,7 @@ class RegionalController extends Controller
         $cities = Transaction::withFilters(request())
             ->join('outlets', 'transactions.outlet_id', '=', 'outlets.id')
             ->select(
-                DB::raw('LEFT(outlets.code, 3) as region_code'),
+                DB::raw('SUBSTR(outlets.code, 1, 3) as region_code'),
                 DB::raw('SUM(CASE WHEN transactions.type = "I" THEN transactions.taxed_amt ELSE 0 END) as total_sales'),
                 DB::raw('SUM(CASE WHEN transactions.type = "R" THEN ABS(transactions.taxed_amt) ELSE 0 END) as total_returns'),
                 DB::raw('COUNT(DISTINCT CASE WHEN transactions.type = "I" THEN transactions.outlet_id END) as outlet_count'),

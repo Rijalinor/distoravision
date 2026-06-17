@@ -67,6 +67,10 @@ class PrincipalController extends Controller implements HasMiddleware
 
     public function show(Request $request, Principal $principal)
     {
+        if (auth()->user()->isSupervisor() && ! auth()->user()->principals->contains($principal->id)) {
+            abort(403, 'Akses ditolak. Anda tidak memiliki akses ke Principal ini.');
+        }
+
         $period = $request->get('period', Transaction::max('period') ?? date('Y-m'));
         $periods = Transaction::select('period')->distinct()->orderByDesc('period')->pluck('period');
 

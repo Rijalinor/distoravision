@@ -54,7 +54,9 @@
 <div class="tabs-container" style="margin-bottom:1.5rem;display:flex;gap:0.5rem;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:0.5rem;overflow-x:auto;">
     <button class="btn btn-primary tab-btn active" onclick="switchTab('ringkasan', this)" style="white-space:nowrap;">📊 Ringkasan Eksekutif</button>
     <button class="btn btn-secondary tab-btn" onclick="switchTab('kritis', this)" style="white-space:nowrap;">🚨 Data Kritis ({{ $criticalLow }})</button>
+    @if(!auth()->user()->isSalesman())
     <button class="btn btn-secondary tab-btn" onclick="switchTab('tertahan', this)" style="white-space:nowrap;">🛑 Modal Tertahan ({{ $slowMovingCount }})</button>
+    @endif
     <button class="btn btn-secondary tab-btn" onclick="switchTab('semua', this)" style="white-space:nowrap;">📦 Semua Data Stok ({{ number_format($totalSKU) }})</button>
 </div>
 
@@ -73,6 +75,7 @@
             @endif
         </div></div>
 
+        @if(!auth()->user()->isSalesman())
         <div class="card kpi-card"><div class="card-header"><span class="card-title">Nilai Stok</span><div class="kpi-icon green"><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div></div><div class="kpi-value" title="Rp {{ number_format($totalStockValue, 0, ',', '.') }}">Rp {{ number_format($totalStockValue / 1000000, 1, ',', '.') }}Jt</div>
         <div class="kpi-label" style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem;">
             <span>Modal tertanam</span>
@@ -83,6 +86,7 @@
                 </span>
             @endif
         </div></div>
+        @endif
 
         <div class="card kpi-card"><div class="card-header"><span class="card-title">⚠️ Stok Kritis</span><div class="kpi-icon red"><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.999L13.732 4.001c-.77-1.333-2.694-1.333-3.464 0L3.34 16.001C2.57 17.333 3.532 19 5.072 19z"></path></svg></div></div><div class="kpi-value" style="-webkit-text-fill-color:{{ $criticalLow > 0 ? 'var(--accent-red)' : 'var(--accent-green)' }};">{{ $criticalLow }}</div>
         <div class="kpi-label" style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem;">
@@ -108,6 +112,7 @@
     </div>
 
     {{-- PARETO CAPITAL ALLOCATION (80/20 RULE) --}}
+    @if(!auth()->user()->isSalesman())
     <div class="card" style="margin-bottom:1.5rem; border-left: 4px solid {{ $paretoCapital['is_healthy'] ? 'var(--accent-green)' : 'var(--accent-red)' }}; padding: 1.5rem;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
             <div>
@@ -141,6 +146,7 @@
             <span style="color:var(--accent-red);">Rp {{ number_format($paretoCapital['slow_value'] / 1000000, 1, ',', '.') }} Juta (Uang Tertahan)</span>
         </div>
     </div>
+    @endif
 
     {{-- EXTRA METRICS --}}
     <div class="grid-2" style="margin-bottom:1.5rem;">
@@ -150,12 +156,14 @@
         </div>
         <div class="card" style="border-top:4px solid var(--accent-purple,#a855f7);">
             <div class="card-header"><span class="card-title">🏢 Stok per Principal</span></div>
-            <table class="data-table"><thead><tr><th>Principal</th><th class="text-right">SKU</th><th class="text-right">Nilai</th><th class="text-right">Avg SWC</th><th class="text-right">🚨 Kritis</th><th class="text-right" style="color:var(--accent-red);">🛑 Tertahan</th></tr></thead><tbody>
+            <table class="data-table"><thead><tr><th>Principal</th><th class="text-right">SKU</th>@if(!auth()->user()->isSalesman())<th class="text-right">Nilai</th>@endif<th class="text-right">Avg SWC</th><th class="text-right">🚨 Kritis</th><th class="text-right" style="color:var(--accent-red);">🛑 Tertahan</th></tr></thead><tbody>
             @foreach($stockByPrincipal as $sp)
             <tr>
                 <td>{{ Str::limit(str_replace('PT. ', '', $sp->principal_name), 25) }}</td>
                 <td class="text-right">{{ $sp->sku_count }}</td>
+                @if(!auth()->user()->isSalesman())
                 <td class="text-right font-mono" title="Rp {{ number_format($sp->total_value, 0, ',', '.') }}">{{ number_format($sp->total_value / 1000000, 1, ',', '.') }}Jt</td>
+                @endif
                 <td class="text-right"><span class="badge {{ ($sp->avg_swc ?? 0) <= 2 ? 'badge-red' : (($sp->avg_swc ?? 0) >= 12 ? 'badge-yellow' : 'badge-green') }}">{{ number_format($sp->avg_swc ?? 0, 1) }}w</span></td>
                 <td class="text-right text-red font-bold">{{ $sp->critical_count ?: '-' }}</td>
                 <td class="text-right text-red font-bold">{{ $sp->slow_count ?: '-' }}</td>

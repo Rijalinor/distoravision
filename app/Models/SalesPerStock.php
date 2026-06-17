@@ -2,10 +2,29 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 class SalesPerStock extends Model
 {
+    protected static function booted(): void
+    {
+        // === ACL GLOBAL SCOPES ===
+        static::addGlobalScope('acl', function (Builder $builder) {
+            if (auth()->check()) {
+                $user = auth()->user();
+                if ($user->isSupervisor()) {
+                    $principalNames = $user->principals()->pluck('name');
+                    if ($principalNames->isNotEmpty()) {
+                        $builder->whereIn($builder->qualifyColumn('principal_name'), $principalNames);
+                    } else {
+                        $builder->whereRaw('0 = 1');
+                    }
+                }
+            }
+        });
+    }
+
     protected $fillable = [
         'sales_per_import_log_id', 'principal_code', 'principal_name',
         'warehouse_code', 'warehouse_name', 'item_no', 'item_name', 'size',

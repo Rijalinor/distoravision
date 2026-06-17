@@ -18,7 +18,7 @@ class DashboardController extends Controller
     public function index(Request $request)
     {
         // Auto-redirect salesman ke dashboard pribadinya
-        if (auth()->user()->isSalesman() && auth()->user()->salesman_id) {
+        if (auth()->user()->isSalesman()) {
             return redirect()->route('salesman.dashboard', $request->query());
         }
 
@@ -50,7 +50,11 @@ class DashboardController extends Controller
         ]);
 
         // Principal Options for Filter Dropdown
-        $principals = Principal::orderBy('name')->get();
+        if (auth()->user()->isSupervisor()) {
+            $principals = auth()->user()->principals()->orderBy('name')->get();
+        } else {
+            $principals = Principal::orderBy('name')->get();
+        }
 
         // KPI Cards (Current Period Range)
         $totalSales = Transaction::withFilters($request)->invoices()->sum('taxed_amt');
@@ -149,7 +153,7 @@ class DashboardController extends Controller
 
         $topRegion = Transaction::withFilters($request)
             ->join('outlets', 'transactions.outlet_id', '=', 'outlets.id')
-            ->select(DB::raw('LEFT(outlets.code, 3) as region_code'), DB::raw('SUM(CASE WHEN transactions.type = "I" THEN transactions.taxed_amt ELSE 0 END) as total_sales'))
+            ->select(DB::raw('SUBSTR(outlets.code, 1, 3) as region_code'), DB::raw('SUM(CASE WHEN transactions.type = "I" THEN transactions.taxed_amt ELSE 0 END) as total_sales'))
             ->whereNotNull('outlets.code')->groupBy('region_code')->orderByDesc('total_sales')->first();
         $regionText = $topRegion && $topRegion->total_sales > 0 ? ' Penopang utama omset adalah wilayah '.strtoupper($topRegion->region_code).'.' : '';
 

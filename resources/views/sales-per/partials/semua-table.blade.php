@@ -6,7 +6,9 @@
                 <th>Principal</th>
                 <th>Gudang</th>
                 <th class="text-right">On Hand</th>
+                @if(!auth()->user()->isSalesman())
                 <th class="text-right">Nilai Stok</th>
+                @endif
                 <th class="text-right">WAS</th>
                 <th class="text-right">SWC</th>
             </tr>
@@ -21,7 +23,9 @@
                 <td style="font-size:0.8rem;">{{ Str::limit(str_replace('PT. ', '', $item->principal_name), 20) }}</td>
                 <td><span class="badge badge-blue" style="font-size:0.7rem;">{{ Str::limit($item->warehouse_name, 15) }}</span></td>
                 <td class="text-right font-mono">{{ number_format($item->on_hand_base) }}</td>
+                @if(!auth()->user()->isSalesman())
                 <td class="text-right font-mono">Rp {{ number_format($item->stock_value_on_hand, 0, ',', '.') }}</td>
+                @endif
                 <td class="text-right font-mono">{{ number_format($item->was, 1) }}</td>
                 <td class="text-right">
                     @if($item->swc <= 2 && $item->swc > 0)

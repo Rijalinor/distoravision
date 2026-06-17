@@ -222,6 +222,9 @@ class SalesPerStockController extends Controller
 
     public function loadTabTertahan(Request $request)
     {
+        if (auth()->user()->isSalesman()) {
+            abort(403, 'Akses ditolak. Anda tidak diperkenankan mengakses halaman ini.');
+        }
         $period = $request->query('period', date('Y-m'));
         $selectedPrincipal = $request->query('principal', 'all');
         $selectedWarehouse = $request->query('warehouse', 'all');
