@@ -5,14 +5,24 @@ namespace App\Http\Controllers;
 use App\Models\Principal;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\DB;
 
-class PrincipalController extends Controller
+class PrincipalController extends Controller implements HasMiddleware
 {
-    public function __construct()
+    /**
+     * Get the middleware that should be assigned to the controller.
+     */
+    public static function middleware(): array
     {
-        // Bug #4 fix: Salesman tidak boleh melihat data Principal
-        abort_if(auth()->check() && auth()->user()->isSalesman(), 403, 'Akses ditolak. Salesman tidak dapat melihat data Principal.');
+        return [
+            new Middleware(function ($request, $next) {
+                abort_if(auth()->check() && auth()->user()->isSalesman(), 403, 'Akses ditolak. Salesman tidak dapat melihat data Principal.');
+
+                return $next($request);
+            }),
+        ];
     }
 
     public function index(Request $request)
