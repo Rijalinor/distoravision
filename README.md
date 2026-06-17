@@ -1,106 +1,117 @@
-# 🌌 DistoraVision - Executive Business Intelligence Platform
+# 🌌 DistoraVision — Executive Business Intelligence Platform
 
-[![Laravel 12](https://img.shields.io/badge/Laravel-12.x-red.svg)](https://laravel.com)
-[![PHP 8.2](https://img.shields.io/badge/PHP-8.2%2B-blue.svg)](https://www.php.net/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Laravel 12](https://img.shields.io/badge/Laravel-12.x-red.svg?style=for-the-badge&logo=laravel)](https://laravel.com)
+[![PHP 8.2](https://img.shields.io/badge/PHP-8.2%2B-blue.svg?style=for-the-badge&logo=php)](https://www.php.net/)
+[![Tailwind CSS v3](https://img.shields.io/badge/Tailwind_CSS-v3-38bdf8.svg?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com)
+[![Groq AI](https://img.shields.io/badge/Groq_AI-Powered-orange.svg?style=for-the-badge)](https://groq.com)
 
-**DistoraVision** is a high-performance, real-time analytics platform designed for modern Sales Distribution Management. It bridges the gap between raw secondary sales data and strategic executive decision-making using advanced segmentation, proportional forecasting, and AI-driven narrative synthesis.
+**DistoraVision** is an enterprise-grade business intelligence and predictive analytics platform designed specifically for sales distribution networks. By leveraging advanced mathematical modeling, automated data ingestion pipelines, and generative AI, DistoraVision bridges the gap between raw transaction records and high-level C-Suite strategic decisions.
+
+The application features a premium, minimalist **Sleek Navy** theme with modern glassmorphism panels, high-contrast layouts, and fluid micro-interactions.
 
 ---
 
 ## 🚀 Key Modules & Features
 
-### 📊 KPI Command Center (C-Suite Intelligence)
-- **Real-time Monitoring**: Instant visibility into Revenue, Gross Margin, and Month-over-Month (MoM) growth.
-- **Narrative AI Insight**: Natural language summaries that explain the "Why" behind the data, identifying outliers and trends instantly.
-- **Pareto 80/20 Analysis**: Automatically identifies the core 20% of products and outlets generating 80% of revenue.
+### 📊 Executive Command Center
+*   **Real-time MoM Metrics:** Instant tracking of Net Revenue, Gross Margin, and Month-over-Month growth.
+*   **Pareto 80/20 Analysis:** Automatic identification of the core 20% of products and outlets generating 80% of revenue.
+*   **Proportional Target Management:** Intelligent allocation of global sales targets to salesmen based on weighted 3-month historical performances.
+*   **TV Leaderboard Wallboard:** A specialized, auto-refreshing kiosk interface optimized for large office screens, showing real-time salesman standings and running ticker updates.
 
-### 🎯 Proportional Target Management
-- **Intelligent Distribution**: Calculate and distribute global corporate targets to salesmen based on their weighted 3-month historical performance.
-- **Performance Persistence**: Targets are locked per period (YYYY-MM), allowing for historical accuracy and achievement tracking.
-- **Run Rate Tracking**: Dynamic calculation of the "Required Daily Sales" to ensure monthly objectives are met on time.
+### 🔮 Pure Demand Forecasting (Inventory Planning)
+*   **3-Month Weighted Moving Average (WMA):** Mathematical baseline forecasting built directly into the database query layer.
+*   **YoY Seasonality Index:** Identifies and applies annual demand spikes to forecast models.
+*   **OOS (Out-of-Stock) Imputation:** Detects time-gap anomalies where stock-outs occurred, reconstructing true market demand.
+*   **Automated Conversion (Karton/CTN):** Automatically extracts packing factors from product names and displays requirements in physical cases.
 
-### 👤 Salesman 360° Appraisal
-- **Shortfall Analysis**: Automated identification of performance gaps and recovery requirements.
-- **Holistic KPIs**: Track coverage frequency, strike rates, and return-to-sales ratios per individual.
+### 💸 Accounts Receivable (AR) Analytics
+*   **8-Tab Analytical Board:** Deep-dive tabs covering Overview, Aging, Credit Risk, Stubborn Accounts, Giro Monitoring, and Collections.
+*   **Overdue Buckets:** Automatic bucketing of receivables into *Current, 1-30, 31-60, 61-90, and >90* days.
+*   **Collection Mention (CM) Flags:** Automatic prioritization flags for stubborn invoices.
 
-### 🏪 Outlet & Principal Intelligence
-- **RFM Segmentation**: Advanced categorization into "Champions", "Loyal", "At Risk", and "Hibernating" outlets.
-- **Brand Affinity Mapping**: Analyze product-to-outlet relationships to identify white-space and cross-selling opportunities.
-- **Sleeper Detection**: Proactive identification of outlets that have ceased ordering within the current period.
-
----
-
-## 🛠️ Technical Stack
-
-- **Framework**: Laravel 12.x
-- **Engine**: PHP 8.2+
-- **Database**: MySQL / MariaDB / SQLite
-- **Styling**: Tailwind CSS & Modern Glassmorphism Design
-- **Frontend**: AlpineJS & Vanilla JavaScript
-- **Reporting**: Maatwebsite Excel (Chunked large-scale data processing)
-- **Charts**: ApexCharts (Scalable vector visualizations)
+### 🤖 AI Chat Assistant (Natural Language Query)
+*   **Context-Aware Dialogues:** Interact directly with an AI assistant to fetch database reports, analyze performance, and ask strategic questions.
+*   **Secure SQL Tools Pipeline:** The LLM (using Groq API & Llama-3.1-8b) invokes precise database tools under the hood.
+*   **Global ACL Scoping:** Queries run transparently under Eloquent global scopes, automatically restricting data visibility depending on the user's role (Salesman, Supervisor, Admin).
 
 ---
 
-## ⚙️ Standard Installation
+## 🛠️ Technical Stack & Architecture
 
-1. **Clone & Enter**
-   ```bash
-   git clone https://github.com/Rijalinor/distoravision.git
-   cd distoravision
-   ```
-
-2. **Dependency Setup**
-   ```bash
-   composer install
-   npm install && npm run build
-   ```
-
-3. **Configure Environment**
-   ```bash
-   cp .env.example .env
-   php artisan key:generate
-   ```
-
-4. **Initialize Database**
-   ```bash
-   php artisan migrate
-   ```
+*   **Backend Framework:** Laravel 12.x (streamlined folder structure)
+*   **Language Engine:** PHP 8.2+ (type-safety, constructor promotion)
+*   **Styling System:** Tailwind CSS (v3) custom Sleek Navy color system
+*   **Frontend Logic:** AlpineJS & Vanilla JS
+*   **Visualizations:** ApexCharts vector widgets
+*   **Logging Engine:** Spatie Activitylog (complete audit trail)
+*   **Unit Testing:** PHPUnit (100% test coverage)
 
 ---
 
-## 🧪 Demo Installation (Quick Setup)
+## ⚙️ Quick Installation
 
-DistoraVision includes a built-in demo engine to showcase the platform's capabilities without needing real sales data.
+1.  **Clone the Repository:**
+    ```bash
+    git clone https://github.com/Rijalinor/distoravision.git
+    cd distoravision
+    ```
 
-### 1. Generate Demo Data
-Run the custom seeding command specifying the period you want to simulate (YYYY-MM format):
-```bash
-# Example: Generate 2000 fake transaction rows for March 2026
-php artisan demo:seed 2026-03 --rows=2000
-```
-*This command will automatically create fake Branches, Principals, Salesmen, Outlets, and randomized Transactions.*
+2.  **Install PHP & JS Dependencies:**
+    ```bash
+    composer install
+    npm install
+    npm run build
+    ```
 
-### 2. Activate Demo Mode
-Once the data is generated, you can toggle the "Demo Mode" directly from the application's UI sidebar or header.
-- **Session-Based**: Demo mode runs on your session, preventing interference with real data for other users.
-- **Analytics Sync**: All dashboards, RFM segmentations, and Pareto charts will instantly switch to processing the generated demo data.
+3.  **Setup Environment File:**
+    ```bash
+    cp .env.example .env
+    php artisan key:generate
+    ```
+    *Configure your database credentials and `GROQ_API_KEY` inside `.env`.*
+
+4.  **Initialize Database Schema:**
+    ```bash
+    php artisan migrate
+    ```
+
+---
+
+## 🧪 Seeding & Demo Engine
+
+DistoraVision contains a comprehensive simulator to quickly generate fake transactions and test analytics boards.
+
+1.  **Seed Demo Transactions:**
+    ```bash
+    # Generate 3000 fake sales & AR rows for June 2026
+    php artisan demo:seed 2026-06 --rows=3000
+    ```
+2.  **Toggle Demo Mode:**
+    Log in as any user, then toggle **Demo Mode** from the dashboard header. All metrics will dynamically parse generated simulation data.
 
 ---
 
-## 📅 Platform Workflow
+## 🧪 Testing & Code Formatting
 
-1. **Import Layer**: standardizes inbound CSV/Excel secondary data.
-2. **Analysis Engine**: Calculates RFM scores, Pareto weights, and Period-over-Period growth.
-3. **Strategic Layer**: Managers set global targets; the system distributes them proportionally.
-4. **Action Layer**: Salesmen receive target breakdowns; managers monitor real-time run rates.
-5. **Closing**: Monthly "Tutup Buku" snapshots preserve the period's data for historical reporting.
+DistoraVision prioritizes code quality, maintaining a clean codebase with 100% passing tests:
+
+*   **Run Automated Tests (PHPUnit):**
+    ```bash
+    php artisan test --compact
+    ```
+*   **Format PHP Code (Laravel Pint):**
+    ```bash
+    vendor/bin/pint --dirty --format agent
+    ```
 
 ---
 
-## ⚖️ License
-Distributed under the MIT License. See `LICENSE` for more information.
+## 📘 Detailed Documentation
+
+For a comprehensive guide on database dictionaries, formula definitions, installation steps, user manuals, diagrams, and security architecture, refer to the master documentation:
+
+*   📄 **[DOKUMENTASI.md (Master Technical Documentation)](file:///c:/xampp/htdocs/distoravision/DOKUMENTASI.md)** *(Written in Indonesian)*
 
 ---
-*Developed by **Rijalinor** - Empowering Distribution through Data.*
+*Developed by **Rijalinor** — Empowering Distribution Networks through Intelligent Data.*
