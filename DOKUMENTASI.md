@@ -18,10 +18,12 @@ Dokumen ini merupakan panduan referensi tunggal (Master Documentation) untuk ars
 11. [Dashboard Documentation (Panduan Visual Dashboard)](#11-dashboard-documentation-panduan-visual-dashboard)
 12. [Installation Guide (Panduan Instalasi)](#12-installation-guide-panduan-instalasi)
 13. [User Manual (Panduan Pengguna)](#13-user-manual-panduan-pengguna)
-14. [Testing Documentation (Dokumentasi Pengujian)](#14-testing-documentation-dokumentasi-pengujian)
+14. [Testing Documentation (Dokumentasi Pengujian)](#14-testing-documentation-pengujian)
 15. [Backup & Recovery (Cadangan & Pemulihan)](#15-backup--recovery-cadangan--pemulihan)
-16. [Maintenance Guide (Panduan Pemeliharaan)](#16-maintenance-guide-panduan-pemeliharaan)
-17. [Lampiran (Kode Wilayah & Mapping Kolom)](#17-lampiran-kode-wilayah--mapping-kolom)
+16. [Troubleshooting & FAQ (Penanganan Masalah)](#16-troubleshooting--faq-penanganan-masalah)
+17. [System Logging & Audit Trail (Log Aktivitas)](#17-system-logging--audit-trail-log-aktivitas)
+18. [Lampiran (Diagram, SOP, & Folder)](#18-lampiran-diagram-sop--folder)
+19. [Maintenance Guide (Pemeliharaan & Monitoring)](#19-maintenance-guide-pemeliharaan--monitoring)
 
 ---
 
@@ -481,38 +483,270 @@ Jika server mengalami kerusakan total dan perlu dipulihkan di server baru:
 
 ---
 
-## 16. Maintenance Guide (Panduan Pemeliharaan)
+## 16. Troubleshooting & FAQ (Penanganan Masalah)
 
-Lakukan pemeliharaan rutin berikut agar server DistoraVision tetap memiliki performa optimal:
+Berikut adalah daftar masalah yang sering ditemui pada sistem DistoraVision beserta langkah penanganannya:
 
-### A. Pembersihan Log Riwayat Import
-File Excel yang diunggah menumpuk di server seiring waktu. Untuk membersihkan log gagal atau file usang yang berumur lebih dari 90 hari, jalankan perintah pembersihan storage:
-```bash
-php artisan storage:link
-# Jalankan cron job berkala untuk membersihkan direktori tmp/
-```
-
-### B. Standardisasi Gaya Penulisan Kode (Laravel Pint)
-Sebelum melakukan commit perubahan kode PHP di server repositori, jalankan formatter **Laravel Pint** agar kode tetap bersih dan seragam:
-```bash
-vendor/bin/pint --dirty --format agent
-```
-
-### C. Pembaruan Dependensi Sistem
-```bash
-# Update library php composer
-composer update --no-dev
-
-# Update modul Javascript npm
-npm update
-npm run build
-```
+1.  **Error: "Unable to locate file in Vite manifest"**
+    *   *Penyebab:* Aset CSS/JS belum di-compile oleh bundler Vite.
+    *   *Solusi:* Jalankan perintah `npm run build` di root direktori untuk meng-compile aset untuk produksi, atau jalankan `npm run dev` jika dalam mode pengembangan.
+2.  **Error: "Kuota AI sedang penuh" (429 Too Many Requests)**
+    *   *Penyebab:* Permintaan ke Groq API melebihi batas limit token per menit (TPM) atau request per menit (RPM) pada akun gratis.
+    *   *Solusi:* Sistem secara otomatis melakukan retry jika waktu tunggu singkat. Jika waktu tunggu lama, batasi pertanyaan chat yang terlalu panjang atau tunggu beberapa saat sebelum mengirim chat kembali.
+3.  **Error: "Sheet 'BJM' tidak ditemukan" saat Import**
+    *   *Penyebab:* Penulisan nama sheet di dalam file Excel yang diunggah tidak mengandung kata pencarian "BJM" (case-insensitive).
+    *   *Solusi:* Periksa kembali file Excel Anda, pastikan nama sheet cabang ditulis dengan benar (misalnya `BJM`, `BJM-Sales`, atau `Sales BJM`).
 
 ---
 
-## 17. Lampiran (Kode Wilayah & Mapping Kolom)
+## 17. System Logging & Audit Trail (Log Aktivitas)
 
-### A. Kode Wilayah Toko Terdaftar (Cabang Kalimantan/Selatan)
+DistoraVision dilengkapi dengan perekaman jejak audit sistem menggunakan library `spatie/laravel-activitylog`. Setiap tindakan administratif penting yang dilakukan oleh Admin atau pengguna terekam secara permanen di database.
+
+*   **Tindakan yang Dicatat:**
+    *   Pembuatan, pembaruan, dan penghapusan pengguna (User Management).
+    *   Proses pengunggahan berkas Excel untuk Sales, AR, dan Stok.
+    *   Eksekusi proses Tutup Buku bulanan dan pembukaan kembali periode.
+    *   Perubahan konfigurasi pemetaan kolom (Column Mapping).
+*   **Cara Membaca Log:**
+    Admin dapat memantau log aktivitas secara langsung melalui menu **Settings -> Activity Logs** di dashboard Admin untuk melakukan audit keamanan jika terjadi ketidaksesuaian data.
+
+---
+
+## 18. Lampiran (Diagram, SOP, & Folder)
+
+### A. ERD (Entity Relationship Diagram) Lengkap
+Berikut adalah diagram hubungan entitas lengkap di dalam database DistoraVision:
+
+```mermaid
+erDiagram
+    USERS {
+        bigint id PK
+        string name
+        string email
+        string password
+        string role
+        bigint salesman_id FK
+    }
+    SALESMEN {
+        bigint id PK
+        bigint branch_id FK
+        string sales_code
+        string name
+    }
+    BRANCHES {
+        bigint id PK
+        string code
+        string name
+    }
+    OUTLETS {
+        bigint id PK
+        string code
+        string name
+        string city
+    }
+    PRINCIPALS {
+        bigint id PK
+        string code
+        string name
+    }
+    PRODUCTS {
+        bigint id PK
+        bigint principal_id FK
+        string item_no
+        string name
+    }
+    TRANSACTIONS {
+        bigint id PK
+        bigint branch_id FK
+        bigint salesman_id FK
+        bigint outlet_id FK
+        bigint product_id FK
+        string type
+        string so_no
+        date so_date
+        int qty_base
+        decimal taxed_amt
+        decimal cogs
+        string period
+    }
+    AR_IMPORT_LOGS {
+        bigint id PK
+        bigint user_id FK
+        string filename
+        date report_date
+        string status
+    }
+    AR_RECEIVABLES {
+        bigint id PK
+        bigint ar_import_log_id FK
+        string outlet_code
+        string outlet_name
+        string salesman_code
+        string salesman_name
+        string pfi_sn
+        date doc_date
+        date due_date
+        decimal ar_balance
+        decimal credit_limit
+        int overdue_days
+    }
+
+    BRANCHES ||--o{ SALESMEN : "has"
+    SALESMEN ||--o{ USERS : "links_to"
+    BRANCHES ||--o{ TRANSACTIONS : "contains"
+    SALESMEN ||--o{ TRANSACTIONS : "performs"
+    OUTLETS ||--o{ TRANSACTIONS : "purchases"
+    PRODUCTS ||--o{ TRANSACTIONS : "sold_in"
+    PRINCIPALS ||--o{ PRODUCTS : "owns"
+    AR_IMPORT_LOGS ||--o{ AR_RECEIVABLES : "imports"
+    USERS ||--o{ AR_IMPORT_LOGS : "uploads"
+```
+
+### B. Use Case Diagram
+Menggambarkan interaksi aktor (Admin, Supervisor, Salesman) dengan sistem:
+
+```mermaid
+usecaseDiagram
+    actor Admin
+    actor Supervisor
+    actor Salesman
+
+    usecase "Unggah Excel & Import Data" as UC1
+    usecase "Tutup Buku Bulanan" as UC2
+    usecase "Manajemen User" as UC3
+    usecase "Melihat Dashboard Executive (Nasional)" as UC4
+    usecase "Melihat Dashboard Supervisor (Principal Terbatas)" as UC5
+    usecase "Melihat My Dashboard (Salesman Terbatas)" as UC6
+    usecase "Tanya Jawab AI Chat (Scoped Data)" as UC7
+    usecase "Melihat TV Leaderboard" as UC8
+
+    Admin --> UC1
+    Admin --> UC2
+    Admin --> UC3
+    Admin --> UC4
+    Admin --> UC7
+    Admin --> UC8
+
+    Supervisor --> UC5
+    Supervisor --> UC7
+    Supervisor --> UC8
+
+    Salesman --> UC6
+    Salesman --> UC7
+    Salesman --> UC8
+```
+
+### C. Activity Diagram: Proses Tutup Buku
+Menggambarkan alur aktivitas penutupan buku periode berjalan oleh Administrator:
+
+```mermaid
+stateDiagram-v2
+    [*] --> KlikTutupBuku
+    KlikTutupBuku --> ValidasiStatusPeriode
+    ValidasiStatusPeriode --> PeriodeSudahTutup : Jika status 'closed'
+    PeriodeSudahTutup --> [*] : Batalkan transaksi
+    
+    ValidasiStatusPeriode --> KloningMetrikSales : Jika status 'open'
+    KloningMetrikSales --> CariLatestARImport : Ambil data AR terbaru bulan ini
+    CariLatestARImport --> HitungAgingBucket : Klasifikasikan overdue hari
+    HitungAgingBucket --> SimpanSnapshot : Masukkan ke tabel closing_snapshots
+    SimpanSnapshot --> SetStatusClosed : Ubah status AP menjadi 'closed'
+    SetStatusClosed --> AutoBuatPeriodeBaru : Generate bulan berikutnya (status 'open')
+    AutoBuatPeriodeBaru --> TulisActivityLog : spatie/laravel-activitylog
+    TulisActivityLog --> [*] : Tutup Buku Selesai
+```
+
+### D. Sequence Diagram: Alur Tanya Jawab AI Chat
+Menggambarkan urutan pesan antar komponen saat pengguna berinteraksi dengan asisten AI:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Pengguna
+    participant Browser as Web Browser (AlpineJS)
+    participant Ctrl as AiChatController
+    participant Service as GroqChatService
+    participant Tools as AiToolsService
+    participant DB as MySQL Database
+
+    Pengguna->>Browser: Masukkan pertanyaan chat
+    Browser->>Ctrl: POST /ai-chat/ask (JSON payload + CSRF)
+    Note over Ctrl: Validasi data input & rate limit
+    Ctrl->>Service: chat(history, currentPeriod)
+    Service->>Service: buildSystemPrompt() & sanitizeUserMessage()
+    
+    rect rgb(24, 32, 70)
+        Note over Service: Round 1: Kirim pesan ke API Groq
+        Service-->>Service: API Groq meminta pemanggilan tool database
+        Service->>Tools: executeTool(toolName, arguments)
+        Tools->>DB: Eksekusi Query SQL (Global ACL Scope aktif)
+        DB-->>Tools: Mengembalikan data (Sales / AR / Stok)
+        Tools-->>Service: Format hasil tool (JSON string)
+    end
+    
+    Service->>Service: Round 2: Kirim hasil tool ke API Groq
+    Service-->>Ctrl: Mengembalikan jawaban final AI + info sisa kuota
+    Ctrl-->>Browser: HTTP 200 (JSON response)
+    Browser-->>Pengguna: Render jawaban AI di chatbox
+```
+
+### E. Screenshot Sistem
+Untuk membantu pemahaman visual, berikut adalah deskripsi layout tangkapan layar antarmuka utama DistoraVision:
+1.  **Dashboard Utama (Executive Panel):** Memiliki panel atas berisi indikator laba kotor, pertumbuhan MoM, serta banner AI Insight berwarna Slate & Deep Navy. Bagian tengah berisi visualisasi diagram Pareto kontribusi sales menggunakan ApexCharts.
+2.  **Dashboard AR (Accounts Receivable):** Dilengkapi navigasi 8-tab dinamis (Overview, Aging, Credit Risk, dll.) dengan tabel detail piutang outlet yang interaktif.
+3.  **Layar TV Wallboard:** Desain minimalis full-screen berlatar gelap (Midnight Navy) dengan running text di bagian bawah dan panel leaderboard performa harian salesman di sisi kanan.
+
+### F. Struktur Folder Penting
+Pohon direktori utama Laravel 12 pada aplikasi DistoraVision:
+```text
+distoravision/
+├── app/                        # Logika Inti Backend PHP
+│   ├── Http/
+│   │   ├── Controllers/        # Controllers penanganan request HTTP & AJAX
+│   │   └── Middleware/         # Middleware khusus (misal: AdminMiddleware.php)
+│   ├── Models/                 # Eloquent ORM Models (Transaction, ArReceivable, dll)
+│   ├── Services/               # Logika AI & Integrasi Groq (GroqChatService, AiToolsService)
+│   └── Traits/                 # Fitur reusable (misal: FilterableTransactions.php)
+├── bootstrap/                  # Inisialisasi framework & Registrasi middleware Laravel 12
+├── config/                     # Berkas konfigurasi sistem (database, import, dll)
+├── database/
+│   ├── migrations/             # Struktur skema tabel database
+│   └── seeders/                # Pengisian data simulasi/demo awal
+├── resources/                  # Aset Frontend & View Templates
+│   ├── views/                  # File template HTML (.blade.php)
+│   └── css/                    # File konfigurasi styling
+├── routes/
+│   ├── web.php                 # Rute utama aplikasi web
+│   └── auth.php                # Rute otentikasi login/logout
+└── tests/                      # Suite pengujian otomatis (PHPUnit)
+```
+
+### G. SOP Penggunaan Sistem (Standard Operating Procedures)
+
+#### SOP 1: Pengunggahan Data Awal Bulan (Admin)
+1.  **Persiapan:** Siapkan file Excel yang berisi data transaksi bulanan (Sales, AR, dan Stok) dari sistem ERP distributor.
+2.  **Login:** Masuk ke platform DistoraVision menggunakan akun dengan peran **Admin**.
+3.  **Unggah Sales:** Buka menu **Import Sales**, pilih file Excel transaksi penjualan, pilih nama sheet yang sesuai (contoh: `Sales BJM`), isi tanggal periode, lalu klik **Unggah**.
+4.  **Unggah AR:** Buka menu **Import AR**, pilih file Excel piutang, pilih nama sheet, isi tanggal pelaporan, lalu klik **Unggah**.
+5.  **Verifikasi Antrean:** Pantau halaman riwayat import untuk memastikan status berubah dari `Pending` -> `Completed`. Jika status `Failed`, periksa log error yang muncul untuk melakukan pembenahan kolom Excel.
+
+#### SOP 2: Analisis Kinerja & Piutang Toko (Salesman / Supervisor)
+1.  **Dashboard Pribadi:** Masuk menggunakan akun Salesman untuk melihat ringkasan performa penjualan Anda sendiri.
+2.  **Monitoring Target:** Perhatikan metrik **Pace Harian (Run Rate)** untuk mengetahui berapa rata-rata nominal penjualan yang harus dicapai per hari agar target bulanan terpenuhi.
+3.  **Penagihan Piutang:** Buka menu **AR Dashboard**, filter daftar toko berdasarkan kategori **Jatuh Tempo Kritis (>60 Hari)** atau yang memiliki flag **Collection Mention (CM) >= 3** untuk diprioritaskan penagihannya minggu ini.
+
+#### SOP 3: Proses Tutup Buku Bulanan (Admin)
+1.  **Validasi Akhir Periode:** Pastikan tidak ada berkas impor data transaksi penjualan atau piutang tambahan untuk bulan tersebut.
+2.  **Eksekusi:** Buka menu **Periods**, pilih baris periode bulan berjalan yang ingin ditutup (misalnya `2026-05`), isi catatan penutupan (opsional), lalu klik **Tutup Buku / Close Period**.
+3.  **Verifikasi Snapshot:** Pastikan status periode berubah menjadi `Closed` dan data snapshot KPI penjualan, laba kotor, serta sebaran aging bucket piutang telah tersimpan dan terkunci secara aman.
+
+#### SOP 4: Penggunaan Asisten AI Chat
+1.  **Navigasi:** Buka menu **AI Chat** dari menu samping.
+2.  **Ketik Pertanyaan:** Kirimkan pertanyaan bisnis spesifik Anda (misalnya: *"Siapa salesman dengan retur tertinggi di bulan Mei 2026?"* atau *"Berikan rekomendasi produk yang berisiko overstock"*).
+3.  **Membaca Hasil:** Distora AI akan memanggil tool database secara otomatis di belakang layar untuk memberikan ringkasan analisis serta rekomendasi bisnis yang actionable.
+
+### H. Kode Wilayah Toko Terdaftar (Cabang Kalimantan/Selatan)
 ```text
 AHD, AIR, AML, ANJ, ANT, AUN, AYN, BAI, BJB, BJR, BLG, BLR, BNJ, BPP, BRB, BRL, BRM, BRP, BRS, 
 BRU, BTH, BTL, BTM, CAS, CKT, CMR, CNR, DPR, GMB, HRM, IKK, IKN, INP, JHH, JTI, KAU, KLA, KLD, 
@@ -521,7 +755,7 @@ PHB, PKR, PKU, PLH, PLJ, PLK, PMT, PND, PSM, PST, SDN, SHB, SKR, SMY, SNG, SPD, 
 TBN, THR, TJG, TLD, TLT, TLW, TPD, TRP, UKA, WKG, WLD, WPC.
 ```
 
-### B. Pemetaan Kolom File Excel AR (Import AR Mapping)
+### I. Pemetaan Kolom File Excel AR (Import AR Mapping)
 Berikut adalah konfigurasi pemetaan kolom default yang disematkan dalam berkas `config/import_columns.php`:
 *   `ar_pfi_sn` -> `'pfisn'` / `'pfi_sn'` (Kunci Invoice Piutang)
 *   `ar_outlet_id` -> `'outlet_id'` / `'outlet_code'` (Kode Unik Toko)
@@ -529,6 +763,65 @@ Berikut adalah konfigurasi pemetaan kolom default yang disematkan dalam berkas `
 *   `ar_overdue_days` -> `'over_due'` / `'overdue'` (Hari Keterlambatan)
 *   `ar_credit_limit` -> `'credit_limit'` / `'plafon_kredit'` (Limit Kredit Outlet)
 *   `ar_cm` -> `'cm'` / `'collection_mention'` (Status Cetak Tagihan)
+
+---
+
+## 19. Maintenance Guide (Pemeliharaan & Monitoring)
+
+Untuk menjaga performa, stabilitas, dan keamanan sistem agar tetap berjalan optimal, tim Administrator TI wajib menjalankan langkah-langkah pemeliharaan berikut secara berkala:
+
+### A. Monitoring Sumber Daya Server
+
+#### 1. Monitoring CPU (Central Processing Unit)
+*   **Tindakan:** Pantau load CPU untuk menghindari bottleneck akibat proses komparasi data atau kalkulasi forecasting WMA yang berat.
+*   **Perintah (Linux CLI):**
+    ```bash
+    # Melihat aktivitas proses CPU secara real-time
+    htop
+    # atau menggunakan top standar
+    top -c
+    ```
+*   *Rekomendasi:* Jika load CPU konsisten di atas 80% dalam waktu lama, pertimbangkan untuk meningkatkan core CPU server atau optimasi index database.
+
+#### 2. Monitoring RAM (Memory)
+*   **Tindakan:** Pastikan memori fisik cukup untuk memuat pustaka pembaca Excel (PhpSpreadsheet) saat melakukan import file besar (>50 MB).
+*   **Perintah (Linux CLI):**
+    ```bash
+    # Memeriksa kapasitas RAM terpakai dan tersisa
+    free -h
+    ```
+*   *Rekomendasi:* Konfigurasi limit memori PHP di berkas `php.ini` (`memory_limit = 512M` atau `1024M` jika perlu) agar proses background queue import tidak mengalami kehabisan memori (*fatal error: out of memory*).
+
+#### 3. Monitoring Disk (Penyimpanan)
+*   **Tindakan:** Cek ruang penyimpanan kosong untuk menampung file log aktivitas, log query database, dan file Excel cadangan.
+*   **Perintah (Linux CLI):**
+    ```bash
+    # Memeriksa penggunaan kapasitas partisi disk
+    df -h
+    ```
+*   *Rekomendasi:* Bersihkan berkas log Laravel lama secara periodik di folder `storage/logs/laravel.log` atau gunakan log rotation di server Linux.
+
+### B. Update & Pemeliharaan Sistem
+
+#### 1. Update Laravel (Framework Core)
+*   Lakukan update minor framework Laravel 12 secara berkala untuk menambal celah keamanan terbaru (*security patches*).
+*   **Perintah:**
+    ```bash
+    composer update laravel/framework --with-dependencies
+    ```
+
+#### 2. Update Dependency (Pustaka Pihak Ketiga)
+*   **Pembaruan Backend (Composer):**
+    ```bash
+    composer update --no-dev
+    php artisan migrate --force
+    ```
+*   **Pembaruan Frontend (NPM):**
+    ```bash
+    npm update
+    npm run build
+    ```
+    *(Menjalankan kembali `npm run build` wajib dilakukan setiap kali ada perubahan/update aset CSS atau JS agar file manifest Vite terbarui).*
 
 ---
 *Dokumentasi Master ini disusun secara terperinci untuk memenuhi kebutuhan audit teknis dan panduan operasional pengguna DistoraVision.*
