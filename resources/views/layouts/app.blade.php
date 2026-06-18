@@ -386,14 +386,7 @@
             .btn-danger:hover { background: rgba(239,68,68,0.25); }
             .btn-secondary { background: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border-color); }
             .btn-secondary:hover { background: var(--bg-card-hover); color: var(--text-primary); }
-            .btn-demo-on { background: rgba(16,185,129,0.15); color: var(--accent-green); border: 1px solid rgba(16,185,129,0.35); }
-            .btn-demo-off { background: rgba(239,68,68,0.12); color: #fca5a5; border: 1px solid rgba(239,68,68,0.35); }
             .top-actions { display:flex; align-items:center; gap:0.75rem; }
-            .demo-chip {
-                display:inline-flex; align-items:center; gap:0.35rem; padding:0.3rem 0.6rem;
-                border-radius:999px; font-size:0.72rem; font-weight:700; letter-spacing:0.02em;
-                background: rgba(16,185,129,0.15); color: var(--accent-green); border: 1px solid rgba(16,185,129,0.3);
-            }
 
             /* Form inputs */
             .form-group { margin-bottom: 1.25rem; }
@@ -722,17 +715,6 @@
                     @endif
 
                     <div class="top-actions">
-                        @if(session('demo_mode_active', false))
-                            <span class="demo-chip">DEMO ACTIVE</span>
-                        @endif
-
-                        <form method="POST" action="{{ route('demo-mode.toggle') }}">
-                            @csrf
-                            <button type="submit" class="btn {{ session('demo_mode_active', false) ? 'btn-demo-on' : 'btn-demo-off' }}" style="font-size:0.75rem; padding:0.35rem 0.75rem;">
-                                {{ session('demo_mode_active', false) ? 'Matikan Demo' : 'Aktifkan Demo' }}
-                            </button>
-                        </form>
-
                         @yield('top-bar-actions')
                     </div>
                 </div>

@@ -58,10 +58,6 @@ class PrincipalController extends Controller implements HasMiddleware
             ->orderByDesc('total_sales')
             ->get();
 
-        if ($request->session()->get('demo_mode_active', false)) {
-            $principals = $principals->filter(fn ($p) => (float) ($p->total_sales ?? 0) > 0)->values();
-        }
-
         return view('principals.index', compact('principals', 'period', 'periods'));
     }
 

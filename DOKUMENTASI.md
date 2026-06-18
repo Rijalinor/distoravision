@@ -400,17 +400,6 @@ php artisan queue:work --queue=default --sleep=3 --tries=3
 
 ---
 
-### 💡 Panduan Mengaktifkan Demo Mode (Untuk Uji Coba)
-DistoraVision dilengkapi dengan mesin simulasi data untuk demonstrasi tanpa membutuhkan file penjualan riil.
-
-1.  **Generate Data Demo:** Jalankan perintah seeder untuk membuat data transaksi fiktif pada periode tertentu (format `YYYY-MM`):
-    ```bash
-    php artisan demo:seed 2026-05 --rows=1500
-    ```
-2.  **Aktifkan di UI:** Klik tombol **"Demo Mode"** yang terletak di bilah navigasi atas (Header) atau menu samping (Sidebar). Seluruh visualisasi dashboard akan otomatis membaca data simulasi yang baru dibuat.
-
----
-
 ## 13. User Manual (Panduan Pengguna)
 
 ### A. Panduan Bagi Administrator (Admin)

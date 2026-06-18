@@ -25,28 +25,6 @@ class Transaction extends Model
                 }
             }
         });
-
-        if (app()->runningInConsole() || ! request()->hasSession()) {
-            return;
-        }
-
-        $fakePrefix = (string) env('DEMO_FAKE_SO_PREFIX', 'DMO-');
-        if (request()->session()->get('demo_mode_active', false)) {
-            // Demo ON: only read fake rows.
-            static::addGlobalScope('demo_fake_only', function (Builder $builder) use ($fakePrefix) {
-                $builder->where($builder->qualifyColumn('so_no'), 'like', $fakePrefix.'%');
-            });
-
-            return;
-        }
-
-        // Demo OFF: hide fake rows from normal business views.
-        static::addGlobalScope('exclude_demo_fake_rows', function (Builder $builder) use ($fakePrefix) {
-            $builder->where(function (Builder $q) use ($fakePrefix) {
-                $q->whereNull($q->qualifyColumn('so_no'))
-                    ->orWhere($q->qualifyColumn('so_no'), 'not like', $fakePrefix.'%');
-            });
-        });
     }
 
     protected $fillable = [

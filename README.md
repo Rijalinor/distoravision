@@ -78,20 +78,6 @@ The application features a premium, minimalist **Sleek Navy** theme with modern 
 
 ---
 
-## 🧪 Seeding & Demo Engine
-
-DistoraVision contains a comprehensive simulator to quickly generate fake transactions and test analytics boards.
-
-1.  **Seed Demo Transactions:**
-    ```bash
-    # Generate 3000 fake sales & AR rows for June 2026
-    php artisan demo:seed 2026-06 --rows=3000
-    ```
-2.  **Toggle Demo Mode:**
-    Log in as any user, then toggle **Demo Mode** from the dashboard header. All metrics will dynamically parse generated simulation data.
-
----
-
 ## 🧪 Testing & Code Formatting
 
 DistoraVision prioritizes code quality, maintaining a clean codebase with 100% passing tests:

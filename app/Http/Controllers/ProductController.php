@@ -36,10 +36,6 @@ class ProductController extends Controller
                 'total_qty'
             );
 
-        if ($request->session()->get('demo_mode_active', false)) {
-            $query->whereHas('transactions', fn ($q) => $q->withFilters(request()));
-        }
-
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('products.name', 'like', "%{$search}%")

@@ -7,7 +7,6 @@ use App\Http\Controllers\ArAnalyticsController;
 use App\Http\Controllers\ArImportController;
 use App\Http\Controllers\ColumnMappingController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\DemoModeController;
 use App\Http\Controllers\ForecastingController;
 use App\Http\Controllers\ImportController;
 use App\Http\Controllers\OutletController;
@@ -34,7 +33,6 @@ Route::get('/', function () {
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/my-dashboard', [SalesmanDashboardController::class, 'index'])->name('salesman.dashboard');
-    Route::post('/demo-mode/toggle', [DemoModeController::class, 'toggle'])->name('demo-mode.toggle');
 
     // ══════════════════════════════════════════════════════════════
     // ADMIN ONLY — Import, Settings, Tutup Buku
