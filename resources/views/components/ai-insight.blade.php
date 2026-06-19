@@ -7,7 +7,7 @@
                 Distora AI Insight
                 <span class="badge badge-blue" style="font-size:0.65rem;">S1-Level</span>
             </h3>
-            <p style="color:var(--text-muted); font-size:1.05rem; line-height:1.6; margin:0;">
+            <p style="color: var(--text-secondary, #cbd5e1); font-size: 0.95rem; line-height: 1.6; margin: 0;">
                 {!! nl2br(e($aiNarrative)) !!}
             </p>
         </div>
