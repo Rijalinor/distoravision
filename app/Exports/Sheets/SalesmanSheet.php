@@ -96,6 +96,15 @@ class SalesmanSheet implements FromArray, WithColumnWidths, WithEvents, WithStyl
         // Totals
         $rows[] = ['TOTAL', '', (float) $salesmen->sum('net_sales'), '', '', '', '', '', '', $salesmen->sum('invoice_count'), $salesmen->sum('outlet_count'), ''];
 
+        // Formula notes
+        $rows[] = [];
+        $rows[] = ['CATATAN RUMUS', '', '', '', '', '', '', '', '', '', '', ''];
+        $rows[] = ['Net Sales', 'SUM(Invoice taxed_amt) - SUM(Return ABS(taxed_amt))', '', '', '', '', '', '', '', '', '', ''];
+        $rows[] = ['Delta MoM (%)', '((Net Sales Bulan Ini - Net Sales Bulan Lalu) / Net Sales Bulan Lalu) × 100', '', '', '', '', '', '', '', '', '', ''];
+        $rows[] = ['Return Rate (%)', 'Total Retur / (Net Sales + Total Retur) × 100', '', '', '', '', '', '', '', '', '', ''];
+        $rows[] = ['Gross Profit', 'Net Sales - COGS', '', '', '', '', '', '', '', '', '', ''];
+        $rows[] = ['Margin (%)', '(Gross Profit / Net Sales) × 100', '', '', '', '', '', '', '', '', '', ''];
+
         return $rows;
     }
 
@@ -131,7 +140,11 @@ class SalesmanSheet implements FromArray, WithColumnWidths, WithEvents, WithStyl
                 }
 
                 $ws->getStyle("A3:A{$lastDataRow}")->getAlignment()->setHorizontal('center');
-                $ws->getStyle("J3:L{$lastDataRow}")->getAlignment()->setHorizontal('right');
+                $ws->getStyle("J3:K{$lastDataRow}")->getNumberFormat()->setFormatCode('#,##0');
+                $ws->getStyle("J3:K{$lastDataRow}")->getAlignment()->setHorizontal('right');
+                $ws->getStyle("J{$totalRow}:K{$totalRow}")->getNumberFormat()->setFormatCode('#,##0');
+                $ws->getStyle("J{$totalRow}:K{$totalRow}")->getAlignment()->setHorizontal('right');
+                $ws->getStyle("L3:L{$lastDataRow}")->getAlignment()->setHorizontal('right');
 
                 $this->styleTotalsRow($ws, "A{$totalRow}:L{$totalRow}");
                 $this->formatCurrencyCol($ws, "C{$totalRow}");
@@ -139,15 +152,18 @@ class SalesmanSheet implements FromArray, WithColumnWidths, WithEvents, WithStyl
                 $this->outerBorder($ws, "A2:L{$totalRow}");
                 $ws->freezePane('A3');
 
-                // Conditional color: MoM negative = red, positive = green
+                // Color code MoM Growth
                 for ($row = 3; $row <= $lastDataRow; $row++) {
-                    $val = $ws->getCell("E{$row}")->getValue();
-                    if (is_numeric($val) && $val < 0) {
-                        $ws->getStyle("E{$row}")->getFont()->setColor(new Color('FFDC2626'));
-                    } elseif (is_numeric($val) && $val > 0) {
+                    $val = (float) $ws->getCell("E{$row}")->getValue();
+                    if ($val > 0) {
                         $ws->getStyle("E{$row}")->getFont()->setColor(new Color('FF16A34A'));
+                    } elseif ($val < 0) {
+                        $ws->getStyle("E{$row}")->getFont()->setColor(new Color('FFDC2626'));
                     }
                 }
+
+                // Style notes block
+                $this->styleNotesBlock($ws, $totalRow + 2, 6, 'L');
             },
         ];
     }

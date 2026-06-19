@@ -11,7 +11,7 @@ use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\WithTitle;
 use Maatwebsite\Excel\Events\AfterSheet;
-use PhpOffice\PhpSpreadsheet\Style\Color;
+use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
@@ -85,6 +85,16 @@ class ParetoSheet implements FromArray, WithColumnWidths, WithEvents, WithStyles
 
         $this->dataRowCount = $data->count();
 
+        // Formula notes
+        $rows[] = [];
+        $rows[] = ['CATATAN RUMUS', '', '', '', '', ''];
+        $rows[] = ['% Individu', '(Revenue Produk / Total Revenue) × 100', '', '', '', ''];
+        $rows[] = ['% Kumulatif', 'Penjumlahan berurutan % individu dari produk tertinggi ke terendah', '', '', '', ''];
+        $rows[] = ['Kelas A (VIP)', 'Produk dengan % kumulatif ≤ 80%. Kontributor utama.', '', '', '', ''];
+        $rows[] = ['Kelas B', 'Produk dengan % kumulatif 80.01% - 95%. Pendukung menengah.', '', '', '', ''];
+        $rows[] = ['Kelas C', 'Produk dengan % kumulatif > 95%. Kontribusi rendah, evaluasi stok/harga.', '', '', '', ''];
+        $rows[] = ['Prinsip Pareto', 'Umumnya ~20% produk (Kelas A) menghasilkan ~80% omset. Sisanya long tail.', '', '', '', ''];
+
         return $rows;
     }
 
@@ -120,8 +130,8 @@ class ParetoSheet implements FromArray, WithColumnWidths, WithEvents, WithStyles
 
                     $ws->getStyle($range)->applyFromArray([
                         'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => $bg]],
-                        'borders' => ['bottom' => ['borderStyle' => 'thin', 'color' => ['argb' => $this->clrBorder]]],
-                        'font' => ['size' => 10, 'name' => 'Calibri'],
+                        'borders' => ['bottom' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['argb' => $this->clrBorder]]],
+                        'font' => ['size' => 10, 'name' => 'Segoe UI'],
                     ]);
                 }
 
@@ -134,6 +144,9 @@ class ParetoSheet implements FromArray, WithColumnWidths, WithEvents, WithStyles
 
                 $this->outerBorder($ws, "A2:F{$lastDataRow}");
                 $ws->freezePane('A3');
+
+                // Style notes block (starts at $lastDataRow + 2, count 7 rows)
+                $this->styleNotesBlock($ws, $lastDataRow + 2, 7, 'F');
             },
         ];
     }

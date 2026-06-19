@@ -12,8 +12,8 @@ use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\WithTitle;
 use Maatwebsite\Excel\Events\AfterSheet;
-use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Color;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
@@ -122,6 +122,16 @@ class SummarySheet implements FromArray, WithColumnWidths, WithEvents, WithStyle
             /* 24 */ ['C.   PRINCIPAL DOMINASI OMSET', '', '', ''],
             /* 25 */ ['Principal', 'Revenue (Rp)', '', ''],
             /* 26 */ [$topPrincipal->name ?? 'N/A', (float) ($topPrincipal->rev ?? 0), '', ''],
+            /* 27 */ [],
+            /* 28 */ ['D.   CATATAN RUMUS & METODOLOGI', '', '', ''],
+            /* 29 */ ['Metrik', 'Rumus / Penjelasan', '', ''],
+            /* 30 */ ['Net Sales', 'Omset (SUM taxed_amt dari Invoice) - Total Retur (SUM ABS taxed_amt dari Return)', '', ''],
+            /* 31 */ ['Gross Profit', 'Net Sales - HPP (COGS)', '', ''],
+            /* 32 */ ['Blended Margin', '(Gross Profit / Net Sales) × 100%', '', ''],
+            /* 33 */ ['Return Rate', 'Total Retur / (Net Sales + Total Retur) × 100%', '', ''],
+            /* 34 */ ['MoM Growth', '((Net Sales Bulan Ini - Net Sales Bulan Lalu) / Net Sales Bulan Lalu) × 100%', '', ''],
+            /* 35 */ ['Toko Churn', 'Outlet yang aktif (Net Sales > 0) di bulan T-1 tapi tidak bertransaksi di bulan T', '', ''],
+            /* 36 */ ['Opportunity Loss', 'SUM Net Sales bulan T-1 dari outlet yang churn', '', ''],
         ];
     }
 
@@ -144,11 +154,11 @@ class SummarySheet implements FromArray, WithColumnWidths, WithEvents, WithStyle
 
                 // Info row 4
                 $ws->getStyle('A4:D4')->applyFromArray([
-                    'font' => ['bold' => true, 'size' => 11],
-                    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFDBEAFE']],
-                    'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['argb' => 'FF93C5FD']]],
+                    'font' => ['bold' => true, 'size' => 10],
+                    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFF8FAFC']],
+                    'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['argb' => $this->clrBorder]]],
                 ]);
-                $ws->getStyle('A4')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+                $ws->getStyle('A4')->getAlignment()->setHorizontal('left');
                 $ws->getStyle('C4')->getFont()->setBold(true);
 
                 // Section headers
@@ -160,14 +170,23 @@ class SummarySheet implements FromArray, WithColumnWidths, WithEvents, WithStyle
                 // Data rows 8-18
                 $this->styleDataRows($ws, 8, 18, 'D');
 
-                // Currency columns B & C for data rows
-                $this->formatCurrencyCol($ws, 'B8:B18');
-                $this->formatCurrencyCol($ws, 'C8:C18');
+                // Format each cell in B & C based on type
+                // Currency rows
+                foreach ([8, 9, 10, 12, 13, 15] as $r) {
+                    $this->formatCurrencyCol($ws, "B{$r}");
+                }
+                $this->formatCurrencyCol($ws, 'C10');
 
-                // Percent formatting on specific rows
-                $ws->getStyle('B11')->getNumberFormat()->setFormatCode('0.00"%"');
-                $ws->getStyle('B14')->getNumberFormat()->setFormatCode('0.00"%"');
-                $ws->getStyle('B18')->getNumberFormat()->setFormatCode('0.00"%"');
+                // Percentage rows
+                foreach ([11, 14, 18] as $r) {
+                    $this->formatPercentCol($ws, "B{$r}");
+                }
+
+                // Integer rows
+                foreach ([16, 17] as $r) {
+                    $ws->getStyle("B{$r}")->getNumberFormat()->setFormatCode('#,##0');
+                    $ws->getStyle("B{$r}")->getAlignment()->setHorizontal('right');
+                }
 
                 // section B
                 $this->styleSectionHeader($ws, 'A20:D20');
@@ -176,6 +195,8 @@ class SummarySheet implements FromArray, WithColumnWidths, WithEvents, WithStyle
                 $ws->getRowDimension(21)->setRowHeight(22);
                 $this->styleDataRows($ws, 22, 22, 'D');
                 $this->formatCurrencyCol($ws, 'C22');
+                $ws->getStyle('B22')->getNumberFormat()->setFormatCode('#,##0');
+                $ws->getStyle('B22')->getAlignment()->setHorizontal('right');
 
                 // section C
                 $this->styleSectionHeader($ws, 'A24:D24');
@@ -185,17 +206,30 @@ class SummarySheet implements FromArray, WithColumnWidths, WithEvents, WithStyle
                 $this->styleDataRows($ws, 26, 26, 'D');
                 $this->formatCurrencyCol($ws, 'B26');
 
+                // section D (Formula Notes)
+                $this->styleSectionHeader($ws, 'A28:D28');
+                $ws->getRowDimension(28)->setRowHeight(22);
+                $this->styleColHeader($ws, 'A29:D29');
+                $ws->getRowDimension(29)->setRowHeight(22);
+                $this->styleDataRows($ws, 30, 36, 'D');
+                $ws->getStyle('A30:A36')->getFont()->setBold(true);
+                for ($r = 30; $r <= 36; $r++) {
+                    $ws->mergeCells("B{$r}:D{$r}");
+                    $ws->getStyle("B{$r}")->getFont()->setItalic(true)->setSize(9)->setColor(new Color($this->clrMuted));
+                }
+
                 // Outer border
                 $this->outerBorder($ws, 'A8:D18');
                 $this->outerBorder($ws, 'A22:D22');
                 $this->outerBorder($ws, 'A26:D26');
+                $this->outerBorder($ws, 'A30:D36');
 
                 // Freeze pane below headers
                 $ws->freezePane('A8');
 
                 // Left-align label column
-                $ws->getStyle('A1:A26')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
-                $ws->getStyle('D8:D18')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT)->setWrapText(false);
+                $ws->getStyle('A1:A26')->getAlignment()->setHorizontal('left');
+                $ws->getStyle('D8:D18')->getAlignment()->setHorizontal('left')->setWrapText(false);
             },
         ];
     }

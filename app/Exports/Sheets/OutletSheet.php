@@ -85,6 +85,14 @@ class OutletSheet implements FromArray, WithColumnWidths, WithEvents, WithStyles
         $this->dataRowCount = $outlets->count();
         $rows[] = ['TOTAL', '', '', '', '', (float) $outlets->sum('net_sales'), 100.0, '', '', $outlets->sum('invoice_count'), '', ''];
 
+        // Formula notes
+        $rows[] = [];
+        $rows[] = ['CATATAN RUMUS', '', '', '', '', '', '', '', '', '', '', ''];
+        $rows[] = ['Revenue', 'SUM(taxed_amt) Invoice per toko', '', '', '', '', '', '', '', '', '', ''];
+        $rows[] = ['% Kontribusi', '(Revenue Toko / Total Revenue) × 100', '', '', '', '', '', '', '', '', '', ''];
+        $rows[] = ['Retur', 'SUM ABS(taxed_amt) tipe Return per toko', '', '', '', '', '', '', '', '', '', ''];
+        $rows[] = ['Return Rate (%)', 'Retur / (Revenue + Retur) × 100', '', '', '', '', '', '', '', '', '', ''];
+
         return $rows;
     }
 
@@ -113,7 +121,10 @@ class OutletSheet implements FromArray, WithColumnWidths, WithEvents, WithStyles
                 $this->formatPercentCol($ws, "G3:G{$lastDataRow}");
                 $this->formatCurrencyCol($ws, "H3:H{$lastDataRow}");
                 $this->formatPercentCol($ws, "I3:I{$lastDataRow}");
+                $ws->getStyle("J3:K{$lastDataRow}")->getNumberFormat()->setFormatCode('#,##0');
                 $ws->getStyle("J3:K{$lastDataRow}")->getAlignment()->setHorizontal('right');
+                $ws->getStyle("J{$totalRow}:K{$totalRow}")->getNumberFormat()->setFormatCode('#,##0');
+                $ws->getStyle("J{$totalRow}:K{$totalRow}")->getAlignment()->setHorizontal('right');
                 $ws->getStyle("A3:A{$lastDataRow}")->getAlignment()->setHorizontal('center');
                 $ws->getStyle("D3:D{$lastDataRow}")->getAlignment()->setHorizontal('center');
 
@@ -122,6 +133,9 @@ class OutletSheet implements FromArray, WithColumnWidths, WithEvents, WithStyles
 
                 $this->outerBorder($ws, "A2:L{$totalRow}");
                 $ws->freezePane('B3');
+
+                // Style notes block
+                $this->styleNotesBlock($ws, $totalRow + 2, 5, 'L');
             },
         ];
     }

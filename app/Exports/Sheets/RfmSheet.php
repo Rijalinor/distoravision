@@ -11,6 +11,7 @@ use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\WithTitle;
 use Maatwebsite\Excel\Events\AfterSheet;
+use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
@@ -103,6 +104,19 @@ class RfmSheet implements FromArray, WithColumnWidths, WithEvents, WithStyles, W
 
         $this->dataRowCount = $count;
 
+        // Formula notes
+        $rows[] = [];
+        $rows[] = array_pad(['CATATAN RUMUS & METODOLOGI'], 10, '');
+        $rows[] = array_pad(['1. Recency (R)', 'Skor 1-3 berdasarkan tanggal order terakhir. Makin baru → skor makin tinggi.'], 10, '');
+        $rows[] = array_pad(['2. Frequency (F)', 'Skor 1-3 berdasarkan jumlah transaksi unik (invoice). Makin sering → skor makin tinggi.'], 10, '');
+        $rows[] = array_pad(['3. Monetary (M)', 'Skor 1-3 berdasarkan total Net Sales. Makin besar → skor makin tinggi.'], 10, '');
+        $rows[] = array_pad(['4. Scoring', 'Toko diurutkan per metrik, dibagi 3 kuartil (33%/66%): Kuartil atas = 3, tengah = 2, bawah = 1.'], 10, '');
+        $rows[] = array_pad(['5. Total Skor', 'R + F + M (rentang 3 s/d 9)'], 10, '');
+        $rows[] = array_pad(['6. Champion', 'Total skor ≥ 8 → Pelanggan terbaik. Pertahankan dan beri prioritas!'], 10, '');
+        $rows[] = array_pad(['7. Loyal', 'Total skor 6-7 → Pelanggan tetap. Naikkan engagement.'], 10, '');
+        $rows[] = array_pad(['8. Need Attention', 'Total skor 4-5 → Mulai melemah. Butuh perhatian khusus.'], 10, '');
+        $rows[] = array_pad(['9. At Risk', 'Total skor ≤ 3 → Hampir hilang. Intervensi segera!'], 10, '');
+
         return $rows;
     }
 
@@ -124,16 +138,18 @@ class RfmSheet implements FromArray, WithColumnWidths, WithEvents, WithStyles, W
 
                 // Summary table
                 $ws->getStyle('A2:B2')->applyFromArray([
-                    'font' => ['bold' => true, 'color' => ['argb' => $this->clrGold]],
+                    'font' => ['bold' => true, 'color' => ['argb' => $this->clrWhite], 'name' => 'Segoe UI'],
                     'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => $this->clrBlue]],
+                    'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['argb' => $this->clrBorder]]],
                 ]);
-                $ws->getStyle('A3')->applyFromArray(['fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFD1FAE5']]]);
-                $ws->getStyle('A4')->applyFromArray(['fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFDBEAFE']]]);
-                $ws->getStyle('A5')->applyFromArray(['fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFFEF3C7']]]);
-                $ws->getStyle('A6')->applyFromArray(['fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFFEE2E2']]]);
+                $ws->getStyle('A3:B6')->applyFromArray([
+                    'font' => ['name' => 'Segoe UI'],
+                    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFFFFFFF']],
+                    'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['argb' => $this->clrBorder]]],
+                ]);
                 foreach ([3, 4, 5, 6] as $r) {
                     $ws->getStyle("B{$r}")->getAlignment()->setHorizontal('center');
-                    $ws->getStyle("A{$r}")->getFont()->setBold(true)->setSize(11);
+                    $ws->getStyle("A{$r}")->getFont()->setBold(true)->setSize(10);
                 }
 
                 // Data column header
@@ -141,24 +157,40 @@ class RfmSheet implements FromArray, WithColumnWidths, WithEvents, WithStyles, W
                 $ws->getRowDimension(7)->setRowHeight(28);
 
                 if ($this->dataRowCount > 0) {
-                    // Color code rows by segment
+                    // Color-code rows by RFM segment
                     for ($row = $dataStart; $row <= $lastDataRow; $row++) {
-                        $seg = $ws->getCell("J{$row}")->getValue();
-                        $bg = match (true) {
-                            str_contains((string) $seg, 'Champion') => 'FFD1FAE5',
-                            str_contains((string) $seg, 'Loyal') => 'FFDBEAFE',
-                            str_contains((string) $seg, 'Need') => 'FFFEF3C7',
-                            default => 'FFFEE2E2',
-                        };
-                        $ws->getStyle("A{$row}:J{$row}")->applyFromArray([
+                        $range = "A{$row}:J{$row}";
+                        $segment = (string) $ws->getCell("J{$row}")->getValue();
+                        if (str_contains($segment, 'Champion')) {
+                            $bg = 'FFD1FAE5';
+                        } elseif (str_contains($segment, 'Loyal')) {
+                            $bg = 'FFDBEAFE';
+                        } elseif (str_contains($segment, 'Need Attention')) {
+                            $bg = 'FFFEF3C7';
+                        } else {
+                            $bg = 'FFFEE2E2';
+                        }
+
+                        $ws->getStyle($range)->applyFromArray([
                             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => $bg]],
-                            'borders' => ['bottom' => ['borderStyle' => 'thin', 'color' => ['argb' => $this->clrBorder]]],
-                            'font' => ['size' => 10, 'name' => 'Calibri'],
+                            'borders' => ['bottom' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['argb' => $this->clrBorder]]],
+                            'font' => ['size' => 10, 'name' => 'Segoe UI'],
                         ]);
                     }
+
                     $this->formatCurrencyCol($ws, "E{$dataStart}:E{$lastDataRow}");
                     $ws->getStyle("A{$dataStart}:A{$lastDataRow}")->getAlignment()->setHorizontal('center');
-                    $ws->getStyle("D{$dataStart}:I{$lastDataRow}")->getAlignment()->setHorizontal('right');
+
+                    // Recency (D), Frequency (F) -> Integer
+                    $ws->getStyle("D{$dataStart}:D{$lastDataRow}")->getNumberFormat()->setFormatCode('#,##0');
+                    $ws->getStyle("D{$dataStart}:D{$lastDataRow}")->getAlignment()->setHorizontal('right');
+                    $ws->getStyle("F{$dataStart}:F{$lastDataRow}")->getNumberFormat()->setFormatCode('#,##0');
+                    $ws->getStyle("F{$dataStart}:F{$lastDataRow}")->getAlignment()->setHorizontal('right');
+
+                    // Scores (G, H, I) -> Centered Integer
+                    $ws->getStyle("G{$dataStart}:I{$lastDataRow}")->getNumberFormat()->setFormatCode('#,##0');
+                    $ws->getStyle("G{$dataStart}:I{$lastDataRow}")->getAlignment()->setHorizontal('center');
+
                     $this->outerBorder($ws, "A7:J{$lastDataRow}");
                 }
 

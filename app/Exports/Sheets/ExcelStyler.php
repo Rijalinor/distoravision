@@ -4,6 +4,7 @@ namespace App\Exports\Sheets;
 
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Color;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
@@ -18,9 +19,9 @@ trait ExcelStyler
 
     protected string $clrWhite = 'FFFFFFFF';
 
-    protected string $clrRowOdd = 'FFF8FAFC';
+    protected string $clrRowOdd = 'FFFFFFFF'; // pure white
 
-    protected string $clrRowEven = 'FFEFF6FF';
+    protected string $clrRowEven = 'FFF8FAFC'; // very light gray
 
     protected string $clrRed = 'FFFEE2E2';
 
@@ -37,7 +38,7 @@ trait ExcelStyler
     {
         $sheet->mergeCells($range);
         $sheet->getStyle($range)->applyFromArray([
-            'font' => ['bold' => true, 'size' => 16, 'color' => ['argb' => $this->clrWhite], 'name' => 'Calibri'],
+            'font' => ['bold' => true, 'size' => 16, 'color' => ['argb' => $this->clrWhite], 'name' => 'Segoe UI'],
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => $this->clrNavy]],
             'alignment' => ['horizontal' => Alignment::HORIZONTAL_LEFT, 'vertical' => Alignment::VERTICAL_CENTER, 'wrapText' => false],
         ]);
@@ -48,7 +49,7 @@ trait ExcelStyler
     {
         $sheet->mergeCells($range);
         $sheet->getStyle($range)->applyFromArray([
-            'font' => ['italic' => true, 'size' => 10, 'color' => ['argb' => 'FFB0BEC5'], 'name' => 'Calibri'],
+            'font' => ['italic' => true, 'size' => 10, 'color' => ['argb' => 'FFB0BEC5'], 'name' => 'Segoe UI'],
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => $this->clrNavy]],
             'alignment' => ['horizontal' => Alignment::HORIZONTAL_LEFT, 'vertical' => Alignment::VERTICAL_CENTER],
         ]);
@@ -59,7 +60,7 @@ trait ExcelStyler
     {
         $sheet->mergeCells($range);
         $sheet->getStyle($range)->applyFromArray([
-            'font' => ['bold' => true, 'size' => 11, 'color' => ['argb' => $this->clrGold], 'name' => 'Calibri'],
+            'font' => ['bold' => true, 'size' => 11, 'color' => ['argb' => $this->clrGold], 'name' => 'Segoe UI'],
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => $this->clrBlue]],
             'alignment' => ['horizontal' => Alignment::HORIZONTAL_LEFT, 'vertical' => Alignment::VERTICAL_CENTER, 'indent' => 1],
         ]);
@@ -69,7 +70,7 @@ trait ExcelStyler
     protected function styleColHeader(Worksheet $sheet, string $range): void
     {
         $sheet->getStyle($range)->applyFromArray([
-            'font' => ['bold' => true, 'size' => 10, 'color' => ['argb' => $this->clrWhite], 'name' => 'Calibri'],
+            'font' => ['bold' => true, 'size' => 10, 'color' => ['argb' => $this->clrWhite], 'name' => 'Segoe UI'],
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => $this->clrBlue]],
             'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER, 'wrapText' => true],
             'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['argb' => 'FF1E3A5F']]],
@@ -87,7 +88,7 @@ trait ExcelStyler
                 'borders' => [
                     'bottom' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['argb' => $this->clrBorder]],
                 ],
-                'font' => ['size' => 10, 'name' => 'Calibri'],
+                'font' => ['size' => 10, 'name' => 'Segoe UI'],
             ]);
         }
     }
@@ -96,7 +97,7 @@ trait ExcelStyler
     protected function styleTotalsRow(Worksheet $sheet, string $range): void
     {
         $sheet->getStyle($range)->applyFromArray([
-            'font' => ['bold' => true, 'size' => 10, 'name' => 'Calibri'],
+            'font' => ['bold' => true, 'size' => 10, 'name' => 'Segoe UI'],
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => $this->clrTotal]],
             'borders' => ['topBorder' => ['borderStyle' => Border::BORDER_MEDIUM, 'color' => ['argb' => $this->clrBlue]]],
         ]);
@@ -128,5 +129,23 @@ trait ExcelStyler
         $sheet->getStyle($range)->applyFromArray([
             'borders' => ['outline' => ['borderStyle' => Border::BORDER_MEDIUM, 'color' => ['argb' => $this->clrBlue]]],
         ]);
+    }
+
+    /** Style the notes/formulas block at the bottom of a sheet */
+    protected function styleNotesBlock(Worksheet $sheet, int $startRow, int $rowCount, string $lastCol): void
+    {
+        // 1. Bold header
+        $sheet->getStyle("A{$startRow}")->getFont()->setBold(true)->setSize(10)->setColor(new Color('FF334155'));
+
+        // 2. Format details
+        $endRow = $startRow + $rowCount - 1;
+        for ($r = $startRow + 1; $r <= $endRow; $r++) {
+            $sheet->getStyle("A{$r}")->getFont()->setBold(true)->setSize(9)->setColor(new Color('FF475569'));
+
+            // Merge B to $lastCol so long formula explanations are not clipped
+            $sheet->mergeCells("B{$r}:{$lastCol}{$r}");
+            $sheet->getStyle("B{$r}")->getFont()->setItalic(true)->setSize(9)->setColor(new Color($this->clrMuted));
+            $sheet->getStyle("B{$r}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+        }
     }
 }

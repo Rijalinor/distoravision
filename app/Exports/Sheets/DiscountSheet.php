@@ -96,6 +96,15 @@ class DiscountSheet implements FromArray, WithColumnWidths, WithEvents, WithStyl
             $rows[] = [$i + 1, $p->product_name, str_replace('PT. ', '', $p->principal_name), (float) $p->gross_sales, (float) $p->discount_given, $p->disc_pct, (float) $p->qty];
         }
 
+        // Formula notes
+        $rows[] = [];
+        $rows[] = ['CATATAN RUMUS & METODOLOGI', '', '', '', '', '', ''];
+        $rows[] = ['1. Gross Sales', 'SUM(gross) dari Invoice. Harga sebelum diskon.', '', '', '', '', ''];
+        $rows[] = ['2. Total Diskon', 'SUM(disc_total) dari Invoice.', '', '', '', '', ''];
+        $rows[] = ['3. Kedalaman Diskon (%)', '(Total Diskon / Gross Sales) × 100. Makin tinggi = makin banyak subsidi.', '', '', '', '', ''];
+        $rows[] = ['4. Net Sales', 'SUM(Invoice taxed_amt) - SUM(ABS(Return taxed_amt)). Omset bersih.', '', '', '', '', ''];
+        $rows[] = ['5. Interpretasi', 'Kedalaman > 15% → Evaluasi kebijakan diskon. Bandingkan per principal & produk.', '', '', '', '', ''];
+
         return $rows;
     }
 
@@ -154,9 +163,13 @@ class DiscountSheet implements FromArray, WithColumnWidths, WithEvents, WithStyl
                     $this->formatCurrencyCol($ws, "D{$productDataStart}:D{$productDataEnd}");
                     $this->formatCurrencyCol($ws, "E{$productDataStart}:E{$productDataEnd}");
                     $this->formatPercentCol($ws, "F{$productDataStart}:F{$productDataEnd}");
+                    $ws->getStyle("G{$productDataStart}:G{$productDataEnd}")->getNumberFormat()->setFormatCode('#,##0');
                     $ws->getStyle("G{$productDataStart}:G{$productDataEnd}")->getAlignment()->setHorizontal('right');
                     $this->outerBorder($ws, "A{$productColHeader}:G{$productDataEnd}");
                 }
+
+                // Style notes block (starts at $productDataEnd + 2, count 6 rows)
+                $this->styleNotesBlock($ws, $productDataEnd + 2, 6, 'G');
 
                 $ws->freezePane('A2');
             },

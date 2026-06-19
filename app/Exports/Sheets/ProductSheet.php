@@ -83,6 +83,15 @@ class ProductSheet implements FromArray, WithColumnWidths, WithEvents, WithStyle
         $this->dataRowCount = $products->count();
         $rows[] = ['TOTAL', '', '', (float) $products->sum('net_sales'), 100.0, (float) $products->sum('total_qty'), '', '', '', '', ''];
 
+        // Formula notes
+        $rows[] = [];
+        $rows[] = ['CATATAN RUMUS', '', '', '', '', '', '', '', '', '', ''];
+        $rows[] = ['Revenue', 'SUM(taxed_amt) dari transaksi Invoice per produk', '', '', '', '', '', '', '', '', ''];
+        $rows[] = ['% Kontribusi', '(Revenue Produk / Total Revenue Semua Produk) × 100', '', '', '', '', '', '', '', '', ''];
+        $rows[] = ['Gross Profit', 'Revenue - COGS', '', '', '', '', '', '', '', '', ''];
+        $rows[] = ['Margin (%)', '(Gross Profit / Revenue) × 100', '', '', '', '', '', '', '', '', ''];
+        $rows[] = ['Jangkauan Outlet', 'COUNT(DISTINCT outlet_id) yang membeli produk tersebut', '', '', '', '', '', '', '', '', ''];
+
         return $rows;
     }
 
@@ -99,32 +108,43 @@ class ProductSheet implements FromArray, WithColumnWidths, WithEvents, WithStyle
                 $lastDataRow = 2 + $this->dataRowCount;
                 $totalRow = $lastDataRow + 1;
 
-                $this->styleTitle($ws, 'A1:K1');
+                $this->styleTitle($ws, 'A1:L1');
                 $ws->getRowDimension(1)->setRowHeight(28);
 
-                $this->styleColHeader($ws, 'A2:K2');
+                $this->styleColHeader($ws, 'A2:L2');
                 $ws->getRowDimension(2)->setRowHeight(36);
 
-                $this->styleDataRows($ws, 3, $lastDataRow, 'K');
+                $this->styleDataRows($ws, 3, $lastDataRow, 'L');
 
-                $this->formatCurrencyCol($ws, "D3:D{$lastDataRow}");
-                $this->formatPercentCol($ws, "E3:E{$lastDataRow}");
-                $this->formatCurrencyCol($ws, "F3:F{$lastDataRow}");
-                $this->formatCurrencyCol($ws, "G3:G{$lastDataRow}");
-                $this->formatCurrencyCol($ws, "H3:H{$lastDataRow}");
-                $this->formatPercentCol($ws, "I3:I{$lastDataRow}");
-                $this->formatCurrencyCol($ws, "J3:J{$lastDataRow}");
-                $ws->getStyle("K3:K{$lastDataRow}")->getAlignment()->setHorizontal('right');
+                // Revenue (D), Retur (G), Gross Profit (I), Diskon (K) -> Currency
+                foreach (['D', 'G', 'I', 'K'] as $col) {
+                    $this->formatCurrencyCol($ws, "{$col}3:{$col}{$lastDataRow}");
+                    $this->formatCurrencyCol($ws, "{$col}{$totalRow}");
+                }
 
-                $this->styleTotalsRow($ws, "A{$totalRow}:K{$totalRow}");
-                $this->formatCurrencyCol($ws, "D{$totalRow}");
-                $this->formatCurrencyCol($ws, "F{$totalRow}");
+                // Kontribusi (E), Return Rate (H), Margin (J) -> Percentage
+                foreach (['E', 'H', 'J'] as $col) {
+                    $this->formatPercentCol($ws, "{$col}3:{$col}{$lastDataRow}");
+                }
+
+                // Qty (F), Outlet Reach (L) -> Integer
+                foreach (['F', 'L'] as $col) {
+                    $ws->getStyle("{$col}3:{$col}{$lastDataRow}")->getNumberFormat()->setFormatCode('#,##0');
+                    $ws->getStyle("{$col}3:{$col}{$lastDataRow}")->getAlignment()->setHorizontal('right');
+                }
+                $ws->getStyle("F{$totalRow}")->getNumberFormat()->setFormatCode('#,##0');
+                $ws->getStyle("F{$totalRow}")->getAlignment()->setHorizontal('right');
+
+                $this->styleTotalsRow($ws, "A{$totalRow}:L{$totalRow}");
 
                 $ws->getStyle("A3:A{$lastDataRow}")->getAlignment()->setHorizontal('center');
                 $ws->getStyle('B3:B'.$lastDataRow)->getAlignment()->setWrapText(false);
 
-                $this->outerBorder($ws, "A2:K{$totalRow}");
+                $this->outerBorder($ws, "A2:L{$totalRow}");
                 $ws->freezePane('A3');
+
+                // Style notes block
+                $this->styleNotesBlock($ws, $totalRow + 2, 6, 'L');
             },
         ];
     }
