@@ -23,7 +23,7 @@
                 --bg-card-hover: #3b476e; /* Slate Blue Card Hover (Stripe 3) */
                 --text-primary: #f8fafc;
                 --text-secondary: #cbd5e1;
-                --text-muted: #64748b;
+                --text-muted: #94a3b8;
                 --accent-green: #10b981;
                 --accent-red: #ef4444;
                 --accent-yellow: #f59e0b;
