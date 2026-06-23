@@ -89,13 +89,13 @@
 
 {{-- LEADERBOARD --}}
 <div class="card" style="border-top:4px solid var(--primary);">
-    <div class="card-header"><span class="card-title">🏅 Ranking Omset Salesman — {{ $periodLabel }}</span><span class="badge badge-blue">{{ $leaderboard->count() }} salesman</span></div>
+    <div class="card-header"><span class="card-title">👥 Performa Salesman — {{ $periodLabel }}</span><span class="badge badge-blue">{{ $leaderboard->count() }} salesman</span></div>
     <table class="data-table">
-        <thead><tr><th style="width:40px;">#</th><th>Salesman</th><th class="text-right">Omset</th><th class="text-right">Retur</th><th class="text-right">Net Sales</th><th class="text-right">Nota</th><th class="text-right">Outlet</th><th class="text-right">Ret%</th><th style="width:40px;"></th></tr></thead>
+        <thead><tr><th style="width:40px;">No</th><th>Salesman</th><th class="text-right">Omset</th><th class="text-right">Retur</th><th class="text-right">Net Sales</th><th class="text-right">Nota</th><th class="text-right">Outlet</th><th class="text-right">Ret%</th><th style="width:40px;"></th></tr></thead>
         <tbody>
         @foreach($leaderboard as $i => $s)
         <tr style="{{ $selectedSalesCode === $s->sales_code ? 'background:rgba(99,102,241,0.1);border-left:3px solid var(--primary);' : '' }}">
-            <td>@if($i===0)<span style="font-size:1.2rem;">🥇</span>@elseif($i===1)<span style="font-size:1.2rem;">🥈</span>@elseif($i===2)<span style="font-size:1.2rem;">🥉</span>@else<span style="color:var(--text-muted);">{{ $i+1 }}</span>@endif</td>
+            <td><span style="color:var(--text-muted);">{{ $i+1 }}</span></td>
             <td><div style="font-weight:600;">{{ $s->sales_name }}</div><div style="font-size:0.65rem;color:var(--text-muted);">{{ $s->sales_code }}</div></td>
             <td class="text-right font-mono font-bold" title="Rp {{ number_format($s->total_sales, 0, ',', '.') }}">{{ number_format($s->total_sales / 1000000, 1, ',', '.') }}Jt</td>
             <td class="text-right font-mono text-red">{{ number_format($s->total_returns / 1000, 0, ',', '.') }}K</td>

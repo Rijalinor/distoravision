@@ -69,7 +69,7 @@ class SalesPerAnalyticsController extends Controller implements HasMiddleware
                 DB::raw("COUNT(DISTINCT CASE WHEN type='I' THEN outlet_code END) as outlet_count")
             )
             ->groupBy('sales_code')
-            ->orderByDesc('total_sales')
+            ->orderBy('sales_name')
             ->get();
 
         $leaderboard->transform(function ($s) {

@@ -257,46 +257,8 @@
             @endif
         </div>
 
-        <!-- SLIDE 2 to X: LEADERBOARD CHUNKS -->
-        @php
-            $leaderboardChunks = $leaderboard->chunk(10);
-            $slideCounter = 2;
-        @endphp
-
-        @foreach($leaderboardChunks as $chunkIndex => $chunk)
-        <div class="slide" id="slide-{{ $slideCounter }}">
-            <div class="title">🏆 Top Salesman Leaderboard {{ $chunkIndex > 0 ? '('.($chunkIndex * 10 + 1).' - '.($chunkIndex * 10 + $chunk->count()).')' : '' }}</div>
-            <div class="leaderboard">
-                @foreach($chunk as $sm)
-                    @php 
-                        $rank = ($chunkIndex * 10) + $loop->iteration; 
-                        $rankClass = $rank <= 3 ? "rank-$rank" : "";
-                    @endphp
-                    <div class="lb-card {{ $rankClass }}">
-                        <div class="lb-rank">#{{ $rank }}</div>
-                        <div class="lb-details">
-                            <div class="lb-name">{{ Str::limit($sm->name, 22) }}</div>
-                            
-                            <div class="lb-stats">
-                                <span class="stat omset">Omset: Rp {{ number_format($sm->total_sales / 1000000, 0, ',', '.') }} Jt</span>
-                                <span class="stat target">Tgt: Rp {{ number_format($sm->target / 1000000, 0, ',', '.') }} Jt</span>
-                                <span class="stat ar">Piutang: Rp {{ number_format($sm->ar_balance / 1000000, 0, ',', '.') }} Jt</span>
-                            </div>
-
-                            <div class="lb-progress-bar-wrap">
-                                <span class="lb-pct">{{ number_format($sm->progress, 1) }}%</span>
-                                <div class="lb-progress-fill" style="width:{{ min($sm->progress, 100) }}%;"></div>
-                            </div>
-                        </div>
-                    </div>
-                @endforeach
-            </div>
-        </div>
-        @php $slideCounter++; @endphp
-        @endforeach
-
         <!-- LAST SLIDE: TOP ENTITIES -->
-        <div class="slide" id="slide-{{ $slideCounter }}">
+        <div class="slide" id="slide-2">
             <div class="grid-2">
                 <div class="list-box">
                     <div class="list-title">🏷️ Top 5 Principal</div>
@@ -331,7 +293,7 @@
         const REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes whole page reload to get new DB data
         
         let currentSlide = 1;
-        const totalSlides = {{ $slideCounter }};
+        const totalSlides = 2;
         
         function showSlide(index) {
             document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
