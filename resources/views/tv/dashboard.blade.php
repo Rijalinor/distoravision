@@ -293,23 +293,29 @@
         const REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes whole page reload to get new DB data
         
         let currentSlide = 1;
-        const totalSlides = 2;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
         
         function showSlide(index) {
+            const slideEl = document.getElementById('slide-' + index);
+            if (!slideEl) return;
+
             document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
-            document.getElementById('slide-' + index).classList.add('active');
+            slideEl.classList.add('active');
             
             // Reset timer bar
             const timer = document.getElementById('slideTimer');
-            timer.style.transition = 'none';
-            timer.style.width = '0%';
-            
-            // Force reflow
-            void timer.offsetWidth;
-            
-            // Start timer bar animation
-            timer.style.transition = `width ${SLIDE_DURATION}ms linear`;
-            timer.style.width = '100%';
+            if (timer) {
+                timer.style.transition = 'none';
+                timer.style.width = '0%';
+                
+                // Force reflow
+                void timer.offsetWidth;
+                
+                // Start timer bar animation
+                timer.style.transition = `width ${SLIDE_DURATION}ms linear`;
+                timer.style.width = '100%';
+            }
         }
         
         function nextSlide() {
