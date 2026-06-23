@@ -78,6 +78,22 @@ The application features a premium, minimalist **Sleek Navy** theme with modern 
 
 ---
 
+## 👥 Demo Mode & Mock Data
+
+For presentation and testing purposes, DistoraVision features an automatic **Demo Mode** with fully-isolated realistic mock data.
+
+1.  **Seed the Demo Database:**
+    ```bash
+    php artisan db:seed --class=DemoDataSeeder
+    ```
+2.  **Access the Demo Dashboard:**
+    *   **Login Email:** `demo@admin.com`
+    *   **Password:** `password`
+    
+*When logged in as the demo user, the system automatically redirects all queries to display mock data. For real production accounts, the mock data is completely hidden, ensuring enterprise data privacy.*
+
+---
+
 ## 🧪 Testing & Code Formatting
 
 DistoraVision prioritizes code quality, maintaining a clean codebase with 100% passing tests:

@@ -431,6 +431,24 @@ php artisan queue:work --queue=default --sleep=3 --tries=3
 
 ---
 
+### C. Mode Demo & Isolasi Data (Demo Mode & Data Isolation)
+
+DistoraVision menyediakan fitur **Mode Demo** dinamis yang dirancang untuk kebutuhan presentasi, pengujian, atau demonstrasi aplikasi tanpa membocorkan data asli perusahaan.
+
+#### 1. Kredensial Akun Demo
+*   **Email:** `demo@admin.com`
+*   **Password:** `password`
+*   **Role:** `admin` (Memberikan akses penuh ke seluruh menu analitik eksekutif)
+
+#### 2. Cara Kerja Isolasi Data (Demo Mode Scope)
+Sistem secara otomatis mengisolasi data menggunakan trait global query scope `ScopesDemoMode` pada model-model inti (`Transaction`, `ArReceivable`, `SalesPerTransaction`, `SalesPerStock`, `ImportLog`, `ArImportLog`, `SalesPerImportLog`):
+*   **Bagi Akun Demo (`demo@admin.com`)**: Seluruh query basis data secara otomatis disaring untuk **hanya menampilkan data demo** yang dihasilkan oleh `DemoDataSeeder`. Data asli perusahaan disembunyikan total.
+*   **Bagi Akun Non-Demo (Real Users)**: Seluruh data demo **disembunyikan secara otomatis** dari query. Pengguna ril hanya akan melihat data asli hasil impor riil mereka masing-masing.
+
+Hal ini menjamin keamanan kerahasiaan informasi bisnis perusahaan saat melakukan demo kepada atasan atau pihak luar.
+
+---
+
 ## 14. Testing Documentation (Dokumentasi Pengujian)
 
 DistoraVision menggunakan framework pengujian **PHPUnit** untuk memastikan fungsionalitas logika analitik, rumus perhitungan, dan pembatasan data (ACL) berjalan dengan benar.
