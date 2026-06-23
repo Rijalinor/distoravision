@@ -68,6 +68,9 @@ class TvDashboardController extends Controller
         // ==== Fetch AR (Piutang) ====
         $latestImport = ArImportLog::where('status', 'completed')->orderByDesc('report_date')->first();
         $arBalances = collect();
+        $arSummary = null;
+        $topArOutlets = collect();
+
         if ($latestImport) {
             $arBalances = ArReceivable::where('ar_import_log_id', $latestImport->id)
                 ->where('ar_balance', '>', 0)
@@ -75,6 +78,23 @@ class TvDashboardController extends Controller
                 ->groupBy('salesman_name')
                 ->selectRaw('salesman_name, SUM(ar_balance) as total_ar')
                 ->pluck('total_ar', 'salesman_name');
+
+            // Slide 3: AR Summary Statistics
+            $arSummary = ArReceivable::where('ar_import_log_id', $latestImport->id)
+                ->selectRaw('
+                    SUM(ar_balance) as total_balance,
+                    SUM(CASE WHEN overdue_days > 0 THEN ar_balance ELSE 0 END) as total_overdue,
+                    SUM(CASE WHEN overdue_days > 30 THEN ar_balance ELSE 0 END) as overdue_30,
+                    SUM(CASE WHEN overdue_days > 90 THEN ar_balance ELSE 0 END) as overdue_90
+                ')->first();
+
+            // Slide 3: Top Outlets by Outstanding AR
+            $topArOutlets = ArReceivable::where('ar_import_log_id', $latestImport->id)
+                ->where('ar_balance', '>', 0)
+                ->select('outlet_name', 'ar_balance', 'overdue_days')
+                ->orderByDesc('ar_balance')
+                ->limit(5)
+                ->get();
         }
 
         // Attach individual targets and AR to the leaderboard
@@ -120,7 +140,7 @@ class TvDashboardController extends Controller
 
         return view('tv.dashboard', compact(
             'period', 'monthName', 'netSales', 'teamTarget', 'achievementPct', 'gap',
-            'leaderboard', 'topProducts', 'topOutlets'
+            'leaderboard', 'topProducts', 'topOutlets', 'arSummary', 'topArOutlets'
         ));
     }
 }

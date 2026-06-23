@@ -281,6 +281,50 @@
             </div>
         </div>
 
+        <!-- SLIDE 3: ACCOUNTS RECEIVABLE (AR) SUMMARY -->
+        <div class="slide" id="slide-3">
+            <div class="title">📊 Accounts Receivable (Aging Piutang)</div>
+            @if($arSummary)
+                <div class="grid-2">
+                    <div class="list-box" style="display:flex; flex-direction:column; justify-content:space-between;">
+                        <div class="list-title" style="color:#f87171;">⚠️ Outstanding AR Overview</div>
+                        <div class="list-item" style="font-size:2rem; margin-bottom:2rem;">
+                            <span class="list-item-name">Total Piutang:</span>
+                            <span class="list-item-val" style="color:#cbd5e1; font-weight:900;">Rp {{ number_format($arSummary->total_balance / 1000000, 1, ',', '.') }} Jt</span>
+                        </div>
+                        <div class="list-item">
+                            <span class="list-item-name">Overdue (Jatuh Tempo):</span>
+                            <span class="list-item-val" style="color:#ef4444;">Rp {{ number_format($arSummary->total_overdue / 1000000, 1, ',', '.') }} Jt</span>
+                        </div>
+                        <div class="list-item">
+                            <span class="list-item-name">Jatuh Tempo > 30 Hari:</span>
+                            <span class="list-item-val" style="color:#f59e0b;">Rp {{ number_format($arSummary->overdue_30 / 1000000, 1, ',', '.') }} Jt</span>
+                        </div>
+                        <div class="list-item">
+                            <span class="list-item-name">Jatuh Tempo > 90 Hari:</span>
+                            <span class="list-item-val" style="color:#ef4444; text-shadow:0 0 10px rgba(239,68,68,0.5);">Rp {{ number_format($arSummary->overdue_90 / 1000000, 1, ',', '.') }} Jt</span>
+                        </div>
+                    </div>
+                    <div class="list-box">
+                        <div class="list-title">🏪 Top 5 Outlet Outstanding AR</div>
+                        @foreach($topArOutlets as $i => $outlet)
+                            <div class="list-item">
+                                <div class="list-item-name">
+                                    {{ $i + 1 }}. {{ Str::limit($outlet->outlet_name, 22) }}
+                                    <span style="font-size:1rem; color:#64748b; display:block;">Overdue: {{ $outlet->overdue_days }} Hari</span>
+                                </div>
+                                <div class="list-item-val" style="color:#fbbf24;">Rp {{ number_format($outlet->ar_balance / 1000000, 1, ',', '.') }} Jt</div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @else
+                <div class="list-box" style="text-align:center; padding:5rem;">
+                    <div style="font-size:2rem; color:var(--text-muted);">Tidak ada data Piutang Outstanding saat ini.</div>
+                </div>
+            @endif
+        </div>
+
     </div>
 
     <!-- Slide Timeline Indicator -->
