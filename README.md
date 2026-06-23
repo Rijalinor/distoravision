@@ -17,7 +17,7 @@ The application features a premium, minimalist **Sleek Navy** theme with modern 
 *   **Real-time MoM Metrics:** Instant tracking of Net Revenue, Gross Margin, and Month-over-Month growth.
 *   **Pareto 80/20 Analysis:** Automatic identification of the core 20% of products and outlets generating 80% of revenue.
 *   **Proportional Target Management:** Intelligent allocation of global sales targets to salesmen based on weighted 3-month historical performances.
-*   **TV Leaderboard Wallboard:** A specialized, auto-refreshing kiosk interface optimized for large office screens, showing real-time salesman standings and running ticker updates.
+*   **TV Wallboard Command Center:** A specialized, auto-refreshing kiosk interface optimized for large office screens, showing MTD Performance, Top Entities (Principals/Outlets), and dynamic Accounts Receivable (AR) Aging.
 
 ### 🔮 Pure Demand Forecasting (Inventory Planning)
 *   **3-Month Weighted Moving Average (WMA):** Mathematical baseline forecasting built directly into the database query layer.

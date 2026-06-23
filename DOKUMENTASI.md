@@ -48,6 +48,7 @@ Dokumen ini merupakan panduan referensi tunggal (Master Documentation) untuk ars
 | **v1.2.0** | 08 Juni 2026 | Rijalinor | Rilis Modul Accounts Receivable (AR) Analytics, Import AR, dan integrasi penagihan kritis. |
 | **v2.0.0** | 15 Juni 2026 | Rijalinor | Redesain Antarmuka Utama: Tema Sleek Navy (Navy Palette) & Peningkatan Readability Teks. |
 | **v2.1.0** | 17 Juni 2026 | Antigravity | Konsolidasi & Rekonstruksi Master Dokumentasi 17 Bagian dari Awal. |
+| **v2.2.0** | 23 Juni 2026 | Antigravity | Fitur Demo Mode Dinamis (demo@admin.com), mengubah Ranking Salesman menjadi Performa Salesman (Alfabetis), & menambah Slide AR Aging ke TV Wallboard. |
 
 ---
 
@@ -276,7 +277,10 @@ Mesin proyeksi kebutuhan produk berbasis data deret waktu (Time Series) dengan 4
 Integrasi asisten virtual Distora AI berbasis Groq API (`llama-3.1-8b-instant`). Dilengkapi dengan pustaka instruksi `AiToolsService` untuk mengambil data penjualan, tren 6 bulan, status stok, dan piutang bermasalah secara langsung lewat *SQL Tool Call* tanpa membocorkan database secara mentah.
 
 ### Modul 10: TV Wallboard Dashboard
-Tampilan layar monitor otomatis (*Wallboard*) di kantor cabang. Berfungsi menampilkan performa harian tim, *running text* pengumuman penting, dan leaderboard nilai piutang outstanding per salesman secara berulang.
+Tampilan layar monitor otomatis (*Wallboard*) di kantor cabang. Berfungsi menampilkan metrik performa secara periodik melalui 3 slide dinamis:
+1. **Global MTD Performance**: Menampilkan pencapaian omset tim terhadap target bulan berjalan beserta sisa gap pencapaian.
+2. **Top Entities**: Menampilkan rangkuman Top 5 Principal dan Top 5 Outlet Terlaris.
+3. **Accounts Receivable (AR) Summary**: Menampilkan total outstanding piutang, sebaran aging jatuh tempo (>30 hari & >90 hari), serta daftar 5 outlet dengan saldo piutang terbesar.
 
 ---
 
