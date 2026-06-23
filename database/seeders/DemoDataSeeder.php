@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -14,6 +15,17 @@ class DemoDataSeeder extends Seeder
      */
     public function run(): void
     {
+        // Create demo user if not exists
+        $demoUser = User::firstOrCreate(
+            ['email' => 'demo@admin.com'],
+            [
+                'name' => 'Demo Administrator',
+                'role' => 'admin',
+                'password' => bcrypt('password'),
+            ]
+        );
+        $demoUserId = $demoUser->id;
+
         // 1. Truncate existing data (keeping users)
         Schema::disableForeignKeyConstraints();
         DB::table('transactions')->truncate();
@@ -89,7 +101,7 @@ class DemoDataSeeder extends Seeder
         foreach ($periods as $i => $period) {
             $importLogs[] = [
                 'id' => $i + 1,
-                'user_id' => 1,
+                'user_id' => $demoUserId,
                 'filename' => "import_{$period}.xlsx",
                 'period' => $period,
                 'status' => 'completed',
@@ -223,7 +235,7 @@ class DemoDataSeeder extends Seeder
         // 10. Seed AR Import Logs
         $arImportLog = [
             'id' => 1,
-            'user_id' => 1,
+            'user_id' => $demoUserId,
             'filename' => 'ar_receivables_current.xlsx',
             'report_date' => now()->format('Y-m-d'),
             'sheet_name' => 'BJM',
@@ -296,7 +308,7 @@ class DemoDataSeeder extends Seeder
         // 12. Seed Sales Per Import Log
         $salesPerImportLog = [
             'id' => 1,
-            'user_id' => 1,
+            'user_id' => $demoUserId,
             'filename' => 'sales_per_stock_report.xlsx',
             'period' => '2026-06',
             'status' => 'completed',

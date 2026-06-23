@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Traits\ScopesDemoMode;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ArReceivable extends Model
 {
+    use ScopesDemoMode;
+
     protected static function booted(): void
     {
         // === ACL GLOBAL SCOPES ===

@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Traits\ScopesDemoMode;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class SalesPerImportLog extends Model
 {
+    use ScopesDemoMode;
+
     protected $fillable = [
         'user_id', 'filename', 'period', 'status',
         'total_rows', 'imported_rows', 'skipped_rows', 'failed_rows',

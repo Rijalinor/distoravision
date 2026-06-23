@@ -3,13 +3,14 @@
 namespace App\Models;
 
 use App\Traits\FilterableTransactions;
+use App\Traits\ScopesDemoMode;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Transaction extends Model
 {
-    use FilterableTransactions;
+    use FilterableTransactions, ScopesDemoMode;
 
     protected static function booted(): void
     {
@@ -83,5 +84,10 @@ class Transaction extends Model
     public function scopeForPeriod($query, string $period)
     {
         return $query->where('period', $period);
+    }
+
+    public function importLog(): BelongsTo
+    {
+        return $this->belongsTo(ImportLog::class);
     }
 }

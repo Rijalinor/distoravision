@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Traits\ScopesDemoMode;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 class SalesPerStock extends Model
 {
+    use ScopesDemoMode;
+
     protected static function booted(): void
     {
         // === ACL GLOBAL SCOPES ===
