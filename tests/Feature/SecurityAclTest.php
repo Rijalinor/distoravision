@@ -303,7 +303,7 @@ class SecurityAclTest extends TestCase
         $response->assertStatus(403);
     }
 
-    public function test_salesman_cannot_view_unassociated_outlet_details(): void
+    public function test_salesman_cannot_view_outlet_details(): void
     {
         $branchId = DB::table('branches')->insertGetId([
             'code' => 'JKT',
@@ -376,11 +376,11 @@ class SecurityAclTest extends TestCase
             'updated_at' => now(),
         ]);
 
-        // Access outlet 1 (has transaction): OK
+        // Access outlet 1: Forbidden
         $response = $this->actingAs($user)->get("/outlets/{$outlet1Id}");
-        $response->assertStatus(200);
+        $response->assertStatus(403);
 
-        // Access outlet 2 (no transactions): Forbidden
+        // Access outlet 2: Forbidden
         $response = $this->actingAs($user)->get("/outlets/{$outlet2Id}");
         $response->assertStatus(403);
     }
@@ -415,7 +415,7 @@ class SecurityAclTest extends TestCase
         $response->assertStatus(403);
     }
 
-    public function test_salesman_accessing_salesmen_index_redirects_with_warning(): void
+    public function test_salesman_accessing_salesmen_index_redirects(): void
     {
         $user = User::factory()->create([
             'role' => 'salesman',
@@ -424,7 +424,6 @@ class SecurityAclTest extends TestCase
 
         $response = $this->actingAs($user)->get('/salesmen');
         $response->assertRedirect('/my-dashboard');
-        $response->assertSessionHas('error', 'Profil salesman Anda belum dikaitkan.');
     }
 
     public function test_supervisor_accessing_dashboard_sees_only_assigned_principals(): void
@@ -540,16 +539,13 @@ class SecurityAclTest extends TestCase
         $response->assertDontSee('UNASSIGNED PRINCIPAL');
     }
 
-    public function test_salesman_accessing_stock_page_does_not_see_valuation_columns(): void
+    public function test_salesman_accessing_stock_page_is_forbidden(): void
     {
         $user = User::factory()->create([
             'role' => 'salesman',
         ]);
 
         $response = $this->actingAs($user)->get('/sales-per/stock');
-        $response->assertStatus(200);
-        $response->assertDontSee('Nilai Stok');
-        $response->assertDontSee('Alokasi Modal Stok');
-        $response->assertDontSee('Modal Tertahan');
+        $response->assertStatus(403);
     }
 }

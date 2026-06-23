@@ -1,26 +1,35 @@
 <?php
 
 use App\Http\Controllers\ActivityLogController;
-use App\Http\Controllers\AdvancedAnalyticsController;
 use App\Http\Controllers\AiChatController;
 use App\Http\Controllers\ArAnalyticsController;
 use App\Http\Controllers\ArImportController;
+use App\Http\Controllers\CohortAnalysisController;
 use App\Http\Controllers\ColumnMappingController;
+use App\Http\Controllers\CrossSellingController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ForecastingController;
 use App\Http\Controllers\ImportController;
+use App\Http\Controllers\MarginAnalysisController;
 use App\Http\Controllers\OutletController;
+use App\Http\Controllers\OutletTrajectoryController;
+use App\Http\Controllers\ParetoController;
 use App\Http\Controllers\PeriodController;
 use App\Http\Controllers\PrincipalController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductTrajectoryController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PromoUpliftController;
 use App\Http\Controllers\RegionalController;
+use App\Http\Controllers\ReportController;
+use App\Http\Controllers\RestockPredictorController;
 use App\Http\Controllers\SalesmanController;
 use App\Http\Controllers\SalesmanDashboardController;
+use App\Http\Controllers\SalesmanProfitabilityController;
 use App\Http\Controllers\SalesPerAnalyticsController;
 use App\Http\Controllers\SalesPerImportController;
 use App\Http\Controllers\SalesPerStockController;
+use App\Http\Controllers\TargetTrackerController;
 use App\Http\Controllers\TvDashboardController;
 use App\Http\Controllers\UserController;
 use App\Http\Middleware\AdminMiddleware;
@@ -70,9 +79,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/periods/{period}', [PeriodController::class, 'show'])->name('periods.show');
 
         // Admin-only Analytics
-        Route::get('/analytics/margin', [AdvancedAnalyticsController::class, 'marginAnalysis'])->name('analytics.margin');
-        Route::get('/analytics/report', [AdvancedAnalyticsController::class, 'generateReport'])->name('analytics.report');
-        Route::post('/analytics/target-tracker/save', [AdvancedAnalyticsController::class, 'saveTargets'])->name('analytics.save-targets');
+        Route::get('/analytics/margin', [MarginAnalysisController::class, 'marginAnalysis'])->name('analytics.margin');
+        Route::get('/analytics/report', [ReportController::class, 'generateReport'])->name('analytics.report');
+        Route::post('/analytics/target-tracker/save', [TargetTrackerController::class, 'saveTargets'])->name('analytics.save-targets');
     });
 
     // ══════════════════════════════════════════════════════════════
@@ -108,18 +117,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/regional', [RegionalController::class, 'index'])->name('regional.index');
 
     // Advanced Analytics (open to all roles)
-    Route::get('/analytics/pareto', [AdvancedAnalyticsController::class, 'pareto'])->name('analytics.pareto');
-    Route::get('/analytics/cross-selling', [AdvancedAnalyticsController::class, 'crossSelling'])->name('analytics.cross-selling');
-    Route::get('/analytics/target-tracker', [AdvancedAnalyticsController::class, 'targetTracker'])->name('analytics.target-tracker');
-    Route::get('/analytics/cohort', [AdvancedAnalyticsController::class, 'cohortAnalysis'])->name('analytics.cohort');
-    Route::get('/analytics/restock-predictor', [AdvancedAnalyticsController::class, 'restockPredictor'])->name('analytics.restock-predictor');
-    Route::get('/analytics/promo-uplift', [AdvancedAnalyticsController::class, 'promoUplift'])->name('analytics.promo-uplift');
+    Route::get('/analytics/pareto', [ParetoController::class, 'pareto'])->name('analytics.pareto');
+    Route::get('/analytics/cross-selling', [CrossSellingController::class, 'crossSelling'])->name('analytics.cross-selling');
+    Route::get('/analytics/target-tracker', [TargetTrackerController::class, 'targetTracker'])->name('analytics.target-tracker');
+    Route::get('/analytics/cohort', [CohortAnalysisController::class, 'cohortAnalysis'])->name('analytics.cohort');
+    Route::get('/analytics/restock-predictor', [RestockPredictorController::class, 'restockPredictor'])->name('analytics.restock-predictor');
+    Route::get('/analytics/promo-uplift', [PromoUpliftController::class, 'promoUplift'])->name('analytics.promo-uplift');
 
     // Forecasting
     Route::get('/inventory/forecast', [ForecastingController::class, 'index'])->name('inventory.forecast');
     Route::get('/inventory/forecast/multi-period', [ForecastingController::class, 'multiPeriodForecast'])->name('inventory.forecast.multi-period');
-    Route::get('/analytics/salesman-profitability', [AdvancedAnalyticsController::class, 'salesmanProfitability'])->name('analytics.salesman-profitability');
-    Route::get('/analytics/outlet-trajectory', [AdvancedAnalyticsController::class, 'outletTrajectory'])->name('analytics.outlet-trajectory');
+    Route::get('/analytics/salesman-profitability', [SalesmanProfitabilityController::class, 'salesmanProfitability'])->name('analytics.salesman-profitability');
+    Route::get('/analytics/outlet-trajectory', [OutletTrajectoryController::class, 'outletTrajectory'])->name('analytics.outlet-trajectory');
     Route::get('/analytics/product-trajectory', [ProductTrajectoryController::class, 'index'])->name('analytics.product-trajectory');
 
     // AI Chat

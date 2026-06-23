@@ -14,13 +14,9 @@ class SalesmanController extends Controller
 {
     public function index(Request $request)
     {
-        // Bug #5 fix: Salesman langsung redirect ke halaman profil sendiri
+        // Redirect salesman to their own dashboard
         if (auth()->user()->isSalesman()) {
-            if (auth()->user()->salesman_id) {
-                return redirect()->route('salesmen.show', auth()->user()->salesman_id);
-            }
-
-            return redirect()->route('salesman.dashboard')->with('error', 'Profil salesman Anda belum dikaitkan.');
+            return redirect()->route('salesman.dashboard');
         }
 
         $period = $request->get('period', Transaction::max('period') ?? date('Y-m'));
@@ -57,9 +53,8 @@ class SalesmanController extends Controller
 
     public function show(Request $request, Salesman $salesman)
     {
-        // Bug #5 fix: Salesman hanya boleh lihat data sendiri
-        if (auth()->user()->isSalesman() && auth()->user()->salesman_id !== $salesman->id) {
-            abort(403, 'Anda hanya dapat melihat profil Anda sendiri.');
+        if (auth()->user()->isSalesman()) {
+            return redirect()->route('salesman.dashboard');
         }
 
         $period = $request->get('period', Transaction::max('period') ?? date('Y-m'));

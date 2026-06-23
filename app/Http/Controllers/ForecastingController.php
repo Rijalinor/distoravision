@@ -7,11 +7,27 @@ use App\Models\Product;
 use App\Models\Transaction;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\DB;
 
-class ForecastingController extends Controller
+class ForecastingController extends Controller implements HasMiddleware
 {
     use CsvExportable;
+
+    /**
+     * Get the middleware that should be assigned to the controller.
+     */
+    public static function middleware(): array
+    {
+        return [
+            new Middleware(function ($request, $next) {
+                abort_if(auth()->check() && auth()->user()->isSalesman(), 403, 'Akses ditolak. Salesman tidak dapat melihat Prediksi Inventory.');
+
+                return $next($request);
+            }),
+        ];
+    }
 
     public function index(Request $request)
     {
@@ -43,7 +59,7 @@ class ForecastingController extends Controller
         $salesData = $salesQuery->select(
             'product_id',
             'period',
-            DB::raw('SUM(CASE WHEN type="I" THEN qty_base WHEN type="R" THEN -qty_base ELSE 0 END) as total_qty'),
+            DB::raw("SUM(CASE WHEN type='I' THEN qty_base WHEN type='R' THEN -qty_base ELSE 0 END) as total_qty"),
             DB::raw('COUNT(DISTINCT outlet_id) as active_outlets'),
             DB::raw('COUNT(DISTINCT so_date) as days_sold')
         )
@@ -259,7 +275,7 @@ class ForecastingController extends Controller
         $salesData = $salesQuery->select(
             'product_id',
             'period',
-            DB::raw('SUM(CASE WHEN type="I" THEN qty_base WHEN type="R" THEN -qty_base ELSE 0 END) as total_qty'),
+            DB::raw("SUM(CASE WHEN type='I' THEN qty_base WHEN type='R' THEN -qty_base ELSE 0 END) as total_qty"),
             DB::raw('COUNT(DISTINCT outlet_id) as active_outlets'),
             DB::raw('COUNT(DISTINCT so_date) as days_sold')
         )

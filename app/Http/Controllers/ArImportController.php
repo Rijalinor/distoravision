@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreArImportRequest;
 use App\Jobs\ProcessArImport;
 use App\Models\AccountingPeriod;
 use App\Models\ArImportLog;
 use Carbon\Carbon;
-use Illuminate\Http\Request;
 
 class ArImportController extends Controller
 {
@@ -24,13 +24,8 @@ class ArImportController extends Controller
         return view('ar.import-create');
     }
 
-    public function store(Request $request)
+    public function store(StoreArImportRequest $request)
     {
-        $request->validate([
-            'file' => 'required|file|mimes:xlsx,xls,csv,txt|max:51200',
-            'report_date' => 'required|date',
-            'sheet_name' => 'required|string|max:50',
-        ]);
 
         // ── Period Guard: block import to closed periods ──
         if (AccountingPeriod::isPeriodClosed($request->report_date)) {
@@ -72,6 +67,8 @@ class ArImportController extends Controller
             ->log('menghapus data import AR dan tagihan terkait');
 
         $arImportLog->delete();
+
+        cache()->flush();
 
         return redirect()->route('ar.imports.index')
             ->with('success', 'Import AR dan data terkait berhasil dihapus.');

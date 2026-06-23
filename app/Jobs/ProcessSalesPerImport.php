@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Models\SalesPerImportLog;
 use App\Models\SalesPerStock;
 use App\Models\SalesPerTransaction;
+use App\Support\ChunkReadFilter;
 use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -12,58 +13,24 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use PhpOffice\PhpSpreadsheet\IOFactory;
-use PhpOffice\PhpSpreadsheet\Reader\IReadFilter;
-
-/**
- * Chunk Reading Filter to keep memory usage low.
- * Only allows reading a specific range of rows.
- */
-class ChunkReadFilter implements IReadFilter
-{
-    private $startRow = 0;
-
-    private $endRow = 0;
-
-    private $sheetName = '';
-
-    public function setRows($startRow, $chunkSize, $sheetName)
-    {
-        $this->startRow = $startRow;
-        $this->endRow = $startRow + $chunkSize;
-        $this->sheetName = $sheetName;
-    }
-
-    public function readCell($columnAddress, $row, $worksheetName = ''): bool
-    {
-        // Always read the header row (1)
-        if ($row == 1) {
-            return true;
-        }
-
-        // Only read if within the current chunk range and matching sheet
-        if ($worksheetName === $this->sheetName) {
-            if ($row >= $this->startRow && $row < $this->endRow) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-}
 
 class ProcessSalesPerImport implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public $timeout = 0;
+    /**
+     * Maximum time (in seconds) the job may run before being killed.
+     * 30 minutes — generous for large files but prevents infinite hangs.
+     */
+    public int $timeout = 1800;
 
-    public $failOnTimeout = false;
+    public bool $failOnTimeout = false;
 
-    protected $importLog;
+    protected SalesPerImportLog $importLog;
 
-    protected $filePath;
+    protected string $filePath;
 
-    protected $importMode;
+    protected string $importMode;
 
     public function __construct(SalesPerImportLog $importLog, string $filePath, string $importMode = 'tambah')
     {
@@ -81,22 +48,13 @@ class ProcessSalesPerImport implements ShouldQueue
         try {
             $this->importLog->update(['status' => 'processing']);
 
-            $fullPath = null;
-            foreach (['app/private/', 'app/'] as $prefix) {
-                $p = storage_path($prefix.$this->filePath);
-                if (file_exists($p)) {
-                    $fullPath = $p;
-                    break;
-                }
-            }
-
-            if (! $fullPath) {
-                throw new \Exception('File not found: '.$this->filePath);
-            }
+            $fullPath = $this->resolveFilePath();
 
             if ($this->importMode === 'ganti') {
-                SalesPerTransaction::where('period', $this->importLog->period)->delete();
-                SalesPerStock::where('period', $this->importLog->period)->delete();
+                SalesPerTransaction::withoutGlobalScope('acl')
+                    ->where('period', $this->importLog->period)->delete();
+                SalesPerStock::withoutGlobalScope('acl')
+                    ->where('period', $this->importLog->period)->delete();
             }
 
             $importedCount = 0;
@@ -170,20 +128,69 @@ class ProcessSalesPerImport implements ShouldQueue
                 'completed_at' => now(),
             ]);
 
-            if (file_exists($fullPath)) {
-                unlink($fullPath);
-            }
-
         } catch (\Throwable $e) {
             $this->importLog->update([
                 'status' => 'failed',
                 'errors' => $e->getMessage().' at '.$e->getFile().':'.$e->getLine(),
                 'completed_at' => now(),
             ]);
+        } finally {
+            try {
+                $fullPath = $this->resolveFilePath();
+                if (file_exists($fullPath)) {
+                    @unlink($fullPath);
+                }
+            } catch (\Exception $ex) {
+                // Ignore if path cannot be resolved
+            }
+
+            cache()->flush();
         }
     }
 
-    protected function processPenjualanChunk($sheet, $start, $end): array
+    /**
+     * Handle a job failure — ensures the import log is always updated.
+     */
+    public function failed(?\Throwable $exception): void
+    {
+        $this->importLog->update([
+            'status' => 'failed',
+            'errors' => $exception ? $exception->getMessage() : 'Job failed unexpectedly',
+            'completed_at' => now(),
+        ]);
+
+        cache()->flush();
+    }
+
+    /**
+     * Resolve the uploaded file path from storage.
+     *
+     * @throws \Exception
+     */
+    protected function resolveFilePath(): string
+    {
+        foreach (['app/private/', 'app/'] as $prefix) {
+            $p = storage_path($prefix.$this->filePath);
+            if (file_exists($p)) {
+                return $p;
+            }
+        }
+
+        throw new \Exception('File not found: '.$this->filePath);
+    }
+
+    /**
+     * Calculate Stock Week Cover from on-hand stock and Weekly Average Sales.
+     */
+    protected function calculateSwc(int $onHandBase, float $was): float
+    {
+        return $was > 0 ? ceil($onHandBase / $was) : 0;
+    }
+
+    /**
+     * @return array{imported: int, failed: int, errors: array<string>}
+     */
+    protected function processPenjualanChunk($sheet, int $start, int $end): array
     {
         $imported = 0;
         $failed = 0;
@@ -230,7 +237,10 @@ class ProcessSalesPerImport implements ShouldQueue
         return compact('imported', 'failed', 'errors');
     }
 
-    protected function processReturnChunk($sheet, $start, $end): array
+    /**
+     * @return array{imported: int, failed: int, errors: array<string>}
+     */
+    protected function processReturnChunk($sheet, int $start, int $end): array
     {
         $imported = 0;
         $failed = 0;
@@ -276,7 +286,10 @@ class ProcessSalesPerImport implements ShouldQueue
         return compact('imported', 'failed', 'errors');
     }
 
-    protected function processStockChunk($sheet, $start, $end): array
+    /**
+     * @return array{imported: int, failed: int, errors: array<string>}
+     */
+    protected function processStockChunk($sheet, int $start, int $end): array
     {
         $imported = 0;
         $failed = 0;
@@ -294,14 +307,17 @@ class ProcessSalesPerImport implements ShouldQueue
                     continue;
                 }
 
+                $onHandBase = (int) ($sheet->getCell('L'.$row)->getValue() ?? 0);
+                $was = (float) ($sheet->getCell('Q'.$row)->getValue() ?? 0);
+
                 $batch[] = [
                     'sales_per_import_log_id' => $logId, 'principal_code' => $principalCode, 'principal_name' => trim((string) $sheet->getCell('B'.$row)->getValue()),
                     'warehouse_code' => trim((string) $sheet->getCell('C'.$row)->getValue()), 'warehouse_name' => trim((string) $sheet->getCell('D'.$row)->getValue()),
                     'item_no' => $itemNo, 'item_name' => trim((string) $sheet->getCell('H'.$row)->getValue()), 'size' => trim((string) $sheet->getCell('I'.$row)->getValue()),
-                    'on_hand_base' => (int) ($sheet->getCell('L'.$row)->getValue() ?? 0), 'on_sales_base' => (int) ($sheet->getCell('M'.$row)->getValue() ?? 0),
+                    'on_hand_base' => $onHandBase, 'on_sales_base' => (int) ($sheet->getCell('M'.$row)->getValue() ?? 0),
                     'stock_value_on_hand' => (float) ($sheet->getCell('N'.$row)->getValue() ?? 0), 'stock_value_on_sales' => (float) ($sheet->getCell('O'.$row)->getValue() ?? 0),
-                    'was' => $was = (float) ($sheet->getCell('Q'.$row)->getValue() ?? 0),
-                    'swc' => $was > 0 ? ceil(((int) ($sheet->getCell('L'.$row)->getValue() ?? 0)) / $was) : 0,
+                    'was' => $was,
+                    'swc' => $this->calculateSwc($onHandBase, $was),
                     'age_of_goods' => (int) ($sheet->getCell('S'.$row)->getValue() ?? 0),
                     'period' => $period, 'created_at' => now(), 'updated_at' => now(),
                 ];

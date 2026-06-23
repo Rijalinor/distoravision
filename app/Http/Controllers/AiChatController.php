@@ -5,10 +5,26 @@ namespace App\Http\Controllers;
 use App\Models\Transaction;
 use App\Services\GroqChatService;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\Log;
 
-class AiChatController extends Controller
+class AiChatController extends Controller implements HasMiddleware
 {
+    /**
+     * Get the middleware that should be assigned to the controller.
+     */
+    public static function middleware(): array
+    {
+        return [
+            new Middleware(function ($request, $next) {
+                abort_if(auth()->check() && auth()->user()->isSalesman(), 403, 'Akses ditolak. Salesman tidak dapat mengakses Asisten AI.');
+
+                return $next($request);
+            }),
+        ];
+    }
+
     public function __construct(
         private GroqChatService $chatService,
     ) {}

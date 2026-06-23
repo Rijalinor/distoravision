@@ -528,6 +528,7 @@
                         Import Sales Per
                     </a>
                     @endif
+                    @if(!Auth::user()->isSalesman())
                     <a href="{{ route('sales-per.dashboard') }}" class="nav-link {{ request()->routeIs('sales-per.dashboard') ? 'active' : '' }}" title="Sales Per Dashboard: monitoring omset salesman dari data penjualan harian yang belum di-approve. Menampilkan ranking salesman, tren harian, dan detail pencapaian.">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
                         Sales Per Dashboard
@@ -536,34 +537,42 @@
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
                         Stok Gudang
                     </a>
+                    @endif
                 </div>
 
                 <!-- 3. UMUM (DATA CLOSING) -->
                 <div class="nav-section">
-                    <div class="nav-section-title" onclick="toggleSection(this)">Umum (Data Closing) <span class="section-chevron">▼</span></div>
-                    <a href="{{ route('dashboard') }}" class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}" title="Dashboard Eksekutif: ringkasan performa bisnis dalam satu layar. Menampilkan KPI utama seperti total sales, return rate, margin, tren mingguan, kontribusi principal, serta narasi insight otomatis untuk membantu Anda membaca kondisi bisnis dengan cepat sebelum masuk ke analisa yang lebih detail.">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
-                        Dashboard Eksekutif
-                    </a>
-                    @if(Auth::user()->isAdmin())
-                    <a href="{{ route('imports.index') }}" class="nav-link {{ request()->routeIs('imports.*') ? 'active' : '' }}" title="Import Data Utama: pusat unggah data transaksi closing dari file CSV/Excel. Fitur ini dipakai untuk memasukkan data periodik, memantau status proses import (pending, processing, selesai, gagal), melihat jumlah baris sukses/gagal, serta melakukan pengelolaan log import agar histori data tetap terkontrol.">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
-                        Import Data Utama
-                    </a>
+                    @if(Auth::user()->isSalesman())
+                        <div class="nav-section-title" onclick="toggleSection(this)">Dashboard <span class="section-chevron">▼</span></div>
+                        <a href="{{ route('salesman.dashboard') }}" class="nav-link {{ request()->routeIs('salesman.dashboard') ? 'active' : '' }}" title="My Dashboard: Ringkasan performa penjualan harian dan piutang Anda.">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+                            My Dashboard
+                        </a>
+                    @else
+                        <div class="nav-section-title" onclick="toggleSection(this)">Umum (Data Closing) <span class="section-chevron">▼</span></div>
+                        <a href="{{ route('dashboard') }}" class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}" title="Dashboard Eksekutif: ringkasan performa bisnis dalam satu layar. Menampilkan KPI utama seperti total sales, return rate, margin, tren mingguan, kontribusi principal, serta narasi insight otomatis untuk membantu Anda membaca kondisi bisnis dengan cepat sebelum masuk ke analisa yang lebih detail.">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+                            Dashboard Eksekutif
+                        </a>
+                        @if(Auth::user()->isAdmin())
+                        <a href="{{ route('imports.index') }}" class="nav-link {{ request()->routeIs('imports.*') ? 'active' : '' }}" title="Import Data Utama: pusat unggah data transaksi closing dari file CSV/Excel. Fitur ini dipakai untuk memasukkan data periodik, memantau status proses import (pending, processing, selesai, gagal), melihat jumlah baris sukses/gagal, serta melakukan pengelolaan log import agar histori data tetap terkontrol.">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                            Import Data Utama
+                        </a>
+                        @endif
                     @endif
 
+                    @if(!Auth::user()->isSalesman())
                     <div class="nav-section-title" style="margin-top: 1.5rem; font-size: 0.7rem; color: var(--text-muted); padding-left: 0.5rem; margin-bottom: 0.5rem;">— ANALYTICS & INTELLIGENCE</div>
                     
                     <a href="{{ route('ai-chat.index') }}" class="nav-link {{ request()->routeIs('ai-chat.*') ? 'active' : '' }}" title="Distora AI Assistant: Asisten AI pintar untuk tanya jawab data dan performa.">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
                         <span style="font-weight: 600; color: var(--text-primary);">Distora AI Assistant</span>
                     </a>
-                    @if(!Auth::user()->isSalesman())
                     <a href="{{ route('salesmen.index') }}" class="nav-link {{ request()->routeIs('salesmen.*') || request()->routeIs('analytics.target-tracker') ? 'active' : '' }}" title="Salesman Intelligence: Performa salesman harian dan Target Tracker.">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                         Salesman Intelligence
                     </a>
-                    @endif
                     
                     <a href="{{ route('outlets.index') }}" class="nav-link {{ request()->routeIs('outlets.*') || request()->routeIs('analytics.rfm') || request()->routeIs('analytics.cohort') || request()->routeIs('analytics.sleeping-outlets') ? 'active' : '' }}" title="Outlet Intelligence: Performa toko, Segmentasi RFM, Analisa Churn (Sleep), dan Retensi Cohort.">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
@@ -587,12 +596,10 @@
                     </a>
                     @endif
 
-                    @if(!Auth::user()->isSalesman())
                     <a href="{{ route('principals.index') }}" class="nav-link {{ request()->routeIs('principals.*') ? 'active' : '' }}" title="Principal Intelligence: Kontribusi supplier dan brand.">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"></path></svg>
                         Principal
                     </a>
-                    @endif
 
                     <a href="{{ route('regional.index') }}" class="nav-link {{ request()->routeIs('regional.*') ? 'active' : '' }}" title="Regional Analytics: Visualisasi performa per wilayah/kota.">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
@@ -605,6 +612,8 @@
                         <span style="color:var(--accent-blue); font-weight:bold;">Buku Rapor (Cetak)</span>
                     </a>
                     @endif
+                    @endif
+
 
                     @if(Auth::user()->isAdmin())
                     <div class="nav-section-title" style="margin-top: 1.5rem; font-size: 0.7rem; color: var(--text-muted); padding-left: 0.5rem; margin-bottom: 0.5rem;">— SETTINGS</div>

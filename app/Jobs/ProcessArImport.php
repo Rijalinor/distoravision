@@ -128,18 +128,21 @@ class ProcessArImport implements ShouldQueue
                 'completed_at' => now(),
             ]);
 
-            // Cleanup temp file
-            if (file_exists(storage_path('app/private/'.$this->filePath))) {
-                @unlink(storage_path('app/private/'.$this->filePath));
-            } elseif (file_exists(storage_path('app/'.$this->filePath))) {
-                @unlink(storage_path('app/'.$this->filePath));
-            }
         } catch (\Exception $e) {
             $this->importLog->update([
                 'status' => 'failed',
                 'errors' => $e->getMessage(),
                 'completed_at' => now(),
             ]);
+        } finally {
+            // Cleanup temp file
+            if (file_exists(storage_path('app/private/'.$this->filePath))) {
+                @unlink(storage_path('app/private/'.$this->filePath));
+            } elseif (file_exists(storage_path('app/'.$this->filePath))) {
+                @unlink(storage_path('app/'.$this->filePath));
+            }
+
+            cache()->flush();
         }
     }
 }

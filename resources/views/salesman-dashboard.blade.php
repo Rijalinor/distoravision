@@ -30,6 +30,32 @@
     </div>
 </div>
 
+{{-- ═══ ANALISIS TARGET ═══ --}}
+<div class="card" style="margin-bottom:1.5rem; border-top:4px solid {{ $targetProgress >= 100 ? 'var(--accent-green)' : ($targetProgress >= 75 ? 'var(--accent-blue)' : 'var(--accent-yellow)') }};">
+    <div style="display:flex; gap:1.25rem; align-items:center;">
+        <div style="font-size:2rem; min-width:54px; height:54px; border-radius:12px; background:rgba(255,255,255,0.05); display:flex; align-items:center; justify-content:center;">
+            @if($targetProgress >= 100) 🏆 @elseif($targetProgress >= 75) 🎯 @else 🚀 @endif
+        </div>
+        <div style="flex-grow:1;">
+            <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.25rem; flex-wrap:wrap;">
+                <span class="badge {{ $targetProgress >= 100 ? 'badge-green' : ($targetProgress >= 75 ? 'badge-blue' : 'badge-yellow') }}" style="font-size:0.7rem; padding:0.15rem 0.4rem; font-weight:700; text-transform:uppercase;">
+                    @if($targetProgress >= 100) Target Tercapai @elseif($targetProgress >= 75) Mendekati Target @else Kebut Penjualan @endif
+                </span>
+                <span style="font-size:0.75rem; color:var(--text-muted);">· Sisa {{ $remainingDays }} Hari Kerja</span>
+            </div>
+            <p style="font-size:0.82rem; color:var(--text-secondary); margin:0; line-height:1.45;">
+                @if($targetProgress >= 100)
+                    Luar biasa! Penjualan bersih Anda saat ini (**Rp {{ number_format($netSales, 0, ',', '.') }}**) sudah melewati target bulanan (**Rp {{ number_format($targetValue, 0, ',', '.') }}**). Selamat atas kerja keras Anda!
+                @elseif($targetProgress >= 75)
+                    Hebat! Anda sudah mencapai **{{ number_format($targetProgress, 1) }}%** dari target. Kurang **Rp {{ number_format($gap, 0, ',', '.') }}** lagi. Anda hanya perlu menjual rata-rata **Rp {{ number_format($dailyRunRate, 0, ',', '.') }} per hari** dalam **{{ $remainingDays }} hari** kerja tersisa untuk mencapai target!
+                @else
+                    Pencapaian target Anda saat ini adalah **{{ number_format($targetProgress, 1) }}%** (Penjualan: **Rp {{ number_format($netSales, 0, ',', '.') }}** dari target **Rp {{ number_format($targetValue, 0, ',', '.') }}**). Mari tingkatkan penjualan dengan target minimal **Rp {{ number_format($dailyRunRate, 0, ',', '.') }} per hari** di sisa hari kerja ini!
+                @endif
+            </p>
+        </div>
+    </div>
+</div>
+
 {{-- ═══ KPI CARDS ═══ --}}
 <div class="kpi-grid">
     <div class="card kpi-card">
@@ -271,21 +297,59 @@
 {{-- ═══ RECENT TRANSACTIONS ═══ --}}
 <div class="card">
     <div class="card-header"><span class="card-title">📋 Riwayat Transaksi Terbaru</span></div>
-    @if($recentTransactions->count())
-    <table class="data-table">
-        <thead><tr><th>Tanggal</th><th>Tipe</th><th>Outlet</th><th>Produk</th><th class="text-right">Qty</th><th class="text-right">Nilai</th></tr></thead>
+    @if($recentInvoices->count())
+    <table class="data-table" style="table-layout: auto;">
+        <thead>
+            <tr>
+                <th>Tanggal</th>
+                <th>No. Invoice</th>
+                <th>Tipe</th>
+                <th>Outlet</th>
+                <th class="text-right">Total Qty</th>
+                <th class="text-right">Total Nilai</th>
+                <th style="width: 30px;"></th>
+            </tr>
+        </thead>
         <tbody>
-        @foreach($recentTransactions as $t)
-        <tr>
-            <td>{{ $t->so_date ? \Carbon\Carbon::parse($t->so_date)->format('d/m') : '-' }}</td>
+        @foreach($recentInvoices as $inv)
+        <tr onclick="var el = document.getElementById('rec-inv-{{ md5($inv->so_no . '-' . $inv->type) }}'); el.style.display = el.style.display === 'none' ? 'table-row' : 'none';" style="cursor:pointer;" title="Klik untuk lihat rincian barang">
+            <td>{{ $inv->so_date ? \Carbon\Carbon::parse($inv->so_date)->format('d/m') : '-' }}</td>
+            <td><span class="badge badge-blue" style="font-size:0.7rem;">{{ $inv->so_no }}</span></td>
             <td>
-                @if($t->type === 'I')<span class="badge badge-green">Invoice</span>
+                @if($inv->type === 'I')<span class="badge badge-green">Invoice</span>
                 @else<span class="badge badge-red">Return</span>@endif
             </td>
-            <td>{{ Str::limit($t->outlet_name, 20) }}</td>
-            <td>{{ Str::limit($t->product_name, 22) }}</td>
-            <td class="text-right">{{ number_format(abs($t->qty_base)) }}</td>
-            <td class="text-right font-mono {{ $t->type === 'R' ? 'text-red' : '' }}">Rp {{ number_format(abs($t->taxed_amt), 0, ',', '.') }}</td>
+            <td>{{ Str::limit($inv->outlet_name, 35) }}</td>
+            <td class="text-right">{{ number_format($inv->total_qty) }}</td>
+            <td class="text-right font-mono {{ $inv->type === 'R' ? 'text-red' : '' }}">Rp {{ number_format($inv->total_value, 0, ',', '.') }}</td>
+            <td class="text-right" style="color:var(--text-muted);"><svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg></td>
+        </tr>
+        <tr id="rec-inv-{{ md5($inv->so_no . '-' . $inv->type) }}" style="display:none; background:rgba(0,0,0,0.2);">
+            <td colspan="7" style="padding:0;">
+                <div style="padding:0.75rem 1rem 0.75rem 2rem; border-left:3px solid var(--accent-blue);">
+                    <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:0.5rem; text-transform:uppercase; font-weight:600;">Daftar Produk:</div>
+                    <table style="width:100%; border-collapse:collapse;">
+                        <thead>
+                            <tr style="border-bottom:1px solid rgba(255,255,255,0.1);">
+                                <th style="padding:0.35rem 0; font-size:0.75rem; text-align:left; color:var(--text-muted);">Nama Barang</th>
+                                <th style="padding:0.35rem 0; font-size:0.75rem; text-align:left; color:var(--text-muted);">Kode</th>
+                                <th style="padding:0.35rem 0; font-size:0.75rem; text-align:right; color:var(--text-muted);">Qty</th>
+                                <th style="padding:0.35rem 0; font-size:0.75rem; text-align:right; color:var(--text-muted);">Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($inv->items as $item)
+                            <tr>
+                                <td style="padding:0.35rem 0; font-size:0.8rem; border-bottom:1px solid rgba(255,255,255,0.05); color:var(--text-secondary);">{{ $item->item_name }}</td>
+                                <td style="padding:0.35rem 0; font-size:0.8rem; border-bottom:1px solid rgba(255,255,255,0.05); color:var(--text-muted);">{{ $item->item_no }}</td>
+                                <td class="text-right" style="padding:0.35rem 0; font-size:0.8rem; border-bottom:1px solid rgba(255,255,255,0.05); color:var(--text-secondary);">{{ number_format($item->qty) }}</td>
+                                <td class="text-right font-mono" style="padding:0.35rem 0; font-size:0.85rem; font-weight:600; border-bottom:1px solid rgba(255,255,255,0.05);">Rp {{ number_format($item->subtotal, 0, ',', '.') }}</td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </td>
         </tr>
         @endforeach
         </tbody>

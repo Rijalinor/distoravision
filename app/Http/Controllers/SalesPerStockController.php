@@ -11,6 +11,9 @@ class SalesPerStockController extends Controller
 {
     public function dashboard(Request $request)
     {
+        if (auth()->user()->isSalesman()) {
+            abort(403, 'Akses ditolak. Anda tidak diperkenankan mengakses halaman ini.');
+        }
         $periods = SalesPerStock::select('period')->distinct()->orderByDesc('period')->pluck('period');
 
         if ($periods->isEmpty()) {
@@ -194,6 +197,9 @@ class SalesPerStockController extends Controller
 
     public function loadTabKritis(Request $request)
     {
+        if (auth()->user()->isSalesman()) {
+            abort(403, 'Akses ditolak. Anda tidak diperkenankan mengakses halaman ini.');
+        }
         $period = $request->query('period', date('Y-m'));
         $selectedPrincipal = $request->query('principal', 'all');
         $selectedWarehouse = $request->query('warehouse', 'all');
@@ -255,6 +261,9 @@ class SalesPerStockController extends Controller
 
     public function loadTabSemua(Request $request)
     {
+        if (auth()->user()->isSalesman()) {
+            abort(403, 'Akses ditolak. Anda tidak diperkenankan mengakses halaman ini.');
+        }
         $period = $request->query('period', date('Y-m'));
         $selectedPrincipal = $request->query('principal', 'all');
         $selectedWarehouse = $request->query('warehouse', 'all');

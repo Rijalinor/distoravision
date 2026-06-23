@@ -22,8 +22,7 @@ class AiContextService
      */
     public function getUnifiedSnapshot(): array
     {
-        $period = Transaction::max('period') ?? date('Y-m');
-        $prevPeriod = date('Y-m', strtotime($period.'-01 -1 month'));
+        ['period' => $period, 'prevPeriod' => $prevPeriod] = $this->getPeriods();
 
         return Cache::remember("ai_unified_snapshot_{$period}", 3600, function () use ($period, $prevPeriod) {
             return $this->gatherUnifiedContext($period, $prevPeriod);
@@ -156,6 +155,16 @@ class AiContextService
     }
 
     /**
+     * Build a parameterized IN clause for raw SQL queries.
+     *
+     * @param  array<int, int|string>  $ids
+     */
+    private function buildPlaceholders(array $ids): string
+    {
+        return implode(',', array_fill(0, count($ids), '?'));
+    }
+
+    /**
      * Top 5 Salesmen with their top product & outlet — batch-optimized.
      * Eliminates N+1 by collecting all IDs first, then batch-loading enrichments.
      *
@@ -174,6 +183,7 @@ class AiContextService
         }
 
         $salesmanIds = $salesmen->pluck('salesman_id')->toArray();
+        $placeholders = $this->buildPlaceholders($salesmanIds);
 
         // Step 2: Batch-load salesman names
         $salesmanModels = Salesman::whereIn('id', $salesmanIds)->pluck('name', 'id');
@@ -189,8 +199,8 @@ class AiContextService
                 GROUP BY salesman_id, product_id
             ) sub
             JOIN products p ON sub.product_id = p.id
-            WHERE sub.rn = 1 AND sub.salesman_id IN (".implode(',', array_fill(0, count($salesmanIds), '?')).')
-        ', array_merge([$period], $salesmanIds));
+            WHERE sub.rn = 1 AND sub.salesman_id IN ({$placeholders})
+        ", array_merge([$period], $salesmanIds));
         $topProductMap = collect($topProducts)->keyBy('salesman_id');
 
         // Step 4: Batch-load top outlet per salesman (single query via ranked subquery)
@@ -204,8 +214,8 @@ class AiContextService
                 GROUP BY salesman_id, outlet_id
             ) sub
             JOIN outlets o ON sub.outlet_id = o.id
-            WHERE sub.rn = 1 AND sub.salesman_id IN (".implode(',', array_fill(0, count($salesmanIds), '?')).')
-        ', array_merge([$period], $salesmanIds));
+            WHERE sub.rn = 1 AND sub.salesman_id IN ({$placeholders})
+        ", array_merge([$period], $salesmanIds));
         $topOutletMap = collect($topOutlets)->keyBy('salesman_id');
 
         // Step 5: Combine into final array
@@ -236,6 +246,7 @@ class AiContextService
         }
 
         $productIds = $products->pluck('product_id')->toArray();
+        $placeholders = $this->buildPlaceholders($productIds);
 
         // Batch-load product names
         $productModels = Product::whereIn('id', $productIds)->pluck('name', 'id');
@@ -251,8 +262,8 @@ class AiContextService
                 GROUP BY product_id, outlet_id
             ) sub
             JOIN outlets o ON sub.outlet_id = o.id
-            WHERE sub.rn = 1 AND sub.product_id IN (".implode(',', array_fill(0, count($productIds), '?')).')
-        ', array_merge([$period], $productIds));
+            WHERE sub.rn = 1 AND sub.product_id IN ({$placeholders})
+        ", array_merge([$period], $productIds));
         $topOutletMap = collect($topOutlets)->keyBy('product_id');
 
         return $products->map(function ($t) use ($productModels, $topOutletMap) {
@@ -281,6 +292,7 @@ class AiContextService
         }
 
         $outletIds = $outlets->pluck('outlet_id')->toArray();
+        $placeholders = $this->buildPlaceholders($outletIds);
 
         // Batch-load outlet names
         $outletModels = Outlet::whereIn('id', $outletIds)->pluck('name', 'id');
@@ -296,8 +308,8 @@ class AiContextService
                 GROUP BY outlet_id, product_id
             ) sub
             JOIN products p ON sub.product_id = p.id
-            WHERE sub.rn = 1 AND sub.outlet_id IN (".implode(',', array_fill(0, count($outletIds), '?')).')
-        ', array_merge([$period], $outletIds));
+            WHERE sub.rn = 1 AND sub.outlet_id IN ({$placeholders})
+        ", array_merge([$period], $outletIds));
         $topProductMap = collect($topProducts)->keyBy('outlet_id');
 
         return $outlets->map(function ($t) use ($outletModels, $topProductMap) {
@@ -427,17 +439,34 @@ class AiContextService
 
     /**
      * Get top 3 cross-selling product pairs — batch-optimized.
+     * Only considers outlets with 2+ distinct products to reduce noise and memory usage.
      *
      * @return array<int, array<string, mixed>>
      */
     private function getCrossSelling(string $period): array
     {
+        // Pre-filter: only outlets that bought 2+ distinct products (reduces matrix size significantly)
+        $qualifiedOutlets = Transaction::where('period', $period)->where('type', 'I')
+            ->select('outlet_id')
+            ->groupBy('outlet_id')
+            ->havingRaw('COUNT(DISTINCT product_id) >= 2')
+            ->pluck('outlet_id');
+
+        if ($qualifiedOutlets->isEmpty()) {
+            return [];
+        }
+
         $pairs = Transaction::where('period', $period)->where('type', 'I')
+            ->whereIn('outlet_id', $qualifiedOutlets)
             ->select('outlet_id', 'product_id')->distinct()->get()->groupBy('outlet_id');
 
         $matrix = [];
         foreach ($pairs as $itemsInBasket) {
             $items = $itemsInBasket->pluck('product_id')->toArray();
+            // Skip outlets with too many products (reduces O(n²) explosion)
+            if (count($items) > 50) {
+                continue;
+            }
             foreach ($items as $p1) {
                 if (! isset($matrix[$p1])) {
                     $matrix[$p1] = [];

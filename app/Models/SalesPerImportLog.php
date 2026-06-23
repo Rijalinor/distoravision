@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class SalesPerImportLog extends Model
 {
@@ -17,13 +19,27 @@ class SalesPerImportLog extends Model
         'completed_at' => 'datetime',
     ];
 
-    public function user()
+    /**
+     * The user who initiated this import.
+     */
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    public function transactions()
+    /**
+     * All sales transactions created from this import batch.
+     */
+    public function transactions(): HasMany
     {
         return $this->hasMany(SalesPerTransaction::class);
+    }
+
+    /**
+     * All stock records created from this import batch.
+     */
+    public function stocks(): HasMany
+    {
+        return $this->hasMany(SalesPerStock::class);
     }
 }

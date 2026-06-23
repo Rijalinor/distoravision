@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreImportRequest;
 use App\Jobs\ProcessSecondaryDataImport;
 use App\Models\AccountingPeriod;
 use App\Models\ImportLog;
 use App\Models\Transaction;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 
 class ImportController extends Controller
@@ -25,13 +25,8 @@ class ImportController extends Controller
         return view('imports.create');
     }
 
-    public function store(Request $request)
+    public function store(StoreImportRequest $request)
     {
-        $request->validate([
-            'file' => 'required|file|mimes:csv,txt,xlsx,xls|max:51200',
-            'period' => 'required|date_format:Y-m',
-            'import_mode' => 'required|in:tambah,ganti',
-        ]);
 
         // ── Period Guard: block import to closed periods ──
         if (AccountingPeriod::isPeriodClosed($request->period)) {
@@ -88,6 +83,8 @@ class ImportController extends Controller
             ->log('menghapus data log import sales dan transaksi terkait');
 
         $import->delete();
+
+        cache()->flush();
 
         return redirect()->route('imports.index')->with('success', 'Import log dan data terkait berhasil dihapus.');
     }

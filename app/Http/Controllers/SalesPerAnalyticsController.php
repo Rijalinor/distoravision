@@ -5,15 +5,28 @@ namespace App\Http\Controllers;
 use App\Models\SalesPerTransaction;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\DB;
 
-class SalesPerAnalyticsController extends Controller
+class SalesPerAnalyticsController extends Controller implements HasMiddleware
 {
+    /**
+     * Block salesman role — consistent with split analytics controllers pattern.
+     */
+    public static function middleware(): array
+    {
+        return [
+            new Middleware(function ($request, $next) {
+                abort_if(auth()->check() && auth()->user()->isSalesman(), 403, 'Akses ditolak. Salesman tidak dapat melihat halaman ini.');
+
+                return $next($request);
+            }),
+        ];
+    }
+
     public function dashboard(Request $request)
     {
-        if (auth()->user()->isSalesman()) {
-            abort(403, 'Akses ditolak. Anda tidak diperkenankan mengakses halaman ini.');
-        }
         $periods = SalesPerTransaction::select('period')->distinct()->orderByDesc('period')->pluck('period');
 
         if ($periods->isEmpty()) {
