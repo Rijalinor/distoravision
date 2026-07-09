@@ -447,6 +447,45 @@ Sistem secara otomatis mengisolasi data menggunakan trait global query scope `Sc
 
 Hal ini menjamin keamanan kerahasiaan informasi bisnis perusahaan saat melakukan demo kepada atasan atau pihak luar.
 
+#### 3. Cara Menghapus Data Demo Sampai Bersih
+
+Jika Anda ingin membersihkan seluruh data demo dari database untuk memulai penggunaan riil (produksi), terdapat dua metode yang dapat digunakan:
+
+##### Metode A: Reset Total Database (Sangat Direkomendasikan untuk Deployment Produksi)
+Jika Anda ingin memulai dari nol dengan database yang benar-benar bersih (hanya menyisakan struktur tabel dan satu akun Administrator utama), jalankan perintah berikut di terminal server:
+```bash
+php artisan migrate:fresh --seed
+```
+*   **Efek:** Perintah ini akan menghapus seluruh tabel, membangun kembali skema database dari awal, dan mengeksekusi `DatabaseSeeder` yang hanya membuat satu akun administrator ril (`admin@admin.com` dengan password `password`). Akun demo (`demo@admin.com`), seluruh transaksi demo, outlet demo, principal demo, dan data log impor demo akan terhapus permanen secara bersih.
+
+##### Metode B: Menghapus Secara Spesifik via Laravel Tinker (Jika Sudah Ada Data Ril Lain)
+Jika database Anda sudah memiliki data transaksi ril dari pengguna lain dan Anda hanya ingin menghapus data demo secara spesifik tanpa mengganggu data lainnya, jalankan perintah berikut:
+1. Masuk ke Laravel Tinker:
+   ```bash
+   php artisan tinker
+   ```
+2. Jalankan skrip PHP berikut:
+   ```php
+   // 1. Hapus User Demo (Memicu cascade delete pada transaksi, AR, dan stok demo)
+   $demoUser = \App\Models\User::where('email', 'demo@admin.com')->first();
+   if ($demoUser) {
+       $demoUser->delete(); // Ini otomatis menghapus seluruh log impor & transaksi terkait di database
+       echo "User demo dan data transaksinya berhasil dihapus.\n";
+   }
+
+   // 2. Bersihkan master data demo yang tidak terhubung dengan log impor (opsional)
+   // Catatan: Lakukan ini hanya jika master data tersebut tidak digunakan oleh transaksi ril lainnya
+   \Illuminate\Support\Facades\Schema::disableForeignKeyConstraints();
+   \App\Models\Branch::whereIn('code', ['BJM', 'BRB', 'BTL'])->delete();
+   \App\Models\Principal::whereIn('code', ['PR01', 'PR02'])->delete();
+   \App\Models\Salesman::whereIn('sales_code', ['SL01', 'SL02', 'SL03', 'SL04'])->delete();
+   \App\Models\Outlet::whereIn('code', ['OT001', 'OT002', 'OT003', 'OT004', 'OT005', 'OT006', 'OT007', 'OT008', 'OT009', 'OT010'])->delete();
+   \App\Models\Product::whereIn('item_no', ['P001', 'P002', 'P003', 'P004', 'P005', 'P006', 'P007', 'P008'])->delete();
+   \Illuminate\Support\Facades\Schema::enableForeignKeyConstraints();
+
+   echo "Seluruh data master demo telah dibersihkan!\n";
+   ```
+
 ---
 
 ## 14. Testing Documentation (Dokumentasi Pengujian)
