@@ -4,7 +4,6 @@ namespace App\Traits;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 trait FilterableTransactions
 {
@@ -36,8 +35,7 @@ trait FilterableTransactions
         } else {
             // ── NO filter at all → default to latest available period ──────────
             // This prevents the "scan all periods on first load" performance issue.
-            $latestPeriod = DB::table('transactions')
-                ->max('period');
+            $latestPeriod = self::max('period');
 
             if ($latestPeriod) {
                 $query->where($this->getTable().'.period', $latestPeriod);

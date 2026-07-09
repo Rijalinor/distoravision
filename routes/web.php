@@ -19,7 +19,6 @@ use App\Http\Controllers\PrincipalController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductTrajectoryController;
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\PromoUpliftController;
 use App\Http\Controllers\RegionalController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\RestockPredictorController;
@@ -122,7 +121,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/analytics/target-tracker', [TargetTrackerController::class, 'targetTracker'])->name('analytics.target-tracker');
     Route::get('/analytics/cohort', [CohortAnalysisController::class, 'cohortAnalysis'])->name('analytics.cohort');
     Route::get('/analytics/restock-predictor', [RestockPredictorController::class, 'restockPredictor'])->name('analytics.restock-predictor');
-    Route::get('/analytics/promo-uplift', [PromoUpliftController::class, 'promoUplift'])->name('analytics.promo-uplift');
 
     // Forecasting
     Route::get('/inventory/forecast', [ForecastingController::class, 'index'])->name('inventory.forecast');
