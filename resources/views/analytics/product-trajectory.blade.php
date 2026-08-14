@@ -103,9 +103,7 @@
                         </div>
                     </td>
                     <td class="text-center">
-                        <div style="font-size:1.5rem; line-height:1;">{{ $t->icon }}</div>
-                        <div style="font-size:0.7rem; font-weight:600; margin-top:0.25rem;
-                            color: {{ $t->classification === 'Declining' ? 'var(--accent-yellow)' : ($t->classification === 'Growing' ? 'var(--accent-green)' : ($t->classification === 'Dead' ? 'var(--accent-red)' : 'var(--text-muted)')) }}">
+                        <div class="badge {{ $t->classification === 'Growing' ? 'badge-green' : ($t->classification === 'Declining' ? 'badge-yellow' : ($t->classification === 'Dead' ? 'badge-red' : 'badge-blue')) }}">
                             {{ $t->classification }}
                         </div>
                         @if(!in_array($t->classification, ['New', 'Dead']))
