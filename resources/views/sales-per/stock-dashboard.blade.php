@@ -14,6 +14,21 @@
 </div>
 @else
 
+<x-page-guide
+    title="Baca stok dari risiko paling mendesak"
+    description="Halaman ini membantu melihat barang yang hampir habis, barang yang modalnya tertahan, dan apakah uang stok lebih banyak berada di produk fast-moving atau slow-moving."
+    :steps="[
+        'Pilih periode, gudang, dan principal.',
+        'Cek Stok Kritis untuk risiko stockout.',
+        'Cek Modal Tertahan untuk produk yang perlu clearance, bundling, atau stop PO.'
+    ]"
+    :metrics="[
+        'SWC' => 'Stock Week Cover, jumlah minggu stok masih cukup.',
+        'Stok Kritis' => 'SWC 1-2 minggu, perlu tindakan suplai.',
+        'Modal Tertahan' => 'SWC > 8 atau tidak bergerak, perlu evaluasi.'
+    ]"
+/>
+
 {{-- FILTER --}}
 <div class="card" style="margin-bottom:1.5rem;padding:0.75rem 1.25rem;">
     <form method="GET" style="display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap;">

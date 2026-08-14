@@ -18,34 +18,40 @@
     $principal_id = request('principal_id', 'all');
 @endphp
 
-    <!-- Start Period -->
-    <select name="start_period" class="period-select">
-        @foreach($periods as $p)
-            <option value="{{ $p }}" {{ $start_period === $p ? 'selected' : '' }}>
-                {{ \Carbon\Carbon::parse($p.'-01')->translatedFormat('F Y') }}
-            </option>
-        @endforeach
-    </select>
-    
-    <span style="color:var(--text-muted);font-size:0.8rem;">s/d</span>
+    <div class="filter-strip">
+        <label>
+            <span>Dari</span>
+            <select name="start_period" class="period-select">
+                @foreach($periods as $p)
+                    <option value="{{ $p }}" {{ $start_period === $p ? 'selected' : '' }}>
+                        {{ \Carbon\Carbon::parse($p.'-01')->translatedFormat('M Y') }}
+                    </option>
+                @endforeach
+            </select>
+        </label>
 
-    <!-- End Period -->
-    <select name="end_period" class="period-select">
-        @foreach($periods as $p)
-            <option value="{{ $p }}" {{ $end_period === $p ? 'selected' : '' }}>
-                {{ \Carbon\Carbon::parse($p.'-01')->translatedFormat('F Y') }}
-            </option>
-        @endforeach
-    </select>
+        <label>
+            <span>Sampai</span>
+            <select name="end_period" class="period-select">
+                @foreach($periods as $p)
+                    <option value="{{ $p }}" {{ $end_period === $p ? 'selected' : '' }}>
+                        {{ \Carbon\Carbon::parse($p.'-01')->translatedFormat('M Y') }}
+                    </option>
+                @endforeach
+            </select>
+        </label>
 
-    <!-- Principal Filter -->
-    <select name="principal_id" class="period-select" style="max-width:200px;">
-        <option value="all" {{ $principal_id === 'all' ? 'selected' : '' }}>Semua Principal</option>
-        @foreach($principals as $pr)
-            <option value="{{ $pr->id }}" {{ (string)$principal_id === (string)$pr->id ? 'selected' : '' }}>
-                {{ Str::limit(str_replace('PT. ', '', $pr->name), 20) }}
-            </option>
-        @endforeach
-    </select>
+        <label class="filter-principal">
+            <span>Principal</span>
+            <select name="principal_id" class="period-select">
+                <option value="all" {{ $principal_id === 'all' ? 'selected' : '' }}>Semua</option>
+                @foreach($principals as $pr)
+                    <option value="{{ $pr->id }}" {{ (string)$principal_id === (string)$pr->id ? 'selected' : '' }}>
+                        {{ Str::limit(str_replace('PT. ', '', $pr->name), 22) }}
+                    </option>
+                @endforeach
+            </select>
+        </label>
 
-    <button type="submit" class="btn btn-primary" style="padding:0.4rem 0.75rem;font-size:0.75rem;">Filter</button>
+        <button type="submit" class="btn btn-primary btn-compact">Terapkan</button>
+    </div>

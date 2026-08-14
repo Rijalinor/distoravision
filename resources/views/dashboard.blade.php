@@ -15,6 +15,21 @@
         <a href="{{ route('imports.create') }}" class="btn btn-primary">Import Data Sekarang</a>
     </div>
 @else
+    <x-page-guide
+        title="Mulai dari kesehatan bisnis bulan ini"
+        description="Gunakan halaman ini untuk membaca performa penjualan, retur, margin, target, stok, dan piutang dalam satu layar. Filter periode dan principal di kanan atas akan mengubah semua angka utama."
+        :steps="[
+            'Pilih periode dan principal yang ingin dicek.',
+            'Baca alert merah/kuning lebih dulu karena itu butuh tindakan cepat.',
+            'Bandingkan Gross Sales, Returns, Net Sales, Margin, lalu cek produk dan outlet terbesar.'
+        ]"
+        :metrics="[
+            'Gross Sales' => 'Omset invoice sebelum dikurangi retur.',
+            'Net Sales' => 'Sales bersih setelah retur, ini angka utama untuk keputusan.',
+            'Margin' => 'Perkiraan laba kotor setelah COGS dan retur.'
+        ]"
+    />
+
     @include('components.ai-insight')
 
     <!-- SYSTEM ALERTS -->
@@ -62,7 +77,7 @@
     <div class="card" style="margin-bottom: 1.5rem; padding: 1.5rem; background: linear-gradient(to right, rgba(99, 102, 241, 0.05), rgba(30, 41, 59, 0));">
         <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 0.75rem;">
             <div>
-                <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;">🎯 Target Penjualan Global ({{ \Carbon\Carbon::parse($period.'-01')->translatedFormat('F Y') }})</div>
+                <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;">🎯 Target Net Sales Global ({{ \Carbon\Carbon::parse($period.'-01')->translatedFormat('F Y') }})</div>
                 <div style="font-size: 1.75rem; font-weight: 800; font-family: monospace; color: var(--text-primary); margin-top: 0.25rem;">
                     Rp {{ number_format($totalSales, 0, ',', '.') }} <span style="font-size: 1.1rem; color: var(--text-muted); font-weight: 500;">/ {{ $globalTarget ? 'Rp '.number_format($globalTarget, 0, ',', '.') : 'Target belum diset' }}</span>
                 </div>
@@ -91,12 +106,12 @@
         </div>
         <div class="card kpi-card">
             <div class="card-header">
-                <span class="card-title" title="Total Nilai Transaksi Kotor (Belum potong diskon/retur)">Total Sales</span>
+                <span class="card-title" title="Total invoice sebelum dikurangi retur. Pakai Net Sales untuk membaca sales bersih.">Gross Sales</span>
                 <div class="kpi-icon green"><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg></div>
             </div>
             <div class="kpi-value" title="Rp {{ number_format($totalSales, 0, ',', '.') }}">Rp {{ number_format($totalSales / 1000, 0, ',', '.') }}K</div>
             <div style="display:flex; justify-content:space-between; align-items:center;">
-                <div class="kpi-label">{{ number_format($invoiceCount) }} transaksi</div>
+                <div class="kpi-label">{{ number_format($invoiceCount) }} invoice</div>
                 @if(isset($momSales) && $momSales !== 0)
                 <div class="badge {{ $momSales > 0 ? 'badge-green' : 'badge-red' }}" style="font-size:0.6rem;">{!! $momSales > 0 ? '↑' : '↓' !!} {{ number_format(abs($momSales), 1) }}%</div>
                 @endif
@@ -104,7 +119,7 @@
         </div>
         <div class="card kpi-card">
             <div class="card-header">
-                <span class="card-title" title="Total Nilai Barang Retur BAST (Batal, Rusak, atau Pengembalian)">Total Returns</span>
+                <span class="card-title" title="Total nilai retur yang mengurangi gross sales.">Returns</span>
                 <div class="kpi-icon red"><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"></path></svg></div>
             </div>
             <div class="kpi-value text-red" style="-webkit-text-fill-color:var(--accent-red);" title="Rp {{ number_format($totalReturns, 0, ',', '.') }}">Rp {{ number_format($totalReturns / 1000, 0, ',', '.') }}K</div>
@@ -117,7 +132,7 @@
         </div>
         <div class="card kpi-card">
             <div class="card-header">
-                <span class="card-title" title="Sales Bersih Aktual dengan rumus: Taxed Amount - Return.">Net Sales</span>
+                <span class="card-title" title="Sales bersih aktual: Gross Sales - Returns. Ini angka utama untuk keputusan bisnis.">Net Sales</span>
                 <div class="kpi-icon blue"><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>
             </div>
             <div class="kpi-value" title="Rp {{ number_format($netSales, 0, ',', '.') }}">Rp {{ number_format($netSales / 1000, 0, ',', '.') }}K</div>
@@ -145,7 +160,7 @@
             <div id="weeklyChart"></div>
         </div>
         <div class="card">
-            <div class="card-header"><span class="card-title">Revenue per Principal</span></div>
+            <div class="card-header"><span class="card-title">Gross Sales per Principal</span></div>
             <div id="principalChart"></div>
         </div>
     </div>
@@ -153,9 +168,9 @@
     <!-- Tables -->
     <div class="grid-2">
         <div class="card">
-            <div class="card-header"><span class="card-title">Top 10 Produk</span></div>
+            <div class="card-header"><span class="card-title">Top 10 Produk by Gross Sales</span></div>
             <table class="data-table">
-                <thead><tr><th>#</th><th>Produk</th><th class="text-right">Sales</th></tr></thead>
+                <thead><tr><th>#</th><th>Produk</th><th class="text-right">Gross Sales</th></tr></thead>
                 <tbody>
                 @foreach($topProducts as $i => $product)
                     <tr>
@@ -168,9 +183,9 @@
             </table>
         </div>
         <div class="card">
-            <div class="card-header"><span class="card-title">Top 10 Outlet</span></div>
+            <div class="card-header"><span class="card-title">Top 10 Outlet by Gross Sales</span></div>
             <table class="data-table">
-                <thead><tr><th>#</th><th>Outlet</th><th>Kota</th><th class="text-right">Sales</th></tr></thead>
+                <thead><tr><th>#</th><th>Outlet</th><th>Kota</th><th class="text-right">Gross Sales</th></tr></thead>
                 <tbody>
                 @foreach($topOutlets as $i => $outlet)
                     <tr>

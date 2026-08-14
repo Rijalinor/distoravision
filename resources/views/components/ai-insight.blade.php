@@ -4,8 +4,8 @@
         <div style="font-size: 2rem; line-height:1;">💡</div>
         <div>
             <h3 style="margin-bottom:0.5rem; color:var(--text-color); font-size:1.1rem; display:flex; align-items:center; gap:0.5rem;">
-                Distora AI Insight
-                <span class="badge badge-blue" style="font-size:0.65rem;">S1-Level</span>
+                Ringkasan Otomatis
+                <span class="badge badge-blue" style="font-size:0.65rem;">berdasarkan data aktif</span>
             </h3>
             <p style="color: var(--text-secondary, #cbd5e1); font-size: 0.95rem; line-height: 1.6; margin: 0;">
                 {!! nl2br(e($aiNarrative)) !!}
