@@ -390,34 +390,35 @@
             .btn-compact { padding: 0.45rem 0.85rem; font-size: 0.75rem; }
 
             .page-guide {
-                margin-bottom: 1rem; background: rgba(24,32,70,0.62);
+                position: fixed; right: 1rem; bottom: 1rem; z-index: 120;
+                margin: 0; background: rgba(24,32,70,0.96);
                 border: 1px solid var(--border-color); border-left: 3px solid var(--primary);
-                border-radius: 10px; overflow: hidden;
+                border-radius: 10px; overflow: visible;
+                box-shadow: 0 18px 45px rgba(0,0,0,0.45);
             }
             .page-guide summary {
-                list-style: none; cursor: pointer; display: flex; align-items: center;
-                gap: 0.75rem; padding: 0.75rem 1rem;
+                list-style: none; cursor: pointer; display: inline-flex; align-items: center;
+                gap: 0.45rem; padding: 0.55rem 0.75rem;
             }
             .page-guide summary::-webkit-details-marker { display: none; }
-            .page-guide summary::after {
-                content: 'Buka'; margin-left: auto; color: var(--primary-light);
-                font-size: 0.7rem; font-weight: 800;
-            }
-            .page-guide[open] summary::after { content: 'Tutup'; }
             .page-guide summary span {
-                color: var(--primary-light); font-size: 0.68rem; font-weight: 800;
-                text-transform: uppercase; letter-spacing: 0.08em;
+                width: 1.3rem; height: 1.3rem; border-radius: 999px;
+                display: inline-flex; align-items: center; justify-content: center;
+                color: white; background: var(--primary); font-size: 0.8rem; font-weight: 900;
             }
-            .page-guide summary strong { color: var(--text-primary); font-size: 0.9rem; white-space: nowrap; }
-            .page-guide summary small {
-                color: var(--text-muted); font-size: 0.76rem; overflow: hidden;
-                text-overflow: ellipsis; white-space: nowrap;
-            }
+            .page-guide summary strong { color: var(--text-primary); font-size: 0.78rem; white-space: nowrap; }
             .page-guide-body {
-                display: grid; grid-template-columns: repeat(2, minmax(220px, 1fr));
-                gap: 1rem; padding: 0 1rem 1rem;
+                position: absolute; right: 0; bottom: calc(100% + 0.6rem);
+                width: min(720px, calc(100vw - 2rem));
+                display: grid; grid-template-columns: 1.1fr repeat(2, minmax(180px, 1fr));
+                gap: 1rem; padding: 1rem;
+                background: var(--bg-card); border: 1px solid var(--border-color);
+                border-radius: 12px; box-shadow: 0 18px 45px rgba(0,0,0,0.45);
             }
+            .page-guide-main h2 { margin: 0.15rem 0 0.35rem; font-size: 1rem; font-weight: 800; color: var(--text-primary); }
+            .page-guide-main p { margin: 0; color: var(--text-muted); font-size: 0.76rem; line-height: 1.42; }
             .page-guide-item p, .page-guide-metric p { margin: 0; color: var(--text-muted); font-size: 0.76rem; line-height: 1.42; }
+            .page-guide-eyebrow,
             .page-guide-list-title {
                 color: var(--primary-light); font-size: 0.68rem; font-weight: 800;
                 text-transform: uppercase; letter-spacing: 0.08em;
@@ -521,10 +522,8 @@
                 .kpi-grid { grid-template-columns: 1fr; }
                 .kpi-value { font-size: 1.5rem; word-break: break-word; }
                 .top-actions { width: 100%; flex-wrap: wrap; }
-                .page-guide summary { align-items: flex-start; gap: 0.5rem; flex-wrap: wrap; }
-                .page-guide summary strong, .page-guide summary small { white-space: normal; }
-                .page-guide summary::after { margin-left: 0; }
-                .page-guide-body { grid-template-columns: 1fr; }
+                .page-guide { right: 0.75rem; bottom: 0.75rem; }
+                .page-guide-body { grid-template-columns: 1fr; max-height: 72vh; overflow-y: auto; }
                 .filter-strip { width: 100%; }
                 .filter-strip label, .filter-strip .period-select, .filter-strip .filter-principal .period-select { width: 100%; min-width: 0; }
             }

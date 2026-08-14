@@ -7,12 +7,17 @@
 
 <details class="page-guide">
     <summary>
-        <span>Panduan cepat</span>
-        <strong>{{ $title }}</strong>
-        <small>{{ $description }}</small>
+        <span>?</span>
+        <strong>Bantuan</strong>
     </summary>
 
     <div class="page-guide-body">
+        <div class="page-guide-main">
+            <span class="page-guide-eyebrow">Panduan cepat</span>
+            <h2>{{ $title }}</h2>
+            <p>{{ $description }}</p>
+        </div>
+
         @if(! empty($steps))
             <div class="page-guide-list">
                 <div class="page-guide-list-title">Alur pakai</div>
