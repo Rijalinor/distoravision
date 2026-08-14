@@ -103,6 +103,9 @@
                         </div>
                     </td>
                     <td class="text-center">
+                        <div style="font-size:0.95rem;line-height:1;margin-bottom:0.2rem;">
+                            {{ ['Growing' => '↗', 'Stable' => '→', 'Declining' => '↘', 'New' => '+', 'Dead' => '×'][$t->classification] ?? '•' }}
+                        </div>
                         <div class="badge {{ $t->classification === 'Growing' ? 'badge-green' : ($t->classification === 'Declining' ? 'badge-yellow' : ($t->classification === 'Dead' ? 'badge-red' : 'badge-blue')) }}">
                             {{ $t->classification }}
                         </div>
