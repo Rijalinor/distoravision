@@ -390,14 +390,35 @@
             .btn-compact { padding: 0.45rem 0.85rem; font-size: 0.75rem; }
 
             .page-guide {
-                display: grid; grid-template-columns: minmax(260px, 1.25fr) repeat(2, minmax(220px, 1fr));
-                gap: 1rem; margin-bottom: 1.5rem; padding: 1rem;
-                background: rgba(24,32,70,0.72); border: 1px solid var(--border-color);
-                border-left: 4px solid var(--primary); border-radius: 12px;
+                margin-bottom: 1rem; background: rgba(24,32,70,0.62);
+                border: 1px solid var(--border-color); border-left: 3px solid var(--primary);
+                border-radius: 10px; overflow: hidden;
             }
-            .page-guide-main h2 { margin: 0.15rem 0 0.35rem; font-size: 1.05rem; font-weight: 800; color: var(--text-primary); }
-            .page-guide-main p, .page-guide-item p, .page-guide-metric p { margin: 0; color: var(--text-muted); font-size: 0.78rem; line-height: 1.45; }
-            .page-guide-eyebrow, .page-guide-list-title {
+            .page-guide summary {
+                list-style: none; cursor: pointer; display: flex; align-items: center;
+                gap: 0.75rem; padding: 0.75rem 1rem;
+            }
+            .page-guide summary::-webkit-details-marker { display: none; }
+            .page-guide summary::after {
+                content: 'Buka'; margin-left: auto; color: var(--primary-light);
+                font-size: 0.7rem; font-weight: 800;
+            }
+            .page-guide[open] summary::after { content: 'Tutup'; }
+            .page-guide summary span {
+                color: var(--primary-light); font-size: 0.68rem; font-weight: 800;
+                text-transform: uppercase; letter-spacing: 0.08em;
+            }
+            .page-guide summary strong { color: var(--text-primary); font-size: 0.9rem; white-space: nowrap; }
+            .page-guide summary small {
+                color: var(--text-muted); font-size: 0.76rem; overflow: hidden;
+                text-overflow: ellipsis; white-space: nowrap;
+            }
+            .page-guide-body {
+                display: grid; grid-template-columns: repeat(2, minmax(220px, 1fr));
+                gap: 1rem; padding: 0 1rem 1rem;
+            }
+            .page-guide-item p, .page-guide-metric p { margin: 0; color: var(--text-muted); font-size: 0.76rem; line-height: 1.42; }
+            .page-guide-list-title {
                 color: var(--primary-light); font-size: 0.68rem; font-weight: 800;
                 text-transform: uppercase; letter-spacing: 0.08em;
             }
@@ -500,7 +521,10 @@
                 .kpi-grid { grid-template-columns: 1fr; }
                 .kpi-value { font-size: 1.5rem; word-break: break-word; }
                 .top-actions { width: 100%; flex-wrap: wrap; }
-                .page-guide { grid-template-columns: 1fr; }
+                .page-guide summary { align-items: flex-start; gap: 0.5rem; flex-wrap: wrap; }
+                .page-guide summary strong, .page-guide summary small { white-space: normal; }
+                .page-guide summary::after { margin-left: 0; }
+                .page-guide-body { grid-template-columns: 1fr; }
                 .filter-strip { width: 100%; }
                 .filter-strip label, .filter-strip .period-select, .filter-strip .filter-principal .period-select { width: 100%; min-width: 0; }
             }
