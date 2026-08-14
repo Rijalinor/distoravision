@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Traits\CsvExportable;
-use App\Models\Product;
 use App\Models\Transaction;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -14,38 +13,34 @@ class ProductTrajectoryController extends Controller
 {
     use CsvExportable;
 
-    /**
-     * Product Growth Trajectory Analysis
-     * Classifies each product as Growing 📈, Stable ➡️, Declining 📉, New 🆕, or Dead 💀
-     * based on 6-month sales trend using linear regression slope.
-     */
     public function index(Request $request)
     {
         $period = $request->get('end_period', $request->get('period', Transaction::max('period') ?? date('Y-m')));
+        $startPeriod = $request->get('start_period', $period);
         $periods = Transaction::select('period')->distinct()->orderByDesc('period')->pluck('period');
 
-        // Look back 6 months from the selected period
+        $startDate = Carbon::parse($startPeriod.'-01');
         $endDate = Carbon::parse($period.'-01');
-        $lookbackMonths = 6;
+        if ($startDate->gt($endDate)) {
+            [$startDate, $endDate] = [$endDate, $startDate];
+        }
+
+        $lookbackMonths = min($startDate->diffInMonths($endDate) + 1, 6);
         $startDate = $endDate->copy()->subMonths($lookbackMonths - 1);
         $periodRange = [];
         for ($i = 0; $i < $lookbackMonths; $i++) {
             $periodRange[] = $startDate->copy()->addMonths($i)->format('Y-m');
         }
 
-        // Filter segment
         $segment = $request->get('segment', 'all');
         $perPage = min(max((int) $request->get('per_page', 25), 1), 100);
 
-        // Fetch monthly invoice sales per product for the 6-month window.
-        // Returns are useful for quality/risk analysis, but product trajectory should not show "negative demand".
         $rawQuery = Transaction::query()
             ->whereIn('transactions.period', $periodRange)
             ->join('products', 'transactions.product_id', '=', 'products.id')
             ->join('principals', 'products.principal_id', '=', 'principals.id');
 
-        // Apply principal filter if present
-        if ($request->has('principal_id') && ! empty($request->get('principal_id')) && $request->get('principal_id') !== 'all') {
+        if ($request->filled('principal_id') && $request->get('principal_id') !== 'all') {
             $rawQuery->where('products.principal_id', $request->get('principal_id'));
         }
 
@@ -67,9 +62,8 @@ class ProductTrajectoryController extends Controller
         foreach ($monthlySales as $productId => $monthlyData) {
             $product = $monthlyData->first();
             $activeMonths = $monthlyData->pluck('sales_amount', 'period');
-
-            // Build 6-month series (fill zeroes for missing months)
             $series = [];
+
             foreach ($periodRange as $p) {
                 $series[$p] = (float) ($activeMonths[$p] ?? 0);
             }
@@ -81,7 +75,6 @@ class ProductTrajectoryController extends Controller
             $latestSales = end($values);
             $prevSales = $values[$n - 2] ?? 0;
 
-            // Calculate linear regression slope to determine trend direction
             $sumX = 0;
             $sumY = 0;
             $sumXY = 0;
@@ -92,32 +85,30 @@ class ProductTrajectoryController extends Controller
                 $sumXY += $i * $values[$i];
                 $sumX2 += $i * $i;
             }
+
             $denominator = ($n * $sumX2) - ($sumX * $sumX);
             $slope = $denominator > 0 ? (($n * $sumXY) - ($sumX * $sumY)) / $denominator : 0;
             $avgSales = $totalSales / max($monthCount, 1);
-
-            // Normalize slope as percentage of average sales
             $slopePct = $avgSales > 0 ? ($slope / $avgSales) * 100 : 0;
 
-            // Classify
             if ($monthCount <= 1 && $latestSales > 0) {
                 $classification = 'New';
-                $icon = '🆕';
+                $icon = 'NEW';
             } elseif ($monthCount <= 1 && $latestSales <= 0) {
                 $classification = 'Dead';
-                $icon = '💀';
+                $icon = 'DEAD';
             } elseif ($latestSales <= 0 && $prevSales <= 0) {
                 $classification = 'Dead';
-                $icon = '💀';
+                $icon = 'DEAD';
             } elseif ($slopePct > 10) {
                 $classification = 'Growing';
-                $icon = '📈';
+                $icon = 'UP';
             } elseif ($slopePct < -10) {
                 $classification = 'Declining';
-                $icon = '📉';
+                $icon = 'DOWN';
             } else {
                 $classification = 'Stable';
-                $icon = '➡️';
+                $icon = 'OK';
             }
 
             $segments[$classification]++;
@@ -138,44 +129,37 @@ class ProductTrajectoryController extends Controller
             ];
         }
 
-        // Filter by segment
         if ($segment !== 'all') {
             $trajectories = array_values(array_filter($trajectories, fn ($t) => $t->classification === $segment));
         }
 
-        // Sort: Declining first (most urgent), then by total sales
         usort($trajectories, function ($a, $b) {
             $order = ['Declining' => 0, 'Dead' => 1, 'New' => 2, 'Stable' => 3, 'Growing' => 4];
             $classCompare = ($order[$a->classification] ?? 5) <=> ($order[$b->classification] ?? 5);
-            if ($classCompare !== 0) {
-                return $classCompare;
-            }
 
-            return $b->total_sales <=> $a->total_sales;
+            return $classCompare !== 0 ? $classCompare : $b->total_sales <=> $a->total_sales;
         });
 
         $totalProducts = array_sum($segments);
-
-        // --- DISTORA AI NARRATIVE GENERATOR ---
+        $rangeLabel = $lookbackMonths.' bulan';
         $decliningValue = collect($trajectories)->where('classification', 'Declining')->sum('total_sales');
         $growingCount = $segments['Growing'];
 
-        $aiNarrative = "🔍 Fakta: Dari {$totalProducts} SKU aktif, ".
-            "{$segments['Growing']} SKU sedang TUMBUH 📈, ".
-            "{$segments['Stable']} STABIL ➡️, ".
-            "{$segments['Declining']} MENURUN 📉, ".
-            "{$segments['New']} BARU 🆕, dan ".
-            "{$segments['Dead']} MATI 💀.\n".
-            ($segments['Declining'] > 0
-                ? '⚠️ Perhatian: '.$segments['Declining'].' SKU menunjukkan tren PENURUNAN dengan akumulasi penjualan Rp '.number_format($decliningValue, 0, ',', '.').". Awas resiko Dead-Stock di gudang!\n"
-                : "✅ Katalog produk stabil, tidak ada ancaman Dead-Stock yang signifikan.\n").
-            '💡 Saran: Segera hentikan PO pembelian ke Pabrik untuk produk yang Declining, dan fokus amankan stok untuk '.$growingCount.' produk yang sedang Growing agar tidak terjadi Stockout.';
+        $aiNarrative = "Fakta: Dari {$totalProducts} SKU aktif dalam {$rangeLabel}, "
+            ."{$segments['Growing']} SKU sedang TUMBUH, "
+            ."{$segments['Stable']} STABIL, "
+            ."{$segments['Declining']} MENURUN, "
+            ."{$segments['New']} BARU, dan "
+            ."{$segments['Dead']} MATI.\n"
+            .($segments['Declining'] > 0
+                ? 'Perhatian: '.$segments['Declining'].' SKU menunjukkan tren PENURUNAN dengan akumulasi penjualan Rp '.number_format($decliningValue, 0, ',', '.').". Awas risiko Dead-Stock di gudang.\n"
+                : "Katalog produk stabil, tidak ada ancaman Dead-Stock yang signifikan.\n")
+            .'Saran: hentikan/kurangi PO untuk produk Declining, dan amankan stok untuk '.$growingCount.' produk Growing agar tidak Stockout.';
 
-        // --- CSV EXPORT ---
         if ($request->get('export') === 'csv') {
             $headers = ['Produk', 'Kode Item', 'Principal', 'Klasifikasi', 'Slope %', 'Bulan Laku'];
             $salesHeaders = array_map(fn ($p) => 'Sales '.Carbon::parse($p.'-01')->format('M Y'), $periodRange);
-            $headers = array_merge($headers, $salesHeaders, ['Sales Terakhir', 'Rata-rata', 'Total 6 Bln']);
+            $headers = array_merge($headers, $salesHeaders, ['Sales Terakhir', 'Rata-rata', "Total {$rangeLabel}"]);
 
             $rows = array_map(function ($t) use ($periodRange) {
                 $row = [
@@ -191,11 +175,7 @@ class ProductTrajectoryController extends Controller
                 return array_merge($row, $salesData, [$t->latest_sales, $t->avg_sales, $t->total_sales]);
             }, $trajectories);
 
-            return $this->streamCsv(
-                "ProductTrajectory_{$period}.csv",
-                $headers,
-                $rows
-            );
+            return $this->streamCsv("ProductTrajectory_{$period}.csv", $headers, $rows);
         }
 
         $currentPage = LengthAwarePaginator::resolveCurrentPage();
@@ -204,15 +184,21 @@ class ProductTrajectoryController extends Controller
             count($trajectories),
             $perPage,
             $currentPage,
-            [
-                'path' => $request->url(),
-                'query' => $request->query(),
-            ]
+            ['path' => $request->url(), 'query' => $request->query()]
         );
 
         return view('analytics.product-trajectory', compact(
-            'period', 'periods', 'paginatedTrajectories', 'segments', 'totalProducts',
-            'segment', 'periodRange', 'aiNarrative', 'perPage'
+            'period',
+            'periods',
+            'paginatedTrajectories',
+            'segments',
+            'totalProducts',
+            'segment',
+            'periodRange',
+            'aiNarrative',
+            'perPage',
+            'lookbackMonths',
+            'rangeLabel'
         ));
     }
 }

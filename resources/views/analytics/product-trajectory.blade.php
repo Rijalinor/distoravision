@@ -1,5 +1,5 @@
 @extends('layouts.app')
-@section('page-title', 'Product Growth Trajectory (Trend 6 Bulan)')
+@section('page-title', 'Product Growth Trajectory')
 
 @section('top-bar-actions')
 <form method="GET" style="display:flex;gap:0.75rem;align-items:center;">
@@ -87,10 +87,10 @@
                 <tr>
                     <th>Produk (SKU)</th>
                     <th class="text-center">Trend Class</th>
-                    <th class="text-center" style="min-width: 150px;">Mini Trend (6 Bln)</th>
+                    <th class="text-center" style="min-width: 150px;">Mini Trend ({{ $rangeLabel }})</th>
                     <th class="text-right">Sales Terakhir</th>
-                    <th class="text-right">Rata-rata 6 Bln</th>
-                    <th class="text-right">Total 6 Bln</th>
+                    <th class="text-right">Rata-rata {{ $rangeLabel }}</th>
+                    <th class="text-right">Total {{ $rangeLabel }}</th>
                 </tr>
             </thead>
             <tbody>
