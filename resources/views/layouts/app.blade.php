@@ -390,7 +390,7 @@
             .btn-compact { padding: 0.45rem 0.85rem; font-size: 0.75rem; }
 
             .page-guide {
-                position: fixed; right: 1rem; bottom: 1rem; z-index: 120;
+                position: fixed; right: 1.35rem; top: 5.2rem; z-index: 120;
                 margin: 0; background: rgba(24,32,70,0.96);
                 border: 1px solid var(--border-color); border-left: 3px solid var(--primary);
                 border-radius: 10px; overflow: visible;
@@ -408,7 +408,7 @@
             }
             .page-guide summary strong { color: var(--text-primary); font-size: 0.78rem; white-space: nowrap; }
             .page-guide-body {
-                position: absolute; right: 0; bottom: calc(100% + 0.6rem);
+                position: absolute; right: 0; top: calc(100% + 0.6rem);
                 width: min(720px, calc(100vw - 2rem));
                 display: grid; grid-template-columns: 1.1fr repeat(2, minmax(180px, 1fr));
                 gap: 1rem; padding: 1rem;
@@ -522,7 +522,7 @@
                 .kpi-grid { grid-template-columns: 1fr; }
                 .kpi-value { font-size: 1.5rem; word-break: break-word; }
                 .top-actions { width: 100%; flex-wrap: wrap; }
-                .page-guide { right: 0.75rem; bottom: 0.75rem; }
+                .page-guide { right: 0.75rem; top: 5rem; }
                 .page-guide-body { grid-template-columns: 1fr; max-height: 72vh; overflow-y: auto; }
                 .filter-strip { width: 100%; }
                 .filter-strip label, .filter-strip .period-select, .filter-strip .filter-principal .period-select { width: 100%; min-width: 0; }
