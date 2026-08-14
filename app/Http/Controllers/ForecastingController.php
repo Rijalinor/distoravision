@@ -60,8 +60,8 @@ class ForecastingController extends Controller implements HasMiddleware
             'product_id',
             'period',
             DB::raw("SUM(CASE WHEN type='I' THEN qty_base WHEN type='R' THEN -qty_base ELSE 0 END) as total_qty"),
-            DB::raw('COUNT(DISTINCT outlet_id) as active_outlets'),
-            DB::raw('COUNT(DISTINCT so_date) as days_sold')
+            DB::raw("COUNT(DISTINCT CASE WHEN type='I' THEN outlet_id END) as active_outlets"),
+            DB::raw("COUNT(DISTINCT CASE WHEN type='I' THEN so_date END) as days_sold")
         )
             ->groupBy('product_id', 'period')
             ->get()
@@ -276,8 +276,8 @@ class ForecastingController extends Controller implements HasMiddleware
             'product_id',
             'period',
             DB::raw("SUM(CASE WHEN type='I' THEN qty_base WHEN type='R' THEN -qty_base ELSE 0 END) as total_qty"),
-            DB::raw('COUNT(DISTINCT outlet_id) as active_outlets'),
-            DB::raw('COUNT(DISTINCT so_date) as days_sold')
+            DB::raw("COUNT(DISTINCT CASE WHEN type='I' THEN outlet_id END) as active_outlets"),
+            DB::raw("COUNT(DISTINCT CASE WHEN type='I' THEN so_date END) as days_sold")
         )
             ->groupBy('product_id', 'period')
             ->get()

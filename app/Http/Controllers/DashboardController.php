@@ -137,10 +137,8 @@ class DashboardController extends Controller
 
             // 2. Global Target vs Achievement (using Net Sales for accurate progress)
             $globalTarget = SalesmanTarget::where('period', $period)->sum('target_amount');
-            if ($globalTarget <= 0) {
-                $globalTarget = 10000000000; // Fallback 10B if not set
-            }
-            $globalProgress = $globalTarget > 0 ? ($netSales / $globalTarget) * 100 : 100;
+            $globalTarget = $globalTarget > 0 ? $globalTarget : null;
+            $globalProgress = $globalTarget ? ($netSales / $globalTarget) * 100 : null;
 
             // 3. Today's Sales
             $latestSoDate = Transaction::withFilters($request)->invoices()->max('so_date');

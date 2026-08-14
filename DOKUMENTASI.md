@@ -25,6 +25,8 @@ Dokumen ini merupakan panduan referensi tunggal (Master Documentation) untuk ars
 18. [Lampiran (Diagram, SOP, & Folder)](#18-lampiran-diagram-sop--folder)
 19. [Maintenance Guide (Pemeliharaan & Monitoring)](#19-maintenance-guide-pemeliharaan--monitoring)
 
+Dokumentasi khusus rumus fitur, sumber data, dan alur kerja analitik tersedia di **[DOKUMENTASI_FITUR_ANALITIK.md](DOKUMENTASI_FITUR_ANALITIK.md)**.
+
 ---
 
 ## 1. Cover & Informasi Proyek
@@ -49,6 +51,7 @@ Dokumen ini merupakan panduan referensi tunggal (Master Documentation) untuk ars
 | **v2.0.0** | 15 Juni 2026 | Rijalinor | Redesain Antarmuka Utama: Tema Sleek Navy (Navy Palette) & Peningkatan Readability Teks. |
 | **v2.1.0** | 17 Juni 2026 | Antigravity | Konsolidasi & Rekonstruksi Master Dokumentasi 17 Bagian dari Awal. |
 | **v2.2.0** | 23 Juni 2026 | Antigravity | Fitur Demo Mode Dinamis (demo@admin.com), mengubah Ranking Salesman menjadi Performa Salesman (Alfabetis), & menambah Slide AR Aging ke TV Wallboard. |
+| **v2.3.0** | 14 Agustus 2026 | Codex | Menambahkan dokumentasi khusus fitur analitik, rumus hitungan, sumber data, dan alur kerja operasional. |
 
 ---
 

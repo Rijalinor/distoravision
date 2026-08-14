@@ -242,9 +242,9 @@ class ReportController extends Controller implements HasMiddleware
         $totalTrajectoryOutlets = array_sum($trajectorySegments);
 
         // 7. Pareto Summary
-        $paretoData = Transaction::withFilters(request())->invoices()
+        $paretoData = Transaction::withFilters(request())
             ->join('products', 'transactions.product_id', '=', 'products.id')
-            ->select('products.name', DB::raw('SUM(transactions.taxed_amt) as total_sales'))
+            ->select('products.name', DB::raw('SUM(CASE WHEN transactions.type = "I" THEN transactions.taxed_amt WHEN transactions.type = "R" THEN -ABS(transactions.taxed_amt) ELSE 0 END) as total_sales'))
             ->groupBy('products.name')->having('total_sales', '>', 0)
             ->orderByDesc('total_sales')->get();
         $totalParetoRev = (float) $paretoData->sum('total_sales');

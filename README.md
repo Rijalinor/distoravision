@@ -114,6 +114,7 @@ DistoraVision prioritizes code quality, maintaining a clean codebase with 100% p
 For a comprehensive guide on database dictionaries, formula definitions, installation steps, user manuals, diagrams, and security architecture, refer to the master documentation:
 
 *   📄 **[DOKUMENTASI.md (Master Technical Documentation)](file:///c:/xampp/htdocs/distoravision/DOKUMENTASI.md)** *(Written in Indonesian)*
+*   📊 **[DOKUMENTASI_FITUR_ANALITIK.md](file:///c:/xampp/htdocs/distoravision/DOKUMENTASI_FITUR_ANALITIK.md)** *(Rumus fitur, alur kerja, dan cara membaca dashboard)*
 
 ---
 *Developed by **Rijalinor** — Empowering Distribution Networks through Intelligent Data.*

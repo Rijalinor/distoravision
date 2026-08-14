@@ -64,15 +64,15 @@
             <div>
                 <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;">🎯 Target Penjualan Global ({{ \Carbon\Carbon::parse($period.'-01')->translatedFormat('F Y') }})</div>
                 <div style="font-size: 1.75rem; font-weight: 800; font-family: monospace; color: var(--text-primary); margin-top: 0.25rem;">
-                    Rp {{ number_format($totalSales, 0, ',', '.') }} <span style="font-size: 1.1rem; color: var(--text-muted); font-weight: 500;">/ Rp {{ number_format($globalTarget, 0, ',', '.') }}</span>
+                    Rp {{ number_format($totalSales, 0, ',', '.') }} <span style="font-size: 1.1rem; color: var(--text-muted); font-weight: 500;">/ {{ $globalTarget ? 'Rp '.number_format($globalTarget, 0, ',', '.') : 'Target belum diset' }}</span>
                 </div>
             </div>
             <div style="text-align: right;">
-                <div style="font-size: 1.5rem; font-weight: 800; color: {{ $globalProgress >= 100 ? 'var(--accent-green)' : 'var(--accent-blue)' }};">{{ number_format($globalProgress, 1) }}%</div>
+                <div style="font-size: 1.5rem; font-weight: 800; color: {{ ($globalProgress ?? 0) >= 100 ? 'var(--accent-green)' : 'var(--accent-blue)' }};">{{ $globalProgress !== null ? number_format($globalProgress, 1).'%' : '-' }}</div>
             </div>
         </div>
         <div style="width: 100%; background: rgba(0,0,0,0.2); border-radius: 10px; height: 16px; overflow: hidden; border: 1px solid var(--border-color);">
-            <div style="height: 100%; background: {{ $globalProgress >= 100 ? 'var(--accent-green)' : 'linear-gradient(90deg, var(--accent-blue), #818cf8)' }}; width: {{ min(100, $globalProgress) }}%; border-radius: 10px; transition: width 1s ease; position: relative; overflow: hidden;">
+            <div style="height: 100%; background: {{ ($globalProgress ?? 0) >= 100 ? 'var(--accent-green)' : 'linear-gradient(90deg, var(--accent-blue), #818cf8)' }}; width: {{ min(100, $globalProgress ?? 0) }}%; border-radius: 10px; transition: width 1s ease; position: relative; overflow: hidden;">
             </div>
         </div>
     </div>
