@@ -390,7 +390,7 @@
             .btn-compact { padding: 0.45rem 0.85rem; font-size: 0.75rem; }
 
             .page-guide {
-                position: fixed !important; right: 1.5rem; bottom: 4.5rem; z-index: 9999;
+                position: fixed !important; right: 1.25rem; bottom: 1.5rem; z-index: 9999;
                 margin: 0; background: transparent; border: 0;
                 border-radius: 999px; overflow: visible;
             }
@@ -522,7 +522,7 @@
                 .kpi-grid { grid-template-columns: 1fr; }
                 .kpi-value { font-size: 1.5rem; word-break: break-word; }
                 .top-actions { width: 100%; flex-wrap: wrap; }
-                .page-guide { right: 1rem; bottom: 4.25rem; }
+                .page-guide { right: 0.9rem; bottom: 1.25rem; }
                 .page-guide-body { grid-template-columns: 1fr; max-height: 72vh; overflow-y: auto; }
                 .filter-strip { width: 100%; }
                 .filter-strip label, .filter-strip .period-select, .filter-strip .filter-principal .period-select { width: 100%; min-width: 0; }
