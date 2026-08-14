@@ -152,6 +152,17 @@
             }
             .page-title { font-size: 1.25rem; font-weight: 700; }
             .content-area { padding: 1.5rem 2rem; }
+            .main-content.is-loading .content-area { opacity: 0.45; pointer-events: none; }
+            .main-content.is-loading::after {
+                content: ''; position: fixed; top: 0; left: var(--sidebar-w); right: 0; height: 2px;
+                background: linear-gradient(90deg, transparent, var(--primary-light), transparent);
+                animation: pageLoadBar 0.9s ease-in-out infinite; z-index: 90;
+            }
+            .sidebar.collapsed + .main-content.is-loading::after { left: var(--sidebar-w-collapsed); }
+            @keyframes pageLoadBar {
+                from { transform: translateX(-55%); }
+                to { transform: translateX(55%); }
+            }
 
             /* Breadcrumb */
             .breadcrumb {
@@ -725,8 +736,8 @@
         </aside>
 
         <!-- Main Content -->
-        <div class="main-content">
-            <div class="top-bar">
+        <div class="main-content" id="mainContent">
+            <div class="top-bar" id="topBar">
                 <div style="display:flex;align-items:center;gap:1rem;">
                     <button class="mobile-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')" style="background:none;border:none;color:var(--text-primary);cursor:pointer;">
                         <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
@@ -801,7 +812,7 @@
                 </div>
             </div>
 
-            <div class="content-area">
+            <div class="content-area" id="contentArea">
                 @if(session('success'))
                     <div class="alert alert-success">
                         <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -872,7 +883,8 @@
             const h = String(now.getHours()).padStart(2,'0');
             const m = String(now.getMinutes()).padStart(2,'0');
             const s = String(now.getSeconds()).padStart(2,'0');
-            document.getElementById('topbarClock').textContent = day + ' ' + h + ':' + m + ':' + s;
+            const clock = document.getElementById('topbarClock');
+            if (clock) clock.textContent = day + ' ' + h + ':' + m + ':' + s;
         }
         updateClock();
         setInterval(updateClock, 1000);
@@ -1005,15 +1017,147 @@
         });
 
         // === AUTO-DISMISS ALERTS ===
-        document.addEventListener("DOMContentLoaded", function() {
+        function initAutoDismissAlerts(root) {
             // Auto dismiss alerts after 5 seconds
-            const alerts = document.querySelectorAll('.alert');
+            const alerts = (root || document).querySelectorAll('.alert');
             alerts.forEach(alert => {
                 setTimeout(() => {
                     alert.classList.add('fade-out');
                     setTimeout(() => alert.remove(), 500); // Wait for transition
                 }, 5000);
             });
+        }
+
+        document.addEventListener("DOMContentLoaded", function() {
+            initAutoDismissAlerts(document);
+        });
+
+        // === PARTIAL PAGE NAVIGATION ===
+        let partialNavController = null;
+
+        function isPartialNavigationLink(anchor) {
+            if (!anchor || !anchor.href) return false;
+            if (anchor.target && anchor.target !== '_self') return false;
+            if (anchor.hasAttribute('download')) return false;
+            if (anchor.dataset.fullReload === 'true') return false;
+            if (anchor.href.startsWith('javascript:')) return false;
+
+            const nextUrl = new URL(anchor.href, window.location.href);
+            if (nextUrl.origin !== window.location.origin) return false;
+            if (nextUrl.pathname === window.location.pathname && nextUrl.search === window.location.search && nextUrl.hash) return false;
+
+            const methodForm = anchor.closest('form');
+            if (methodForm && (methodForm.method || 'get').toLowerCase() !== 'get') return false;
+
+            return true;
+        }
+
+        function syncActiveNavigation(url, nextDocument) {
+            const nextActiveHrefs = new Set();
+            if (nextDocument) {
+                nextDocument.querySelectorAll('.sidebar .nav-link.active').forEach(function(link) {
+                    nextActiveHrefs.add(new URL(link.href, window.location.href).pathname);
+                });
+            }
+
+            document.querySelectorAll('.nav-link').forEach(function(link) {
+                const linkUrl = new URL(link.href, window.location.href);
+                const isActive = nextActiveHrefs.size > 0 ? nextActiveHrefs.has(linkUrl.pathname) : linkUrl.pathname === url.pathname;
+                link.classList.toggle('active', isActive);
+            });
+        }
+
+        function runPageScripts(container) {
+            container.querySelectorAll('script').forEach(function(oldScript) {
+                const script = document.createElement('script');
+                Array.from(oldScript.attributes).forEach(function(attr) {
+                    script.setAttribute(attr.name, attr.value);
+                });
+                script.textContent = oldScript.textContent;
+                oldScript.replaceWith(script);
+            });
+        }
+
+        async function loadPartialPage(url, pushState = true) {
+            const mainContent = document.getElementById('mainContent');
+            if (!mainContent) {
+                window.location.href = url;
+                return;
+            }
+
+            if (partialNavController) partialNavController.abort();
+            partialNavController = new AbortController();
+
+            mainContent.classList.add('is-loading');
+
+            try {
+                const response = await fetch(url, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'text/html, application/xhtml+xml'
+                    },
+                    signal: partialNavController.signal
+                });
+
+                if (!response.ok || response.redirected) {
+                    window.location.href = response.url || url;
+                    return;
+                }
+
+                const html = await response.text();
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+                const nextMain = doc.getElementById('mainContent');
+                if (!nextMain) {
+                    window.location.href = url;
+                    return;
+                }
+
+                document.title = doc.title || document.title;
+                mainContent.innerHTML = nextMain.innerHTML;
+
+                const currentUrl = new URL(url, window.location.href);
+                syncActiveNavigation(currentUrl, doc);
+                initAutoDismissAlerts(mainContent);
+                runPageScripts(mainContent);
+                closeCommandPalette();
+                document.querySelectorAll('.bell-dropdown.show').forEach(function(dd) {
+                    dd.classList.remove('show');
+                });
+
+                if (pushState) window.history.pushState({ partial: true }, '', currentUrl.href);
+                window.scrollTo({ top: 0, behavior: 'instant' });
+            } catch (error) {
+                if (error.name !== 'AbortError') {
+                    window.location.href = url;
+                }
+            } finally {
+                mainContent.classList.remove('is-loading');
+            }
+        }
+
+        document.addEventListener('click', function(event) {
+            const anchor = event.target.closest('a');
+            if (!isPartialNavigationLink(anchor)) return;
+
+            event.preventDefault();
+            loadPartialPage(anchor.href);
+        });
+
+        document.addEventListener('submit', function(event) {
+            const form = event.target;
+            if (!(form instanceof HTMLFormElement)) return;
+            if ((form.method || 'get').toLowerCase() !== 'get') return;
+            if (form.dataset.fullReload === 'true') return;
+
+            event.preventDefault();
+            const params = new URLSearchParams(new FormData(form));
+            const actionUrl = new URL(form.action || window.location.href, window.location.href);
+            actionUrl.search = params.toString();
+            loadPartialPage(actionUrl.href);
+        });
+
+        window.addEventListener('popstate', function() {
+            loadPartialPage(window.location.href, false);
         });
         </script>
     </body>
