@@ -390,24 +390,23 @@
             .btn-compact { padding: 0.45rem 0.85rem; font-size: 0.75rem; }
 
             .page-guide {
-                position: fixed; right: 1rem; bottom: 1rem; z-index: 120;
-                margin: 0; background: rgba(24,32,70,0.88);
-                border: 1px solid rgba(137,145,194,0.42);
+                position: fixed !important; right: 1.5rem; bottom: 4.5rem; z-index: 9999;
+                margin: 0; background: transparent; border: 0;
                 border-radius: 999px; overflow: visible;
-                box-shadow: 0 14px 34px rgba(0,0,0,0.48);
-                backdrop-filter: blur(10px);
             }
             .page-guide summary {
                 list-style: none; cursor: pointer; display: inline-flex; align-items: center;
-                gap: 0.45rem; padding: 0.55rem 0.75rem;
+                gap: 0.5rem; padding: 0.65rem 0.9rem;
+                background: var(--primary); border: 1px solid var(--primary-light);
+                border-radius: 999px; box-shadow: 0 18px 40px rgba(0,0,0,0.55), 0 0 0 4px rgba(137,145,194,0.12);
             }
             .page-guide summary::-webkit-details-marker { display: none; }
             .page-guide summary span {
                 width: 1.3rem; height: 1.3rem; border-radius: 999px;
                 display: inline-flex; align-items: center; justify-content: center;
-                color: white; background: var(--primary); font-size: 0.8rem; font-weight: 900;
+                color: var(--primary); background: white; font-size: 0.8rem; font-weight: 900;
             }
-            .page-guide summary strong { color: var(--text-primary); font-size: 0.78rem; white-space: nowrap; }
+            .page-guide summary strong { color: white; font-size: 0.78rem; white-space: nowrap; }
             .page-guide-body {
                 position: absolute; right: 0; bottom: calc(100% + 0.6rem);
                 width: min(720px, calc(100vw - 2rem));
@@ -523,7 +522,7 @@
                 .kpi-grid { grid-template-columns: 1fr; }
                 .kpi-value { font-size: 1.5rem; word-break: break-word; }
                 .top-actions { width: 100%; flex-wrap: wrap; }
-                .page-guide { right: 0.75rem; bottom: 0.75rem; }
+                .page-guide { right: 1rem; bottom: 4.25rem; }
                 .page-guide-body { grid-template-columns: 1fr; max-height: 72vh; overflow-y: auto; }
                 .filter-strip { width: 100%; }
                 .filter-strip label, .filter-strip .period-select, .filter-strip .filter-principal .period-select { width: 100%; min-width: 0; }
