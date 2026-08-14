@@ -21,7 +21,7 @@ class ProductTrajectoryController extends Controller
      */
     public function index(Request $request)
     {
-        $period = $request->get('period', Transaction::max('period') ?? date('Y-m'));
+        $period = $request->get('end_period', $request->get('period', Transaction::max('period') ?? date('Y-m')));
         $periods = Transaction::select('period')->distinct()->orderByDesc('period')->pluck('period');
 
         // Look back 6 months from the selected period

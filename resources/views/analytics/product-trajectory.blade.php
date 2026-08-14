@@ -11,37 +11,40 @@
 
 @section('content')
 @include('components.ai-insight')
+@php
+    $baseQuery = request()->only('start_period', 'end_period', 'principal_id', 'per_page');
+@endphp
 
 <div class="kpi-grid" style="grid-template-columns: repeat(5, 1fr);">
-    <a href="{{ route('analytics.product-trajectory', ['segment' => 'Growing', 'period' => $period, 'principal_id' => request('principal_id', 'all'), 'per_page' => $perPage]) }}" 
+    <a href="{{ route('analytics.product-trajectory', array_merge($baseQuery, ['segment' => 'Growing'])) }}" 
        class="card kpi-card" style="text-decoration:none; border-top: 4px solid var(--accent-green); {{ $segment === 'Growing' ? 'background:rgba(16,185,129,0.1);' : '' }}">
         <div class="card-title text-center">📈 Growing</div>
         <div class="kpi-value text-green text-center">{{ $segments['Growing'] ?? 0 }}</div>
         <div class="kpi-label text-center">Tumbuh Positif</div>
     </a>
     
-    <a href="{{ route('analytics.product-trajectory', ['segment' => 'Stable', 'period' => $period, 'principal_id' => request('principal_id', 'all'), 'per_page' => $perPage]) }}" 
+    <a href="{{ route('analytics.product-trajectory', array_merge($baseQuery, ['segment' => 'Stable'])) }}" 
        class="card kpi-card" style="text-decoration:none; border-top: 4px solid var(--accent-blue); {{ $segment === 'Stable' ? 'background:rgba(59,130,246,0.1);' : '' }}">
         <div class="card-title text-center">➡️ Stable</div>
         <div class="kpi-value text-blue text-center">{{ $segments['Stable'] ?? 0 }}</div>
         <div class="kpi-label text-center">Stabil / Konsisten</div>
     </a>
 
-    <a href="{{ route('analytics.product-trajectory', ['segment' => 'Declining', 'period' => $period, 'principal_id' => request('principal_id', 'all'), 'per_page' => $perPage]) }}" 
+    <a href="{{ route('analytics.product-trajectory', array_merge($baseQuery, ['segment' => 'Declining'])) }}" 
        class="card kpi-card" style="text-decoration:none; border-top: 4px solid var(--accent-yellow); {{ $segment === 'Declining' ? 'background:rgba(245,158,11,0.1);' : '' }}">
         <div class="card-title text-center">📉 Declining</div>
         <div class="kpi-value text-yellow text-center" style="font-weight:900;">{{ $segments['Declining'] ?? 0 }}</div>
         <div class="kpi-label text-center">Menurun (Warning)</div>
     </a>
 
-    <a href="{{ route('analytics.product-trajectory', ['segment' => 'New', 'period' => $period, 'principal_id' => request('principal_id', 'all'), 'per_page' => $perPage]) }}" 
+    <a href="{{ route('analytics.product-trajectory', array_merge($baseQuery, ['segment' => 'New'])) }}" 
        class="card kpi-card" style="text-decoration:none; border-top: 4px solid var(--primary-light); {{ $segment === 'New' ? 'background:rgba(99,102,241,0.1);' : '' }}">
         <div class="card-title text-center">🆕 New</div>
         <div class="kpi-value text-center" style="color:var(--primary-light);">{{ $segments['New'] ?? 0 }}</div>
         <div class="kpi-label text-center">SKU Baru</div>
     </a>
 
-    <a href="{{ route('analytics.product-trajectory', ['segment' => 'Dead', 'period' => $period, 'principal_id' => request('principal_id', 'all'), 'per_page' => $perPage]) }}" 
+    <a href="{{ route('analytics.product-trajectory', array_merge($baseQuery, ['segment' => 'Dead'])) }}" 
        class="card kpi-card" style="text-decoration:none; border-top: 4px solid var(--accent-red); {{ $segment === 'Dead' ? 'background:rgba(239,68,68,0.1);' : '' }}">
         <div class="card-title text-center">💀 Dead</div>
         <div class="kpi-value text-red text-center">{{ $segments['Dead'] ?? 0 }}</div>
@@ -60,7 +63,7 @@
                 <span class="badge" style="margin-left:0.5rem; background:var(--bg-dark); color:var(--text-primary); border:1px solid var(--border-color);">
                     Filter: {{ $segment }}
                 </span>
-                <a href="{{ route('analytics.product-trajectory', ['period' => $period, 'principal_id' => request('principal_id', 'all'), 'per_page' => $perPage]) }}" style="font-size:0.75rem; margin-left:0.5rem; color:var(--text-muted); text-decoration:underline;">Clear Filter</a>
+                <a href="{{ route('analytics.product-trajectory', $baseQuery) }}" style="font-size:0.75rem; margin-left:0.5rem; color:var(--text-muted); text-decoration:underline;">Clear Filter</a>
             @endif
         </span>
         <form method="GET" style="display:flex;align-items:center;gap:0.5rem;">
