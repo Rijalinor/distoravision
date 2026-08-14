@@ -35,7 +35,8 @@ class ProductTrajectoryController extends Controller
         // Filter segment
         $segment = $request->get('segment', 'all');
 
-        // Fetch monthly sales per product for the 6-month window
+        // Fetch monthly invoice sales per product for the 6-month window.
+        // Returns are useful for quality/risk analysis, but product trajectory should not show "negative demand".
         $rawQuery = Transaction::query()
             ->whereIn('transactions.period', $periodRange)
             ->join('products', 'transactions.product_id', '=', 'products.id')
@@ -52,7 +53,7 @@ class ProductTrajectoryController extends Controller
             'products.item_no as product_code',
             'principals.name as principal_name',
             'transactions.period',
-            DB::raw('SUM(CASE WHEN transactions.type = "I" THEN transactions.taxed_amt WHEN transactions.type = "R" THEN -ABS(transactions.taxed_amt) ELSE 0 END) as net_sales')
+            DB::raw('SUM(CASE WHEN transactions.type = "I" THEN transactions.taxed_amt ELSE 0 END) as sales_amount')
         )
             ->groupBy('transactions.product_id', 'products.name', 'products.item_no', 'principals.name', 'transactions.period')
             ->get()
@@ -63,7 +64,7 @@ class ProductTrajectoryController extends Controller
 
         foreach ($monthlySales as $productId => $monthlyData) {
             $product = $monthlyData->first();
-            $activeMonths = $monthlyData->pluck('net_sales', 'period');
+            $activeMonths = $monthlyData->pluck('sales_amount', 'period');
 
             // Build 6-month series (fill zeroes for missing months)
             $series = [];
