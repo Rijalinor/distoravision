@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Models\Transaction;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
 class ProductTrajectoryController extends Controller
@@ -34,6 +35,7 @@ class ProductTrajectoryController extends Controller
 
         // Filter segment
         $segment = $request->get('segment', 'all');
+        $perPage = min(max((int) $request->get('per_page', 25), 1), 100);
 
         // Fetch monthly invoice sales per product for the 6-month window.
         // Returns are useful for quality/risk analysis, but product trajectory should not show "negative demand".
@@ -196,9 +198,21 @@ class ProductTrajectoryController extends Controller
             );
         }
 
+        $currentPage = LengthAwarePaginator::resolveCurrentPage();
+        $paginatedTrajectories = new LengthAwarePaginator(
+            array_slice($trajectories, ($currentPage - 1) * $perPage, $perPage),
+            count($trajectories),
+            $perPage,
+            $currentPage,
+            [
+                'path' => $request->url(),
+                'query' => $request->query(),
+            ]
+        );
+
         return view('analytics.product-trajectory', compact(
-            'period', 'periods', 'trajectories', 'segments', 'totalProducts',
-            'segment', 'periodRange', 'aiNarrative'
+            'period', 'periods', 'paginatedTrajectories', 'segments', 'totalProducts',
+            'segment', 'periodRange', 'aiNarrative', 'perPage'
         ));
     }
 }

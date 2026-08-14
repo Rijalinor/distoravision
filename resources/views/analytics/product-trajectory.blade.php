@@ -4,6 +4,7 @@
 @section('top-bar-actions')
 <form method="GET" style="display:flex;gap:0.75rem;align-items:center;">
     @include('components.filter')
+    <input type="hidden" name="per_page" value="{{ $perPage }}">
     @include('components.export-button')
 </form>
 @endsection
@@ -12,35 +13,35 @@
 @include('components.ai-insight')
 
 <div class="kpi-grid" style="grid-template-columns: repeat(5, 1fr);">
-    <a href="{{ route('analytics.product-trajectory', ['segment' => 'Growing', 'period' => $period, 'principal_id' => request('principal_id', 'all')]) }}" 
+    <a href="{{ route('analytics.product-trajectory', ['segment' => 'Growing', 'period' => $period, 'principal_id' => request('principal_id', 'all'), 'per_page' => $perPage]) }}" 
        class="card kpi-card" style="text-decoration:none; border-top: 4px solid var(--accent-green); {{ $segment === 'Growing' ? 'background:rgba(16,185,129,0.1);' : '' }}">
         <div class="card-title text-center">📈 Growing</div>
         <div class="kpi-value text-green text-center">{{ $segments['Growing'] ?? 0 }}</div>
         <div class="kpi-label text-center">Tumbuh Positif</div>
     </a>
     
-    <a href="{{ route('analytics.product-trajectory', ['segment' => 'Stable', 'period' => $period, 'principal_id' => request('principal_id', 'all')]) }}" 
+    <a href="{{ route('analytics.product-trajectory', ['segment' => 'Stable', 'period' => $period, 'principal_id' => request('principal_id', 'all'), 'per_page' => $perPage]) }}" 
        class="card kpi-card" style="text-decoration:none; border-top: 4px solid var(--accent-blue); {{ $segment === 'Stable' ? 'background:rgba(59,130,246,0.1);' : '' }}">
         <div class="card-title text-center">➡️ Stable</div>
         <div class="kpi-value text-blue text-center">{{ $segments['Stable'] ?? 0 }}</div>
         <div class="kpi-label text-center">Stabil / Konsisten</div>
     </a>
 
-    <a href="{{ route('analytics.product-trajectory', ['segment' => 'Declining', 'period' => $period, 'principal_id' => request('principal_id', 'all')]) }}" 
+    <a href="{{ route('analytics.product-trajectory', ['segment' => 'Declining', 'period' => $period, 'principal_id' => request('principal_id', 'all'), 'per_page' => $perPage]) }}" 
        class="card kpi-card" style="text-decoration:none; border-top: 4px solid var(--accent-yellow); {{ $segment === 'Declining' ? 'background:rgba(245,158,11,0.1);' : '' }}">
         <div class="card-title text-center">📉 Declining</div>
         <div class="kpi-value text-yellow text-center" style="font-weight:900;">{{ $segments['Declining'] ?? 0 }}</div>
         <div class="kpi-label text-center">Menurun (Warning)</div>
     </a>
 
-    <a href="{{ route('analytics.product-trajectory', ['segment' => 'New', 'period' => $period, 'principal_id' => request('principal_id', 'all')]) }}" 
+    <a href="{{ route('analytics.product-trajectory', ['segment' => 'New', 'period' => $period, 'principal_id' => request('principal_id', 'all'), 'per_page' => $perPage]) }}" 
        class="card kpi-card" style="text-decoration:none; border-top: 4px solid var(--primary-light); {{ $segment === 'New' ? 'background:rgba(99,102,241,0.1);' : '' }}">
         <div class="card-title text-center">🆕 New</div>
         <div class="kpi-value text-center" style="color:var(--primary-light);">{{ $segments['New'] ?? 0 }}</div>
         <div class="kpi-label text-center">SKU Baru</div>
     </a>
 
-    <a href="{{ route('analytics.product-trajectory', ['segment' => 'Dead', 'period' => $period, 'principal_id' => request('principal_id', 'all')]) }}" 
+    <a href="{{ route('analytics.product-trajectory', ['segment' => 'Dead', 'period' => $period, 'principal_id' => request('principal_id', 'all'), 'per_page' => $perPage]) }}" 
        class="card kpi-card" style="text-decoration:none; border-top: 4px solid var(--accent-red); {{ $segment === 'Dead' ? 'background:rgba(239,68,68,0.1);' : '' }}">
         <div class="card-title text-center">💀 Dead</div>
         <div class="kpi-value text-red text-center">{{ $segments['Dead'] ?? 0 }}</div>
@@ -49,16 +50,32 @@
 </div>
 
 <div class="card" style="margin-top: 1.5rem;">
-    <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+    <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap;">
         <span class="card-title">
             Katalog Produk (SKU)
+            <span class="badge badge-blue" style="margin-left:0.5rem;">
+                {{ $paginatedTrajectories->firstItem() ?? 0 }}-{{ $paginatedTrajectories->lastItem() ?? 0 }} dari {{ number_format($paginatedTrajectories->total()) }}
+            </span>
             @if($segment !== 'all')
                 <span class="badge" style="margin-left:0.5rem; background:var(--bg-dark); color:var(--text-primary); border:1px solid var(--border-color);">
                     Filter: {{ $segment }}
                 </span>
-                <a href="{{ route('analytics.product-trajectory', ['period' => $period, 'principal_id' => request('principal_id', 'all')]) }}" style="font-size:0.75rem; margin-left:0.5rem; color:var(--text-muted); text-decoration:underline;">Clear Filter</a>
+                <a href="{{ route('analytics.product-trajectory', ['period' => $period, 'principal_id' => request('principal_id', 'all'), 'per_page' => $perPage]) }}" style="font-size:0.75rem; margin-left:0.5rem; color:var(--text-muted); text-decoration:underline;">Clear Filter</a>
             @endif
         </span>
+        <form method="GET" style="display:flex;align-items:center;gap:0.5rem;">
+            @foreach(request()->except('per_page', 'page') as $key => $value)
+                <input type="hidden" name="{{ $key }}" value="{{ $value }}">
+            @endforeach
+            <label style="display:flex;align-items:center;gap:0.45rem;color:var(--text-muted);font-size:0.72rem;font-weight:700;">
+                Tampil
+                <select name="per_page" class="period-select" onchange="this.form.submit()" style="min-width:76px;">
+                    @foreach([25, 50, 100] as $size)
+                        <option value="{{ $size }}" {{ $perPage === $size ? 'selected' : '' }}>{{ $size }}</option>
+                    @endforeach
+                </select>
+            </label>
+        </form>
     </div>
     
     <div style="overflow-x:auto;">
@@ -74,7 +91,7 @@
                 </tr>
             </thead>
             <tbody>
-                @forelse($trajectories as $t)
+                @forelse($paginatedTrajectories as $t)
                 <tr>
                     <td>
                         <div style="font-weight:600;">{{ Str::limit($t->product_name, 40) }}</div>
@@ -128,6 +145,9 @@
                 @endforelse
             </tbody>
         </table>
+    </div>
+    <div class="pagination-wrapper">
+        {{ $paginatedTrajectories->links() }}
     </div>
 </div>
 @endsection
