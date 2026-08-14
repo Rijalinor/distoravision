@@ -6,6 +6,7 @@ use App\Http\Requests\StoreArImportRequest;
 use App\Jobs\ProcessArImport;
 use App\Models\AccountingPeriod;
 use App\Models\ArImportLog;
+use App\Support\AnalyticsCache;
 use Carbon\Carbon;
 
 class ArImportController extends Controller
@@ -68,7 +69,7 @@ class ArImportController extends Controller
 
         $arImportLog->delete();
 
-        cache()->flush();
+        AnalyticsCache::invalidate();
 
         return redirect()->route('ar.imports.index')
             ->with('success', 'Import AR dan data terkait berhasil dihapus.');

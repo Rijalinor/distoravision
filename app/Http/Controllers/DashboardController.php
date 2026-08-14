@@ -9,6 +9,7 @@ use App\Models\Salesman;
 use App\Models\SalesmanTarget;
 use App\Models\SalesPerStock;
 use App\Models\Transaction;
+use App\Support\AnalyticsCache;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -22,9 +23,7 @@ class DashboardController extends Controller
             return redirect()->route('salesman.dashboard', $request->query());
         }
 
-        $periods = cache()->remember('transaction_periods', 3600, function () {
-            return Transaction::select('period')->distinct()->orderByDesc('period')->pluck('period');
-        });
+        $periods = Transaction::select('period')->distinct()->orderByDesc('period')->pluck('period');
 
         $latestPeriod = $periods->first() ?? date('Y-m');
 
@@ -54,7 +53,7 @@ class DashboardController extends Controller
         $userId = auth()->id();
         $isSupervisor = auth()->user()->isSupervisor();
         $principalId = $request->get('principal_id', 'all');
-        $cacheKey = "dashboard_data_{$userId}_{$isSupervisor}_{$startPeriod}_{$endPeriod}_{$principalId}";
+        $cacheKey = AnalyticsCache::key('dashboard_data', [$userId, $isSupervisor, $startPeriod, $endPeriod, $principalId]);
 
         $data = cache()->remember($cacheKey, 3600, function () use ($request, $prevRequest, $startPeriod, $endPeriod, $period, $periods) {
             // Principal Options for Filter Dropdown
@@ -65,27 +64,44 @@ class DashboardController extends Controller
             }
 
             // KPI Cards (Current Period Range)
-            $totalSales = Transaction::withFilters($request)->invoices()->sum('taxed_amt');
-            $totalReturns = Transaction::withFilters($request)->returns()->sum(DB::raw('ABS(taxed_amt)'));
-            $invoiceCogs = Transaction::withFilters($request)->invoices()->sum('cogs');
-            $returnCogs = Transaction::withFilters($request)->returns()->sum(DB::raw('ABS(cogs)'));
+            $kpis = Transaction::withFilters($request)
+                ->selectRaw('
+                    COALESCE(SUM(CASE WHEN type = "I" THEN taxed_amt ELSE 0 END), 0) as total_sales,
+                    COALESCE(SUM(CASE WHEN type = "R" THEN ABS(taxed_amt) ELSE 0 END), 0) as total_returns,
+                    COALESCE(SUM(CASE WHEN type = "I" THEN cogs ELSE 0 END), 0) as invoice_cogs,
+                    COALESCE(SUM(CASE WHEN type = "R" THEN ABS(cogs) ELSE 0 END), 0) as return_cogs,
+                    COUNT(CASE WHEN type = "I" THEN 1 END) as invoice_count,
+                    COUNT(CASE WHEN type = "R" THEN 1 END) as return_count
+                ')
+                ->first();
+
+            $totalSales = (float) $kpis->total_sales;
+            $totalReturns = (float) $kpis->total_returns;
+            $invoiceCogs = (float) $kpis->invoice_cogs;
+            $returnCogs = (float) $kpis->return_cogs;
+            $invoiceCount = (int) $kpis->invoice_count;
+            $returnCount = (int) $kpis->return_count;
             $totalCogs = $invoiceCogs - $returnCogs; // Net COGS: offset returned goods back to warehouse
             $netSales = $totalSales - $totalReturns;
             $margin = $netSales > 0 ? (($netSales - $totalCogs) / $netSales) * 100 : 0;
             $returnRate = $totalSales > 0 ? ($totalReturns / $totalSales) * 100 : 0;
 
             // Prev Period KPIs for MoM Growth (Using the mock request)
-            $prevSales = Transaction::withFilters($prevRequest)->invoices()->sum('taxed_amt');
-            $prevReturns = Transaction::withFilters($prevRequest)->returns()->sum(DB::raw('ABS(taxed_amt)'));
+            $prevKpis = Transaction::withFilters($prevRequest)
+                ->selectRaw('
+                    COALESCE(SUM(CASE WHEN type = "I" THEN taxed_amt ELSE 0 END), 0) as total_sales,
+                    COALESCE(SUM(CASE WHEN type = "R" THEN ABS(taxed_amt) ELSE 0 END), 0) as total_returns
+                ')
+                ->first();
+
+            $prevSales = (float) $prevKpis->total_sales;
+            $prevReturns = (float) $prevKpis->total_returns;
             $prevNetSales = $prevSales - $prevReturns;
 
             // MoM Percentage Calculations
             $momSales = $prevSales > 0 ? (($totalSales - $prevSales) / $prevSales) * 100 : 0;
             $momReturns = $prevReturns > 0 ? (($totalReturns - $prevReturns) / $prevReturns) * 100 : 0;
             $momNetSales = $prevNetSales > 0 ? (($netSales - $prevNetSales) / $prevNetSales) * 100 : 0;
-
-            $invoiceCount = Transaction::withFilters($request)->invoices()->count();
-            $returnCount = Transaction::withFilters($request)->returns()->count();
 
             // Weekly Trend
             $weeklyTrend = Transaction::withFilters($request)
@@ -137,10 +153,8 @@ class DashboardController extends Controller
 
             // 2. Global Target vs Achievement (using Net Sales for accurate progress)
             $globalTarget = SalesmanTarget::where('period', $period)->sum('target_amount');
-            if ($globalTarget <= 0) {
-                $globalTarget = 10000000000; // Fallback 10B if not set
-            }
-            $globalProgress = $globalTarget > 0 ? ($netSales / $globalTarget) * 100 : 100;
+            $globalTarget = $globalTarget > 0 ? $globalTarget : null;
+            $globalProgress = $globalTarget ? ($netSales / $globalTarget) * 100 : null;
 
             // 3. Today's Sales
             $latestSoDate = Transaction::withFilters($request)->invoices()->max('so_date');

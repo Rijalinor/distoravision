@@ -7,6 +7,7 @@ use App\Jobs\ProcessSalesPerImport;
 use App\Models\SalesPerImportLog;
 use App\Models\SalesPerStock;
 use App\Models\SalesPerTransaction;
+use App\Support\AnalyticsCache;
 use Illuminate\Support\Facades\DB;
 
 class SalesPerImportController extends Controller
@@ -73,7 +74,7 @@ class SalesPerImportController extends Controller
             $salesPerImportLog->delete();
         });
 
-        cache()->flush();
+        AnalyticsCache::invalidate();
 
         return redirect()->route('sales-per.imports.index')->with('success', 'Import log dan data terkait berhasil dihapus.');
     }

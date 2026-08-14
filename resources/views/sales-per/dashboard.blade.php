@@ -11,6 +11,21 @@
 </div>
 @else
 
+<x-page-guide
+    title="Pantau omset harian dari file Sales Per"
+    description="Halaman ini cocok untuk monitoring cepat penjualan berjalan, retur, nota, outlet aktif, dan performa salesman dari data Sales Per."
+    :steps="[
+        'Pilih periode, salesman, atau principal.',
+        'Baca Gross Omset, Retur, dan Net Sales sebelum melihat ranking.',
+        'Klik ikon detail pada salesman untuk cek produk dan outlet penyumbang omset.'
+    ]"
+    :metrics="[
+        'Gross Omset' => 'Total invoice dari file Sales Per.',
+        'Net Sales' => 'Gross Omset dikurangi retur.',
+        'Retur %' => 'Semakin tinggi, semakin perlu dicek penyebabnya.'
+    ]"
+/>
+
 {{-- FILTER BAR --}}
 <div class="card" style="margin-bottom:1.5rem;padding:0.75rem 1.25rem;">
     <form method="GET" style="display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap;">
@@ -51,7 +66,7 @@
 
 {{-- KPI CARDS --}}
 <div class="kpi-grid">
-    <div class="card kpi-card"><div class="card-header"><span class="card-title">Total Omset</span><div class="kpi-icon green"><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg></div></div><div class="kpi-value" title="Rp {{ number_format($overallSales, 0, ',', '.') }}">Rp {{ number_format($overallSales / 1000000, 1, ',', '.') }}Jt</div><div class="kpi-label">Net: Rp {{ number_format($overallNetSales / 1000000, 1, ',', '.') }}Jt</div></div>
+    <div class="card kpi-card"><div class="card-header"><span class="card-title">Gross Omset</span><div class="kpi-icon green"><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg></div></div><div class="kpi-value" title="Rp {{ number_format($overallSales, 0, ',', '.') }}">Rp {{ number_format($overallSales / 1000000, 1, ',', '.') }}Jt</div><div class="kpi-label">Net: Rp {{ number_format($overallNetSales / 1000000, 1, ',', '.') }}Jt</div></div>
     <div class="card kpi-card"><div class="card-header"><span class="card-title">Total Retur</span><div class="kpi-icon red"><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"></path></svg></div></div><div class="kpi-value" style="-webkit-text-fill-color:var(--accent-red);" title="Rp {{ number_format($overallReturns, 0, ',', '.') }}">Rp {{ number_format($overallReturns / 1000000, 1, ',', '.') }}Jt</div><div class="kpi-label">Rate: <span class="{{ $overallReturnRate > 5 ? 'text-red' : 'text-green' }}">{{ number_format($overallReturnRate, 1) }}%</span></div></div>
     <div class="card kpi-card"><div class="card-header"><span class="card-title">Total Nota</span><div class="kpi-icon blue"><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"></path></svg></div></div><div class="kpi-value">{{ number_format($overallNotaCount) }}</div><div class="kpi-label">{{ $overallOutletCount }} outlet · {{ $activeSalesmenCount }} salesman</div></div>
 </div>
@@ -61,7 +76,7 @@
 <div class="card" style="margin-bottom:1.5rem;border-top:4px solid var(--primary);">
     <div class="card-header"><span class="card-title">📋 Detail: {{ $selectedSalesName }} ({{ $selectedSalesCode }})</span><span class="badge badge-blue">Rank #{{ $salesmanDetail['rank'] }} · Kontribusi {{ number_format($salesmanDetail['contribution'], 1) }}%</span></div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:0.75rem;margin-bottom:1.25rem;">
-        <div style="text-align:center;padding:0.75rem;background:var(--bg-darker);border-radius:8px;"><div style="font-size:0.7rem;color:var(--text-muted);">Omset</div><div class="font-mono font-bold" style="font-size:1.1rem;" title="Rp {{ number_format($salesmanDetail['sales'], 0, ',', '.') }}">Rp {{ number_format($salesmanDetail['sales'] / 1000000, 1, ',', '.') }}Jt</div></div>
+        <div style="text-align:center;padding:0.75rem;background:var(--bg-darker);border-radius:8px;"><div style="font-size:0.7rem;color:var(--text-muted);">Gross Omset</div><div class="font-mono font-bold" style="font-size:1.1rem;" title="Rp {{ number_format($salesmanDetail['sales'], 0, ',', '.') }}">Rp {{ number_format($salesmanDetail['sales'] / 1000000, 1, ',', '.') }}Jt</div></div>
         <div style="text-align:center;padding:0.75rem;background:var(--bg-darker);border-radius:8px;"><div style="font-size:0.7rem;color:var(--text-muted);">Retur</div><div class="font-mono font-bold text-red" style="font-size:1.1rem;">Rp {{ number_format($salesmanDetail['returns'] / 1000, 0, ',', '.') }}K</div></div>
         <div style="text-align:center;padding:0.75rem;background:var(--bg-darker);border-radius:8px;"><div style="font-size:0.7rem;color:var(--text-muted);">Nota</div><div class="font-mono font-bold" style="font-size:1.1rem;">{{ $salesmanDetail['nota_count'] }}</div></div>
         <div style="text-align:center;padding:0.75rem;background:var(--bg-darker);border-radius:8px;"><div style="font-size:0.7rem;color:var(--text-muted);">Outlet</div><div class="font-mono font-bold" style="font-size:1.1rem;">{{ $salesmanDetail['outlet_count'] }}</div></div>
@@ -91,7 +106,7 @@
 <div class="card" style="border-top:4px solid var(--primary);">
     <div class="card-header"><span class="card-title">👥 Performa Salesman — {{ $periodLabel }}</span><span class="badge badge-blue">{{ $leaderboard->count() }} salesman</span></div>
     <table class="data-table">
-        <thead><tr><th style="width:40px;">No</th><th>Salesman</th><th class="text-right">Omset</th><th class="text-right">Retur</th><th class="text-right">Net Sales</th><th class="text-right">Nota</th><th class="text-right">Outlet</th><th class="text-right">Ret%</th><th style="width:40px;"></th></tr></thead>
+        <thead><tr><th style="width:40px;">No</th><th>Salesman</th><th class="text-right">Gross Omset</th><th class="text-right">Retur</th><th class="text-right">Net Sales</th><th class="text-right">Nota</th><th class="text-right">Outlet</th><th class="text-right">Ret%</th><th style="width:40px;"></th></tr></thead>
         <tbody>
         @foreach($leaderboard as $i => $s)
         <tr style="{{ $selectedSalesCode === $s->sales_code ? 'background:rgba(99,102,241,0.1);border-left:3px solid var(--primary);' : '' }}">

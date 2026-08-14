@@ -39,17 +39,17 @@ class ParetoController extends Controller implements HasMiddleware
         $type = $request->get('type', 'product'); // 'product' or 'outlet'
 
         if ($type === 'product') {
-            $data = Transaction::withFilters(request())->invoices()
+            $data = Transaction::withFilters(request())
                 ->join('products', 'transactions.product_id', '=', 'products.id')
-                ->select('products.name', DB::raw('SUM(transactions.taxed_amt) as total_sales'))
+                ->select('products.name', DB::raw('SUM(CASE WHEN transactions.type = "I" THEN transactions.taxed_amt WHEN transactions.type = "R" THEN -ABS(transactions.taxed_amt) ELSE 0 END) as total_sales'))
                 ->groupBy('products.name')
                 ->having('total_sales', '>', 0)
                 ->orderByDesc('total_sales')
                 ->get();
         } else {
-            $data = Transaction::withFilters(request())->invoices()
+            $data = Transaction::withFilters(request())
                 ->join('outlets', 'transactions.outlet_id', '=', 'outlets.id')
-                ->select('outlets.name', DB::raw('SUM(transactions.taxed_amt) as total_sales'))
+                ->select('outlets.name', DB::raw('SUM(CASE WHEN transactions.type = "I" THEN transactions.taxed_amt WHEN transactions.type = "R" THEN -ABS(transactions.taxed_amt) ELSE 0 END) as total_sales'))
                 ->groupBy('outlets.name')
                 ->having('total_sales', '>', 0)
                 ->orderByDesc('total_sales')

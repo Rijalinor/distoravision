@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Models\SalesPerImportLog;
 use App\Models\SalesPerStock;
 use App\Models\SalesPerTransaction;
+use App\Support\AnalyticsCache;
 use App\Support\ChunkReadFilter;
 use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
@@ -144,7 +145,7 @@ class ProcessSalesPerImport implements ShouldQueue
                 // Ignore if path cannot be resolved
             }
 
-            cache()->flush();
+            AnalyticsCache::invalidate();
         }
     }
 
@@ -159,7 +160,7 @@ class ProcessSalesPerImport implements ShouldQueue
             'completed_at' => now(),
         ]);
 
-        cache()->flush();
+        AnalyticsCache::invalidate();
     }
 
     /**

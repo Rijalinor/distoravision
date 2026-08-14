@@ -254,20 +254,20 @@ class ArAnalyticsController extends Controller
                 COUNT(*) as invoice_count,
                 COUNT(DISTINCT outlet_code) as outlet_count,
                 SUM(ar_balance) as total_outstanding,
-                AVG(overdue_days) as avg_dso,
-                MAX(overdue_days) as max_dso,
+                AVG(overdue_days) as avg_overdue_days,
+                MAX(overdue_days) as max_overdue_days,
                 SUM(CASE WHEN overdue_days > 30 THEN ar_balance ELSE 0 END) as overdue_30_value,
                 SUM(CASE WHEN overdue_days > 60 THEN ar_balance ELSE 0 END) as overdue_60_value
             ')
             ->groupBy('salesman_name', 'salesman_code')
-            ->orderByDesc('avg_dso')
+            ->orderByDesc('avg_overdue_days')
             ->get();
 
-        // Global DSO KPIs
+        // Global aging KPIs
         $dsoKpi = (clone $query)->where('ar_balance', '>', 0)
             ->selectRaw('
-                AVG(overdue_days) as global_avg_dso,
-                AVG(CASE WHEN overdue_days > 0 THEN overdue_days ELSE NULL END) as avg_overdue_dso,
+                AVG(overdue_days) as global_avg_overdue_days,
+                AVG(CASE WHEN overdue_days > 0 THEN overdue_days ELSE NULL END) as avg_late_overdue_days,
                 SUM(ar_balance) as total_outstanding,
                 SUM(ar_amount) as total_ar_value,
                 COUNT(DISTINCT outlet_code) as total_outlets,
@@ -285,12 +285,12 @@ class ArAnalyticsController extends Controller
                 SUM(ar_balance) as total_outstanding,
                 SUM(ar_amount) as total_ar_amount,
                 SUM(ar_paid) as total_ar_paid,
-                AVG(overdue_days) as avg_dso,
-                MAX(overdue_days) as max_dso,
+                AVG(overdue_days) as avg_overdue_days,
+                MAX(overdue_days) as max_overdue_days,
                 MAX(cm) as max_cm
             ')
             ->groupBy('outlet_code', 'outlet_name', 'salesman_name')
-            ->orderByDesc('avg_dso')
+            ->orderByDesc('avg_overdue_days')
             ->paginate(20, ['*'], 'dso_page')
             ->appends($request->query());
 
@@ -300,11 +300,11 @@ class ArAnalyticsController extends Controller
                 ? ($item->total_ar_paid / $item->total_ar_amount) * 100
                 : 0;
 
-            // Risk classification based on DSO
-            if ($item->avg_dso > 60) {
+            // Risk classification based on overdue age
+            if ($item->avg_overdue_days > 60) {
                 $item->risk_level = 'Kritis';
                 $item->risk_color = 'badge-red';
-            } elseif ($item->avg_dso > 30) {
+            } elseif ($item->avg_overdue_days > 30) {
                 $item->risk_level = 'Waspada';
                 $item->risk_color = 'badge-yellow';
             } else {

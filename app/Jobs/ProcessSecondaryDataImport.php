@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Imports\SecondaryDataImport;
 use App\Models\ImportLog;
 use App\Models\Transaction;
+use App\Support\AnalyticsCache;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -80,7 +81,7 @@ class ProcessSecondaryDataImport implements ShouldQueue
                 @unlink(storage_path('app/'.$this->filePath));
             }
 
-            cache()->flush();
+            AnalyticsCache::invalidate();
         }
     }
 

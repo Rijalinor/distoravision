@@ -1,13 +1,17 @@
 @if(isset($aiNarrative))
-<div class="card" style="margin-bottom: 1.5rem; border-left: 4px solid var(--accent-blue); background: linear-gradient(90deg, rgba(59,130,246,0.1) 0%, rgba(15,23,42,0) 50%);">
-    <div style="display:flex; gap:1rem; align-items:flex-start; padding: 0.5rem;">
-        <div style="font-size: 2rem; line-height:1;">💡</div>
+<div class="card analysis-note">
+    <div class="analysis-note-inner">
+        <div class="analysis-note-icon">
+            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17h4.5M10 21h4m-5.5-7.5A6 6 0 1115.5 13.5c-.8.5-1.1 1.2-1.2 2h-4.6c-.1-.8-.4-1.5-1.2-2z"></path>
+            </svg>
+        </div>
         <div>
-            <h3 style="margin-bottom:0.5rem; color:var(--text-color); font-size:1.1rem; display:flex; align-items:center; gap:0.5rem;">
-                Distora AI Insight
-                <span class="badge badge-blue" style="font-size:0.65rem;">S1-Level</span>
+            <h3>
+                Ringkasan Otomatis
+                <span class="badge badge-blue">berdasarkan data aktif</span>
             </h3>
-            <p style="color: var(--text-secondary, #cbd5e1); font-size: 0.95rem; line-height: 1.6; margin: 0;">
+            <p>
                 {!! nl2br(e($aiNarrative)) !!}
             </p>
         </div>

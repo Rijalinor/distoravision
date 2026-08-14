@@ -17,6 +17,21 @@
         <a href="{{ route('ar.imports.create') }}" class="btn btn-primary">Import AR Sekarang</a>
     </div>
 @else
+    <x-page-guide
+        title="Prioritaskan piutang yang harus ditagih"
+        description="Dashboard AR membaca file piutang completed terbaru. Mulai dari aging bucket, lalu masuk ke prioritas jika ingin tahu invoice mana yang harus ditindak hari ini."
+        :steps="[
+            'Cek Total Overdue dan bucket >60 hari.',
+            'Gunakan filter salesman, principal, atau cabang jika ingin fokus area tertentu.',
+            'Buka tab Prioritas Penindakan untuk daftar invoice urgent.'
+        ]"
+        :metrics="[
+            'Outstanding' => 'Sisa piutang yang belum dibayar.',
+            'Overdue' => 'Piutang yang sudah melewati jatuh tempo.',
+            'CM' => 'Collection Mention, jumlah tagihan yang sudah pernah keluar.'
+        ]"
+    />
+
     {{-- Source info --}}
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;flex-wrap:wrap;gap:0.5rem;">
         <p style="font-size:0.75rem;color:var(--text-muted);">
@@ -117,7 +132,7 @@
     @php
     $tabs = [
         'aging' => ['icon' => '⏰', 'label' => 'Aging & Ringkasan'],
-        'dso' => ['icon' => '⏱️', 'label' => 'DSO Tracking'],
+        'dso' => ['icon' => '⏱️', 'label' => 'Aging Piutang'],
         'evaluasi' => ['icon' => '⚠️', 'label' => 'Evaluasi Penagihan'],
         'prioritas' => ['icon' => '🚨', 'label' => 'Prioritas Penindakan'],
         'data' => ['icon' => '📋', 'label' => 'Data Giro & Invoice'],

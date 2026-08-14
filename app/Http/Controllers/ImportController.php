@@ -7,6 +7,7 @@ use App\Jobs\ProcessSecondaryDataImport;
 use App\Models\AccountingPeriod;
 use App\Models\ImportLog;
 use App\Models\Transaction;
+use App\Support\AnalyticsCache;
 use Illuminate\Support\Facades\Schema;
 
 class ImportController extends Controller
@@ -84,7 +85,7 @@ class ImportController extends Controller
 
         $import->delete();
 
-        cache()->flush();
+        AnalyticsCache::invalidate();
 
         return redirect()->route('imports.index')->with('success', 'Import log dan data terkait berhasil dihapus.');
     }

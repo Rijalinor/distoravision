@@ -26,15 +26,30 @@ class CohortAnalysisController extends Controller implements HasMiddleware
 
     public function cohortAnalysis(Request $request)
     {
+        $baseQuery = Transaction::query()->invoices();
+
+        if ($request->filled('start_period')) {
+            $baseQuery->where('period', '>=', $request->get('start_period'));
+        }
+        if ($request->filled('end_period')) {
+            $baseQuery->where('period', '<=', $request->get('end_period'));
+        }
+        if ($request->filled('period')) {
+            $baseQuery->where('period', $request->get('period'));
+        }
+        if ($request->filled('principal_id') && $request->get('principal_id') !== 'all') {
+            $baseQuery->whereHas('product', fn ($q) => $q->where('principal_id', $request->get('principal_id')));
+        }
+
         // 1. Get first transaction month for each outlet
-        $cohorts = DB::table('transactions')
+        $cohorts = (clone $baseQuery)
             ->select('outlet_id', DB::raw('MIN(period) as cohort_month'))
             ->groupBy('outlet_id')
             ->get()
             ->keyBy('outlet_id');
 
         // 2. Get distinct transactions per outlet per period
-        $allTxns = DB::table('transactions')
+        $allTxns = (clone $baseQuery)
             ->select('outlet_id', 'period')
             ->distinct()
             ->orderBy('period')

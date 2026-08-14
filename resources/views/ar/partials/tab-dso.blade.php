@@ -1,12 +1,12 @@
 <div class="card" style="margin-bottom: 1.5rem;">
-    <div class="card-header"><span class="card-title">⏱️ Performa DSO (Days Sales Outstanding)</span></div>
-    <p style="padding:0.75rem 1rem 0;font-size:0.75rem;color:var(--text-muted);">DSO mengukur rata-rata hari yang dibutuhkan outlet untuk membayar invoice. Semakin kecil nilainya, semakin cepat pembayaran diterima.</p>
+    <div class="card-header"><span class="card-title">⏱️ Performa Aging Piutang</span></div>
+    <p style="padding:0.75rem 1rem 0;font-size:0.75rem;color:var(--text-muted);">Aging piutang mengukur rata-rata hari keterlambatan invoice yang masih outstanding. Semakin kecil nilainya, semakin sehat penagihan.</p>
     
     <div style="display:flex;gap:1.5rem;padding:1rem;flex-wrap:wrap;">
         <div style="flex:1;min-width:250px;">
-            <div style="font-size:0.8rem;color:var(--text-muted);font-weight:600;margin-bottom:0.5rem;">DSO RATA-RATA (GLOBAL)</div>
+            <div style="font-size:0.8rem;color:var(--text-muted);font-weight:600;margin-bottom:0.5rem;">RATA-RATA OVERDUE (GLOBAL)</div>
             <div class="font-mono" style="font-size:2.5rem;font-weight:800;color:var(--accent-blue);line-height:1;">
-                {{ number_format($dsoKpi->global_avg_dso ?? 0, 1) }} <span style="font-size:1rem;font-weight:500;color:var(--text-muted);">hari</span>
+                {{ number_format($dsoKpi->global_avg_overdue_days ?? 0, 1) }} <span style="font-size:1rem;font-weight:500;color:var(--text-muted);">hari</span>
             </div>
             <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.5rem;">
                 Dihitung dari {{ number_format($dsoKpi->total_invoices ?? 0) }} invoice aktif
@@ -29,8 +29,8 @@
                 <thead>
                     <tr>
                         <th>Salesman</th>
-                        <th class="text-right">Rata-rata DSO</th>
-                        <th class="text-right">Max DSO</th>
+                        <th class="text-right">Rata-rata Overdue</th>
+                        <th class="text-right">Max Overdue</th>
                         <th class="text-right">Piutang Kritis (>60 Hari)</th>
                         <th class="text-right">Total Outstanding</th>
                     </tr>
@@ -43,11 +43,11 @@
                             <div style="font-size:0.7rem;color:var(--text-muted);">{{ $s->invoice_count }} invoices, {{ $s->outlet_count }} outlets</div>
                         </td>
                         <td class="text-right">
-                            <span class="badge {{ $s->avg_dso > 45 ? 'badge-red' : ($s->avg_dso > 30 ? 'badge-yellow' : 'badge-green') }}" style="font-size:0.9rem;">
-                                {{ number_format($s->avg_dso, 1) }} hari
+                            <span class="badge {{ $s->avg_overdue_days > 45 ? 'badge-red' : ($s->avg_overdue_days > 30 ? 'badge-yellow' : 'badge-green') }}" style="font-size:0.9rem;">
+                                {{ number_format($s->avg_overdue_days, 1) }} hari
                             </span>
                         </td>
-                        <td class="text-right font-mono text-muted">{{ number_format($s->max_dso) }} hr</td>
+                        <td class="text-right font-mono text-muted">{{ number_format($s->max_overdue_days) }} hr</td>
                         <td class="text-right font-mono {{ $s->overdue_60_value > 0 ? 'text-red font-bold' : 'text-muted' }}">
                             Rp {{ number_format($s->overdue_60_value, 0, ',', '.') }}
                         </td>
@@ -63,7 +63,7 @@
 </div>
 
 <div class="card">
-    <div class="card-header"><span class="card-title">🚨 Outlet dengan Pembayaran Terlambat (Worst Payers by DSO)</span></div>
+    <div class="card-header"><span class="card-title">🚨 Outlet dengan Pembayaran Terlambat</span></div>
     <div style="overflow-x:auto;">
         <table class="data-table">
             <thead>
@@ -71,8 +71,8 @@
                     <th>Outlet</th>
                     <th>Salesman</th>
                     <th class="text-center">Status</th>
-                    <th class="text-right">Avg DSO</th>
-                    <th class="text-right">Max DSO</th>
+                    <th class="text-right">Avg Overdue</th>
+                    <th class="text-right">Max Overdue</th>
                     <th class="text-right">% Bayar</th>
                     <th class="text-right">Outstanding</th>
                 </tr>
@@ -88,10 +88,10 @@
                     <td class="text-center">
                         <span class="badge {{ $o->risk_color }}">{{ $o->risk_level }}</span>
                     </td>
-                    <td class="text-right font-mono font-bold" style="color:{{ $o->avg_dso > 60 ? 'var(--accent-red)' : ($o->avg_dso > 30 ? 'var(--accent-yellow)' : 'var(--text-primary)') }}">
-                        {{ number_format($o->avg_dso, 1) }} hr
+                    <td class="text-right font-mono font-bold" style="color:{{ $o->avg_overdue_days > 60 ? 'var(--accent-red)' : ($o->avg_overdue_days > 30 ? 'var(--accent-yellow)' : 'var(--text-primary)') }}">
+                        {{ number_format($o->avg_overdue_days, 1) }} hr
                     </td>
-                    <td class="text-right font-mono text-muted">{{ $o->max_dso }} hr</td>
+                    <td class="text-right font-mono text-muted">{{ $o->max_overdue_days }} hr</td>
                     <td class="text-right">
                         <span class="badge {{ $o->payment_rate < 50 ? 'badge-red' : ($o->payment_rate < 80 ? 'badge-yellow' : 'badge-green') }}">
                             {{ number_format($o->payment_rate, 0) }}%

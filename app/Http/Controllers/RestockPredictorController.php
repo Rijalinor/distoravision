@@ -41,10 +41,18 @@ class RestockPredictorController extends Controller implements HasMiddleware
 
         $principalFilter = '';
         $bindings = [$sixMonthsAgo];
+        $allowedPrincipalIds = auth()->user()->isSupervisor()
+            ? auth()->user()->principals()->pluck('principals.id')->all()
+            : null;
 
         if ($selectedPrincipal !== 'all') {
+            abort_if($allowedPrincipalIds !== null && ! in_array((int) $selectedPrincipal, $allowedPrincipalIds, true), 403);
             $principalFilter = ' AND pr.principal_id = ? ';
             $bindings[] = $selectedPrincipal;
+        } elseif ($allowedPrincipalIds !== null) {
+            abort_if(empty($allowedPrincipalIds), 403);
+            $principalFilter = ' AND pr.principal_id IN ('.implode(',', array_fill(0, count($allowedPrincipalIds), '?')).') ';
+            $bindings = array_merge($bindings, $allowedPrincipalIds);
         }
 
         // MySQL 8.0+ Window Function to calculate average days between purchases per outlet per product

@@ -2,7 +2,9 @@
 
 namespace App\Providers;
 
+use App\Support\AnalyticsCache;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\View;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -19,6 +21,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        View::composer('layouts.app', function ($view) {
+            $view->with('bellAlerts', AnalyticsCache::bellAlerts(auth()->id()));
+        });
     }
 }
