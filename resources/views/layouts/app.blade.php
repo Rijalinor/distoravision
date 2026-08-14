@@ -396,17 +396,17 @@
             }
             .page-guide summary {
                 list-style: none; cursor: pointer; display: inline-flex; align-items: center;
-                gap: 0.5rem; padding: 0.65rem 0.9rem;
+                gap: 0.35rem; padding: 0.42rem 0.6rem;
                 background: var(--primary); border: 1px solid var(--primary-light);
-                border-radius: 999px; box-shadow: 0 18px 40px rgba(0,0,0,0.55), 0 0 0 4px rgba(137,145,194,0.12);
+                border-radius: 999px; box-shadow: 0 10px 24px rgba(0,0,0,0.45), 0 0 0 2px rgba(137,145,194,0.12);
             }
             .page-guide summary::-webkit-details-marker { display: none; }
             .page-guide summary span {
-                width: 1.3rem; height: 1.3rem; border-radius: 999px;
+                width: 1rem; height: 1rem; border-radius: 999px;
                 display: inline-flex; align-items: center; justify-content: center;
-                color: var(--primary); background: white; font-size: 0.8rem; font-weight: 900;
+                color: var(--primary); background: white; font-size: 0.65rem; font-weight: 900;
             }
-            .page-guide summary strong { color: white; font-size: 0.78rem; white-space: nowrap; }
+            .page-guide summary strong { color: white; font-size: 0.68rem; white-space: nowrap; }
             .page-guide-body {
                 position: absolute; right: 0; bottom: calc(100% + 0.6rem);
                 width: min(720px, calc(100vw - 2rem));
