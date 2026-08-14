@@ -767,19 +767,6 @@
                     </button>
 
                     {{-- Notification Bell --}}
-                    @php
-                        $bellAlerts = [];
-                        $criticalStock = \App\Models\SalesPerStock::where('period', \App\Models\Transaction::max('period') ?? date('Y-m'))->where('swc', '<=', 2)->where('swc', '>', 0)->count();
-                        $overstock = \App\Models\SalesPerStock::where('period', \App\Models\Transaction::max('period') ?? date('Y-m'))->where('swc', '>=', 12)->count();
-                        $latestAr = \App\Models\ArImportLog::where('status', 'completed')->orderByDesc('report_date')->first();
-                        $overdueAr = 0;
-                        if ($latestAr) {
-                            $overdueAr = \App\Models\ArReceivable::where('ar_import_log_id', $latestAr->id)->where('overdue_days', '>', 60)->where('ar_balance', '>', 0)->count();
-                        }
-                        if ($criticalStock > 0) $bellAlerts[] = ['icon' => '🔴', 'bg' => 'rgba(239,68,68,0.15)', 'title' => $criticalStock . ' SKU Stok Kritis', 'desc' => 'Produk hampir habis (SWC ≤ 2)', 'url' => route('sales-per.stock')];
-                        if ($overstock > 0) $bellAlerts[] = ['icon' => '🟡', 'bg' => 'rgba(245,158,11,0.15)', 'title' => $overstock . ' SKU Overstock', 'desc' => 'Produk macet di gudang (SWC ≥ 12)', 'url' => route('sales-per.stock')];
-                        if ($overdueAr > 0) $bellAlerts[] = ['icon' => '💰', 'bg' => 'rgba(239,68,68,0.15)', 'title' => $overdueAr . ' Invoice Kritis', 'desc' => 'Piutang overdue > 60 hari', 'url' => route('ar.dashboard')];
-                    @endphp
                     <div class="topbar-bell" onclick="this.querySelector('.bell-dropdown').classList.toggle('show')">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
                         @if(count($bellAlerts) > 0)

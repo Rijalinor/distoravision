@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Traits\CsvExportable;
 use App\Models\Product;
 use App\Models\Transaction;
+use App\Support\AnalyticsCache;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
@@ -31,7 +32,7 @@ class ForecastingController extends Controller implements HasMiddleware
 
     public function index(Request $request)
     {
-        $periods = cache()->remember('transaction_periods', 3600, function () {
+        $periods = cache()->remember(AnalyticsCache::key('transaction_periods'), 3600, function () {
             return Transaction::select('period')->distinct()->orderByDesc('period')->pluck('period');
         });
 
@@ -240,7 +241,7 @@ class ForecastingController extends Controller implements HasMiddleware
 
     public function multiPeriodForecast(Request $request)
     {
-        $periods = cache()->remember('transaction_periods', 3600, function () {
+        $periods = cache()->remember(AnalyticsCache::key('transaction_periods'), 3600, function () {
             return Transaction::select('period')->distinct()->orderByDesc('period')->pluck('period');
         });
 

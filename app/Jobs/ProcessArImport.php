@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Imports\ArDataImport;
 use App\Models\ArImportLog;
+use App\Support\AnalyticsCache;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -142,7 +143,7 @@ class ProcessArImport implements ShouldQueue
                 @unlink(storage_path('app/'.$this->filePath));
             }
 
-            cache()->flush();
+            AnalyticsCache::invalidate();
         }
     }
 }
