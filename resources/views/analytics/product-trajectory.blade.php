@@ -130,7 +130,7 @@
                         </div>
                         <div style="display:flex; justify-content:space-between; font-size:0.5rem; color:var(--text-muted); margin-top:4px; max-width: 120px; margin-left:auto; margin-right:auto;">
                             <span>{{ \Carbon\Carbon::parse($periodRange[0].'-01')->format('M') }}</span>
-                            <span>{{ \Carbon\Carbon::parse($periodRange[5].'-01')->format('M') }}</span>
+                            <span>{{ \Carbon\Carbon::parse(end($periodRange).'-01')->format('M') }}</span>
                         </div>
                     </td>
                     <td class="text-right font-mono font-bold" style="color: {{ $t->latest_sales <= 0 ? 'var(--accent-red)' : 'var(--text-primary)' }}">
