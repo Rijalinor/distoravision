@@ -22,9 +22,7 @@ class DashboardController extends Controller
             return redirect()->route('salesman.dashboard', $request->query());
         }
 
-        $periods = cache()->remember('transaction_periods', 3600, function () {
-            return Transaction::select('period')->distinct()->orderByDesc('period')->pluck('period');
-        });
+        $periods = Transaction::select('period')->distinct()->orderByDesc('period')->pluck('period');
 
         $latestPeriod = $periods->first() ?? date('Y-m');
 
