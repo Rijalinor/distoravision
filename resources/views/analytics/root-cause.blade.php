@@ -10,13 +10,12 @@
 @section('content')
 <style>
     .rca-movement-grid { display:grid; grid-template-columns:1.4fr 1fr 1fr; gap:1rem; align-items:stretch; }
-    .rca-guide-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:0.9rem; }
     .rca-kpi-grid { grid-template-columns:repeat(4, 1fr); margin-bottom:1.25rem; }
     @media (max-width: 900px) {
-        .rca-movement-grid, .rca-guide-grid, .rca-kpi-grid { grid-template-columns:1fr 1fr; }
+        .rca-movement-grid, .rca-kpi-grid { grid-template-columns:1fr 1fr; }
     }
     @media (max-width: 560px) {
-        .rca-movement-grid, .rca-guide-grid, .rca-kpi-grid { grid-template-columns:1fr; }
+        .rca-movement-grid, .rca-kpi-grid { grid-template-columns:1fr; }
     }
 </style>
 @php
@@ -29,25 +28,21 @@
 
 @include('components.ai-insight')
 
-<div class="card" style="margin-bottom:1.25rem;border-left:4px solid var(--accent-blue);">
-    <div class="card-header">
-        <span class="card-title">Cara Baca Halaman Ini</span>
-    </div>
-    <div class="rca-guide-grid">
-        <div style="padding:0.85rem;border:1px solid var(--border-color);border-radius:8px;background:var(--bg-darker);">
-            <div style="font-weight:900;color:var(--text-primary);">1. Lihat hasil utama</div>
-            <div class="text-muted" style="font-size:0.78rem;margin-top:0.35rem;">Net Sales Movement menunjukkan bisnis naik atau turun dibanding periode sebelumnya.</div>
-        </div>
-        <div style="padding:0.85rem;border:1px solid var(--border-color);border-radius:8px;background:var(--bg-darker);">
-            <div style="font-weight:900;color:var(--text-primary);">2. Cari penyebab terbesar</div>
-            <div class="text-muted" style="font-size:0.78rem;margin-top:0.35rem;">Driver Produk, Outlet, Salesman, dan Principal menunjukkan siapa yang paling mengubah angka.</div>
-        </div>
-        <div style="padding:0.85rem;border:1px solid var(--border-color);border-radius:8px;background:var(--bg-darker);">
-            <div style="font-weight:900;color:var(--text-primary);">3. Cek tindakan</div>
-            <div class="text-muted" style="font-size:0.78rem;margin-top:0.35rem;">Retur, stok, dan AR membantu menentukan apakah masalahnya demand, barang, atau tagihan.</div>
-        </div>
-    </div>
-</div>
+<x-page-guide
+    title="Cara baca Root Cause Analysis"
+    description="Halaman ini dipakai untuk menjawab kenapa Net Sales berubah dibanding periode sebelumnya."
+    :steps="[
+        'Lihat Hasil Utama Net Sales untuk tahu bisnis sedang naik atau turun.',
+        'Baca Produk, Outlet, Salesman, dan Principal Paling Mempengaruhi untuk menemukan penyebab terbesar.',
+        'Cek Retur, Stok, dan AR untuk menentukan tindak lanjut: dorong demand, bereskan barang, atau tagih outlet.',
+    ]"
+    :metrics="[
+        'Naik/Turun' => 'Selisih angka dibanding periode sebelumnya yang durasinya sama. Jika filter 1 bulan, berarti dibanding bulan lalu.',
+        'Penjualan Kotor' => 'Omset invoice sebelum dikurangi retur.',
+        'Dampak Retur' => 'Retur yang membesar akan menekan Net Sales, walaupun Gross Sales naik.',
+        'Sinyal Operasional' => 'Petunjuk awal apakah penurunan berhubungan dengan stok kritis atau AR overdue.',
+    ]"
+/>
 
 <div class="card" style="margin-bottom:1.25rem;">
     <div class="card-header" style="display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;flex-wrap:wrap;">
