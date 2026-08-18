@@ -31,6 +31,7 @@
 <x-page-guide
     title="Cara baca Root Cause Analysis"
     description="Halaman ini dipakai untuk menjawab kenapa Net Sales berubah dibanding periode sebelumnya."
+    :details="$aiDetails ?? []"
     :steps="[
         'Lihat Hasil Utama Net Sales untuk tahu bisnis sedang naik atau turun.',
         'Baca Produk, Outlet, Salesman, dan Principal Paling Mempengaruhi untuk menemukan penyebab terbesar.',

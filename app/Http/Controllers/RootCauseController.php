@@ -42,6 +42,7 @@ class RootCauseController extends Controller
         ]);
 
         $cacheKey = AnalyticsCache::key('root_cause', [
+            'v2',
             auth()->id(),
             auth()->user()->role,
             $startPeriod,
@@ -72,6 +73,7 @@ class RootCauseController extends Controller
 
             $topDrivers = collect($drivers)->flatten(1)->sortByDesc('abs_delta')->take(5)->values();
             $aiNarrative = $this->narrative($movement, $topDrivers, $returnDrivers, $stockSignals, $arSignals, $startPeriod, $endPeriod, $prevStartPeriod, $prevEndPeriod);
+            $aiDetails = $this->details($movement, $drivers, $returnDrivers, $stockSignals, $arSignals, $startPeriod, $endPeriod, $prevStartPeriod, $prevEndPeriod);
             $rangeLabel = $monthSpan.' bulan';
 
             return compact(
@@ -90,7 +92,8 @@ class RootCauseController extends Controller
                 'stockSignals',
                 'arSignals',
                 'topDrivers',
-                'aiNarrative'
+                'aiNarrative',
+                'aiDetails'
             );
         });
 
@@ -321,5 +324,75 @@ class RootCauseController extends Controller
             : ' Belum ada sinyal stok/AR yang jelas pada driver penurunan utama.';
 
         return 'Fakta: Net Sales '.$rangeText.' '.$direction.' Rp '.number_format(abs($net['delta']), 0, ',', '.').' dibanding '.$prevText.'.'.$mainDriverText.$returnText.$signalText;
+    }
+
+    private function details(array $movement, array $drivers, Collection $returnDrivers, Collection $stockSignals, Collection $arSignals, string $startPeriod, string $endPeriod, string $prevStartPeriod, string $prevEndPeriod): array
+    {
+        $rangeText = Carbon::parse($startPeriod.'-01')->translatedFormat('M Y').' sampai '.Carbon::parse($endPeriod.'-01')->translatedFormat('M Y');
+        $prevText = Carbon::parse($prevStartPeriod.'-01')->translatedFormat('M Y').' sampai '.Carbon::parse($prevEndPeriod.'-01')->translatedFormat('M Y');
+        $net = $movement['net_sales'];
+        $gross = $movement['gross_sales'];
+        $returns = $movement['returns'];
+        $direction = $net['delta'] >= 0 ? 'naik' : 'turun';
+        $grossDirection = $gross['delta'] >= 0 ? 'naik' : 'turun';
+        $returnDirection = $returns['delta'] >= 0 ? 'naik' : 'turun';
+
+        return [
+            [
+                'title' => 'Kesimpulan utama',
+                'body' => 'Net Sales '.$rangeText.' '.$direction.' Rp '.number_format(abs($net['delta']), 0, ',', '.').' dibanding '.$prevText.'. Ini adalah angka setelah penjualan kotor dikurangi retur.',
+            ],
+            [
+                'title' => 'Kenapa bisa '.$direction,
+                'body' => 'Penjualan kotor '.$grossDirection.' Rp '.number_format(abs($gross['delta']), 0, ',', '.').', sementara retur '.$returnDirection.' Rp '.number_format(abs($returns['delta']), 0, ',', '.').'. Kalau Gross Sales naik lebih besar daripada kenaikan retur, Net Sales ikut naik. Kalau retur atau penurunan Gross Sales lebih dominan, Net Sales akan turun.',
+            ],
+            [
+                'title' => 'Penyumbang perubahan terbesar',
+                'body' => collect([
+                    $this->driverSentence('Produk', $drivers['products']->first()),
+                    $this->driverSentence('Outlet', $drivers['outlets']->first()),
+                    $this->driverSentence('Salesman', $drivers['salesmen']->first()),
+                    $this->driverSentence('Principal', $drivers['principals']->first()),
+                ])->filter()->implode(' '),
+            ],
+            [
+                'title' => 'Retur, stok, dan AR',
+                'body' => $this->operationSentence($returnDrivers, $stockSignals, $arSignals),
+            ],
+            [
+                'title' => 'Apa yang perlu dilakukan',
+                'body' => $net['delta'] >= 0
+                    ? 'Pertahankan driver yang naik paling besar, cek outlet/SKU yang masih turun supaya growth tidak hanya bergantung pada beberapa akun, dan pastikan retur tidak ikut membesar.'
+                    : 'Mulai dari driver yang turun paling besar, cek apakah penyebabnya order hilang, stok tidak siap, retur meningkat, atau outlet tertahan karena AR overdue.',
+            ],
+        ];
+    }
+
+    private function driverSentence(string $label, ?object $driver): ?string
+    {
+        if (! $driver) {
+            return null;
+        }
+
+        $direction = $driver->delta >= 0 ? 'naik' : 'turun';
+
+        return $label.' terbesar: '.$driver->name.' '.$direction.' Rp '.number_format(abs($driver->delta), 0, ',', '.').'.';
+    }
+
+    private function operationSentence(Collection $returnDrivers, Collection $stockSignals, Collection $arSignals): string
+    {
+        $returnText = $returnDrivers->first() && $returnDrivers->first()->delta > 0
+            ? 'Retur paling perlu dicek: '.$returnDrivers->first()->name.' naik Rp '.number_format($returnDrivers->first()->delta, 0, ',', '.').'.'
+            : 'Retur belum terlihat sebagai tekanan utama.';
+
+        $stockText = $stockSignals->count() > 0
+            ? ' Ada '.$stockSignals->count().' sinyal stok kritis pada produk yang performanya turun.'
+            : ' Tidak ada sinyal stok kritis yang jelas pada produk turun.';
+
+        $arText = $arSignals->count() > 0
+            ? ' Ada '.$arSignals->count().' outlet driver penurunan yang punya AR overdue.'
+            : ' Tidak ada sinyal AR overdue yang jelas pada outlet turun.';
+
+        return $returnText.$stockText.$arText;
     }
 }
