@@ -3,7 +3,6 @@
     'description',
     'steps' => [],
     'metrics' => [],
-    'details' => [],
 ])
 
 <details class="page-guide">
@@ -18,18 +17,6 @@
             <h2>{{ $title }}</h2>
             <p>{{ $description }}</p>
         </div>
-
-        @if(! empty($details))
-            <div class="page-guide-list">
-                <div class="page-guide-list-title">Ringkasan lengkap</div>
-                @foreach($details as $detail)
-                    <div class="page-guide-metric">
-                        <strong>{{ $detail['title'] }}</strong>
-                        <p>{{ $detail['body'] }}</p>
-                    </div>
-                @endforeach
-            </div>
-        @endif
 
         @if(! empty($steps))
             <div class="page-guide-list">

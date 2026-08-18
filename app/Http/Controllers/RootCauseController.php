@@ -42,7 +42,7 @@ class RootCauseController extends Controller
         ]);
 
         $cacheKey = AnalyticsCache::key('root_cause', [
-            'v2',
+            'v3',
             auth()->id(),
             auth()->user()->role,
             $startPeriod,
@@ -73,7 +73,7 @@ class RootCauseController extends Controller
 
             $topDrivers = collect($drivers)->flatten(1)->sortByDesc('abs_delta')->take(5)->values();
             $aiNarrative = $this->narrative($movement, $topDrivers, $returnDrivers, $stockSignals, $arSignals, $startPeriod, $endPeriod, $prevStartPeriod, $prevEndPeriod);
-            $aiDetails = $this->details($movement, $drivers, $returnDrivers, $stockSignals, $arSignals, $startPeriod, $endPeriod, $prevStartPeriod, $prevEndPeriod);
+            $aiNarrative .= "\n\n".$this->detailedNarrative($movement, $drivers, $returnDrivers, $stockSignals, $arSignals, $startPeriod, $endPeriod, $prevStartPeriod, $prevEndPeriod);
             $rangeLabel = $monthSpan.' bulan';
 
             return compact(
@@ -92,8 +92,7 @@ class RootCauseController extends Controller
                 'stockSignals',
                 'arSignals',
                 'topDrivers',
-                'aiNarrative',
-                'aiDetails'
+                'aiNarrative'
             );
         });
 
@@ -326,7 +325,7 @@ class RootCauseController extends Controller
         return 'Fakta: Net Sales '.$rangeText.' '.$direction.' Rp '.number_format(abs($net['delta']), 0, ',', '.').' dibanding '.$prevText.'.'.$mainDriverText.$returnText.$signalText;
     }
 
-    private function details(array $movement, array $drivers, Collection $returnDrivers, Collection $stockSignals, Collection $arSignals, string $startPeriod, string $endPeriod, string $prevStartPeriod, string $prevEndPeriod): array
+    private function detailedNarrative(array $movement, array $drivers, Collection $returnDrivers, Collection $stockSignals, Collection $arSignals, string $startPeriod, string $endPeriod, string $prevStartPeriod, string $prevEndPeriod): string
     {
         $rangeText = Carbon::parse($startPeriod.'-01')->translatedFormat('M Y').' sampai '.Carbon::parse($endPeriod.'-01')->translatedFormat('M Y');
         $prevText = Carbon::parse($prevStartPeriod.'-01')->translatedFormat('M Y').' sampai '.Carbon::parse($prevEndPeriod.'-01')->translatedFormat('M Y');
@@ -337,35 +336,26 @@ class RootCauseController extends Controller
         $grossDirection = $gross['delta'] >= 0 ? 'naik' : 'turun';
         $returnDirection = $returns['delta'] >= 0 ? 'naik' : 'turun';
 
-        return [
-            [
-                'title' => 'Kesimpulan utama',
-                'body' => 'Net Sales '.$rangeText.' '.$direction.' Rp '.number_format(abs($net['delta']), 0, ',', '.').' dibanding '.$prevText.'. Ini adalah angka setelah penjualan kotor dikurangi retur.',
-            ],
-            [
-                'title' => 'Kenapa bisa '.$direction,
-                'body' => 'Penjualan kotor '.$grossDirection.' Rp '.number_format(abs($gross['delta']), 0, ',', '.').', sementara retur '.$returnDirection.' Rp '.number_format(abs($returns['delta']), 0, ',', '.').'. Kalau Gross Sales naik lebih besar daripada kenaikan retur, Net Sales ikut naik. Kalau retur atau penurunan Gross Sales lebih dominan, Net Sales akan turun.',
-            ],
-            [
-                'title' => 'Penyumbang perubahan terbesar',
-                'body' => collect([
-                    $this->driverSentence('Produk', $drivers['products']->first()),
-                    $this->driverSentence('Outlet', $drivers['outlets']->first()),
-                    $this->driverSentence('Salesman', $drivers['salesmen']->first()),
-                    $this->driverSentence('Principal', $drivers['principals']->first()),
-                ])->filter()->implode(' '),
-            ],
-            [
-                'title' => 'Retur, stok, dan AR',
-                'body' => $this->operationSentence($returnDrivers, $stockSignals, $arSignals),
-            ],
-            [
-                'title' => 'Apa yang perlu dilakukan',
-                'body' => $net['delta'] >= 0
-                    ? 'Pertahankan driver yang naik paling besar, cek outlet/SKU yang masih turun supaya growth tidak hanya bergantung pada beberapa akun, dan pastikan retur tidak ikut membesar.'
-                    : 'Mulai dari driver yang turun paling besar, cek apakah penyebabnya order hilang, stok tidak siap, retur meningkat, atau outlet tertahan karena AR overdue.',
-            ],
-        ];
+        $driversText = collect([
+            $this->driverSentence('Produk', $drivers['products']->first()),
+            $this->driverSentence('Outlet', $drivers['outlets']->first()),
+            $this->driverSentence('Salesman', $drivers['salesmen']->first()),
+            $this->driverSentence('Principal', $drivers['principals']->first()),
+        ])->filter()->implode(' ');
+
+        $actionText = $net['delta'] >= 0
+            ? 'Arah tindakan: pertahankan driver yang naik paling besar, cek outlet/SKU yang masih turun supaya growth tidak hanya bergantung pada beberapa akun, dan pastikan retur tidak ikut membesar.'
+            : 'Arah tindakan: mulai dari driver yang turun paling besar, cek apakah penyebabnya order hilang, stok tidak siap, retur meningkat, atau outlet tertahan karena AR overdue.';
+
+        return 'Kesimpulan utama: Net Sales '.$rangeText.' '.$direction.' Rp '.number_format(abs($net['delta']), 0, ',', '.').' dibanding '.$prevText.'. Net Sales adalah angka setelah penjualan kotor dikurangi retur.'
+            ."\n"
+            .'Kenapa bisa '.$direction.': Penjualan kotor '.$grossDirection.' Rp '.number_format(abs($gross['delta']), 0, ',', '.').', sementara retur '.$returnDirection.' Rp '.number_format(abs($returns['delta']), 0, ',', '.').'. Kalau Gross Sales naik lebih besar daripada kenaikan retur, Net Sales ikut naik. Kalau retur atau penurunan Gross Sales lebih dominan, Net Sales akan turun.'
+            ."\n"
+            .'Penyumbang perubahan terbesar: '.$driversText
+            ."\n"
+            .'Retur, stok, dan AR: '.$this->operationSentence($returnDrivers, $stockSignals, $arSignals)
+            ."\n"
+            .$actionText;
     }
 
     private function driverSentence(string $label, ?object $driver): ?string
