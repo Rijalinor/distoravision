@@ -652,6 +652,10 @@
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
                         <span style="font-weight: 600; color: var(--text-primary);">Distora AI Assistant</span>
                     </a>
+                    <a href="{{ route('analytics.root-cause') }}" class="nav-link {{ request()->routeIs('analytics.root-cause') ? 'active' : '' }}" title="Root Cause Analysis: bedah perubahan Net Sales sampai driver produk, outlet, salesman, principal, retur, stok, dan AR.">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-6m3 6V7m4 14H5a2 2 0 01-2-2V5a2 2 0 012-2h4l2 2h8a2 2 0 012 2v12a2 2 0 01-2 2z"></path></svg>
+                        Root Cause Analysis
+                    </a>
                     <a href="{{ route('salesmen.index') }}" class="nav-link {{ request()->routeIs('salesmen.*') || request()->routeIs('analytics.target-tracker') ? 'active' : '' }}" title="Salesman Intelligence: Performa salesman harian dan Target Tracker.">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                         Salesman Intelligence

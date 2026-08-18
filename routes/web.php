@@ -22,6 +22,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RegionalController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\RestockPredictorController;
+use App\Http\Controllers\RootCauseController;
 use App\Http\Controllers\SalesmanController;
 use App\Http\Controllers\SalesmanDashboardController;
 use App\Http\Controllers\SalesmanProfitabilityController;
@@ -128,6 +129,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/analytics/salesman-profitability', [SalesmanProfitabilityController::class, 'salesmanProfitability'])->name('analytics.salesman-profitability');
     Route::get('/analytics/outlet-trajectory', [OutletTrajectoryController::class, 'outletTrajectory'])->name('analytics.outlet-trajectory');
     Route::get('/analytics/product-trajectory', [ProductTrajectoryController::class, 'index'])->name('analytics.product-trajectory');
+    Route::get('/analytics/root-cause', [RootCauseController::class, 'index'])->name('analytics.root-cause');
 
     // AI Chat
     Route::get('/ai-chat', [AiChatController::class, 'index'])->name('ai-chat.index');
