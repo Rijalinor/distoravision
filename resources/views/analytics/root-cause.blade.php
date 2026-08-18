@@ -10,12 +10,13 @@
 @section('content')
 <style>
     .rca-movement-grid { display:grid; grid-template-columns:1.4fr 1fr 1fr; gap:1rem; align-items:stretch; }
+    .rca-guide-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:0.9rem; }
     .rca-kpi-grid { grid-template-columns:repeat(4, 1fr); margin-bottom:1.25rem; }
     @media (max-width: 900px) {
-        .rca-movement-grid, .rca-kpi-grid { grid-template-columns:1fr 1fr; }
+        .rca-movement-grid, .rca-guide-grid, .rca-kpi-grid { grid-template-columns:1fr 1fr; }
     }
     @media (max-width: 560px) {
-        .rca-movement-grid, .rca-kpi-grid { grid-template-columns:1fr; }
+        .rca-movement-grid, .rca-guide-grid, .rca-kpi-grid { grid-template-columns:1fr; }
     }
 </style>
 @php
@@ -27,6 +28,26 @@
 @endphp
 
 @include('components.ai-insight')
+
+<div class="card" style="margin-bottom:1.25rem;border-left:4px solid var(--accent-blue);">
+    <div class="card-header">
+        <span class="card-title">Cara Baca Halaman Ini</span>
+    </div>
+    <div class="rca-guide-grid">
+        <div style="padding:0.85rem;border:1px solid var(--border-color);border-radius:8px;background:var(--bg-darker);">
+            <div style="font-weight:900;color:var(--text-primary);">1. Lihat hasil utama</div>
+            <div class="text-muted" style="font-size:0.78rem;margin-top:0.35rem;">Net Sales Movement menunjukkan bisnis naik atau turun dibanding periode sebelumnya.</div>
+        </div>
+        <div style="padding:0.85rem;border:1px solid var(--border-color);border-radius:8px;background:var(--bg-darker);">
+            <div style="font-weight:900;color:var(--text-primary);">2. Cari penyebab terbesar</div>
+            <div class="text-muted" style="font-size:0.78rem;margin-top:0.35rem;">Driver Produk, Outlet, Salesman, dan Principal menunjukkan siapa yang paling mengubah angka.</div>
+        </div>
+        <div style="padding:0.85rem;border:1px solid var(--border-color);border-radius:8px;background:var(--bg-darker);">
+            <div style="font-weight:900;color:var(--text-primary);">3. Cek tindakan</div>
+            <div class="text-muted" style="font-size:0.78rem;margin-top:0.35rem;">Retur, stok, dan AR membantu menentukan apakah masalahnya demand, barang, atau tagihan.</div>
+        </div>
+    </div>
+</div>
 
 <div class="card" style="margin-bottom:1.25rem;">
     <div class="card-header" style="display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;flex-wrap:wrap;">
@@ -41,27 +62,27 @@
 
     <div class="rca-movement-grid">
         <div style="padding:1rem;border:1px solid var(--border-color);border-radius:8px;background:var(--bg-darker);">
-            <div class="card-title" style="font-size:0.72rem;">Net Sales Movement</div>
+            <div class="card-title" style="font-size:0.72rem;">1. Hasil Utama Net Sales</div>
             <div style="font-size:2rem;font-weight:900;color:{{ $trendColor($movement['net_sales']['delta']) }};line-height:1.1;margin-top:0.45rem;">
                 {{ $signedMoney($movement['net_sales']['delta']) }}
             </div>
             <div class="text-muted" style="font-size:0.78rem;margin-top:0.45rem;">
-                Sekarang {{ $money($currentKpis->net_sales) }} vs sebelumnya {{ $money($previousKpis->net_sales) }}
+                Net Sales sekarang {{ $money($currentKpis->net_sales) }}. Periode pembanding {{ $money($previousKpis->net_sales) }}.
             </div>
         </div>
         <div style="padding:1rem;border:1px solid var(--border-color);border-radius:8px;background:var(--bg-darker);">
-            <div class="card-title" style="font-size:0.72rem;">Gross Sales</div>
+            <div class="card-title" style="font-size:0.72rem;">Penjualan Kotor</div>
             <div style="font-size:1.35rem;font-weight:900;color:{{ $trendColor($movement['gross_sales']['delta']) }};margin-top:0.55rem;">
                 {{ $signedMoney($movement['gross_sales']['delta']) }}
             </div>
-            <div class="text-muted" style="font-size:0.75rem;margin-top:0.4rem;">{{ $pct($movement['gross_sales']['pct']) }} vs pembanding</div>
+            <div class="text-muted" style="font-size:0.75rem;margin-top:0.4rem;">Sebelum dikurangi retur. {{ $pct($movement['gross_sales']['pct']) }} vs pembanding.</div>
         </div>
         <div style="padding:1rem;border:1px solid var(--border-color);border-radius:8px;background:var(--bg-darker);">
-            <div class="card-title" style="font-size:0.72rem;">Returns Impact</div>
+            <div class="card-title" style="font-size:0.72rem;">Dampak Retur</div>
             <div style="font-size:1.35rem;font-weight:900;color:{{ $movement['returns']['delta'] > 0 ? 'var(--accent-red)' : 'var(--accent-green)' }};margin-top:0.55rem;">
                 {{ $signedMoney($movement['returns']['delta']) }}
             </div>
-            <div class="text-muted" style="font-size:0.75rem;margin-top:0.4rem;">Return rate {{ number_format($currentKpis->return_rate, 1, ',', '.') }}%</div>
+            <div class="text-muted" style="font-size:0.75rem;margin-top:0.4rem;">Kalau merah berarti retur membesar. Return rate {{ number_format($currentKpis->return_rate, 1, ',', '.') }}%</div>
         </div>
     </div>
 </div>
@@ -91,10 +112,10 @@
 
 <div class="grid-2" style="gap:1.25rem;">
     @foreach([
-        'products' => ['title' => 'Driver Produk', 'meta' => 'Principal'],
-        'outlets' => ['title' => 'Driver Outlet', 'meta' => 'Kota'],
-        'salesmen' => ['title' => 'Driver Salesman', 'meta' => 'Kode'],
-        'principals' => ['title' => 'Driver Principal', 'meta' => ''],
+        'products' => ['title' => '2. Produk Paling Mempengaruhi', 'meta' => 'Principal'],
+        'outlets' => ['title' => '2. Outlet Paling Mempengaruhi', 'meta' => 'Kota'],
+        'salesmen' => ['title' => '2. Salesman Paling Mempengaruhi', 'meta' => 'Kode'],
+        'principals' => ['title' => '2. Principal Paling Mempengaruhi', 'meta' => ''],
     ] as $key => $config)
     <div class="card">
         <div class="card-header">
@@ -105,8 +126,8 @@
                 <thead>
                     <tr>
                         <th>Nama</th>
-                        <th class="text-right">Sekarang</th>
-                        <th class="text-right">Delta</th>
+                        <th class="text-right">Net Sales</th>
+                        <th class="text-right">Naik/Turun</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -132,14 +153,14 @@
 <div class="grid-2" style="gap:1.25rem;margin-top:1.25rem;">
     <div class="card">
         <div class="card-header">
-            <span class="card-title">Tekanan Retur Produk</span>
+            <span class="card-title">3. Produk yang Returnya Membesar</span>
         </div>
         <table class="data-table">
             <thead>
                 <tr>
                     <th>Produk</th>
-                    <th class="text-right">Retur</th>
-                    <th class="text-right">Delta</th>
+                    <th class="text-right">Retur Saat Ini</th>
+                    <th class="text-right">Naik/Turun</th>
                 </tr>
             </thead>
             <tbody>
@@ -161,7 +182,7 @@
 
     <div class="card">
         <div class="card-header">
-            <span class="card-title">Sinyal Penyebab Operasional</span>
+            <span class="card-title">3. Sinyal yang Perlu Dicek Tim</span>
         </div>
         <div style="display:grid;gap:0.75rem;">
             <div style="border:1px solid var(--border-color);border-radius:8px;padding:0.9rem;background:var(--bg-darker);">
