@@ -11,9 +11,20 @@
                 Ringkasan Otomatis
                 <span class="badge badge-blue">berdasarkan data aktif</span>
             </h3>
-            <p>
-                {!! nl2br(e($aiNarrative)) !!}
-            </p>
+            @php
+                $narrativeLines = collect(preg_split('/\R+/', trim($aiNarrative)))->filter()->values();
+                $leadNarrative = $narrativeLines->take(1)->implode("\n");
+                $detailNarrative = $narrativeLines->slice(1)->implode("\n");
+            @endphp
+            <p>{!! nl2br(e($leadNarrative)) !!}</p>
+            @if($detailNarrative)
+                <details style="margin-top:0.6rem;">
+                    <summary style="cursor:pointer;color:var(--primary-light);font-weight:800;font-size:0.75rem;">
+                        Lihat detail penyebab
+                    </summary>
+                    <p style="margin-top:0.55rem;">{!! nl2br(e($detailNarrative)) !!}</p>
+                </details>
+            @endif
         </div>
     </div>
 </div>
